@@ -31,9 +31,11 @@ public enum TranscriptChunker {
     // MARK: Summary
 
     public static func summaryPlan(
-        conversation: Conversation, transcript: Transcript, language: OutputLanguage, contextWindow: Int
+        conversation: Conversation, transcript: Transcript, language: OutputLanguage, length: AnswerLength = .full,
+        contextWindow: Int
     ) -> SummaryPlan {
-        let single = PromptBuilder.summaryMessages(conversation: conversation, transcript: transcript, language: language)
+        let single = PromptBuilder.summaryMessages(
+            conversation: conversation, transcript: transcript, language: language, length: length)
         if tokens(single) <= budget(contextWindow: contextWindow, instructionTokens: 0) { return .singlePass }
         let lines = lineTokens(transcript.segments, transcript: transcript)
         let map = PromptBuilder.mapMessages(
@@ -48,10 +50,10 @@ public enum TranscriptChunker {
     /// whose reduce is the summary.
     public static func reduceGroups(
         notes: [String], conversation: Conversation, transcript: Transcript, language: OutputLanguage,
-        contextWindow: Int
+        length: AnswerLength = .full, contextWindow: Int
     ) -> [[String]] {
         let instructions = PromptBuilder.reduceMessages(
-            conversation: conversation, transcript: transcript, notes: [], language: language)
+            conversation: conversation, transcript: transcript, notes: [], language: language, length: length)
         let limit = budget(contextWindow: contextWindow, instructionTokens: tokens(instructions))
         var groups: [[String]] = []
         var group: [String] = []
@@ -105,13 +107,13 @@ public enum TranscriptChunker {
     /// that fit (next to the saved summary and the chat `history`), merged and in time order.
     public static func questionExcerpts(
         conversation: Conversation, transcript: Transcript, question: String, summary: String?, contextWindow: Int,
-        history: [LLMMessage] = [], language: OutputLanguage? = nil
+        history: [LLMMessage] = [], language: OutputLanguage? = nil, length: AnswerLength = .full
     ) -> [[Transcript.Segment]] {
         var empty = transcript
         empty.segments = []
         let instructions = PromptBuilder.questionMessages(
             conversation: conversation, transcript: empty, excerpts: [], summary: summary, question: question,
-            history: history, language: language)
+            history: history, language: language, length: length)
         let limit = budget(contextWindow: contextWindow, instructionTokens: tokens(instructions))
         let lines = lineTokens(transcript.segments, transcript: transcript)
         if lines.reduce(0, +) <= limit { return [transcript.segments] }

@@ -107,6 +107,8 @@ public sealed class SettingsTests : IDisposable
     [InlineData("""{"playbackChannels":"surround"}""", "playbackChannels", "\"mixed\"")]
     [InlineData("""{"autoDeleteMode":"shred"}""", "autoDeleteMode", "\"audioOnly\"")]
     [InlineData("""{"pillSize":"huge"}""", "pillSize", "\"medium\"")]
+    [InlineData("""{"catchUpLength":"tiny"}""", "catchUpLength", "\"concise\"")]
+    [InlineData("""{"chatLength":"full"}""", "chatLength", "\"full\"")]
     [InlineData("""{"perAppBehavior":null}""", "perAppBehavior", "{}")]
     [InlineData("""{"globalHotKeyWindows":{"virtualKey":65,"modifiers":4}}""", "globalHotKeyWindows",
         """{"virtualKey":82,"modifiers":3}""")]
@@ -432,6 +434,7 @@ public sealed class SettingsTests : IDisposable
           "playbackChannels": "mixed",
           "onboardingCompleted": false, "modelIdleMinutes": 2, "providers": [], "cloudSTTConfirmed": [],
           "catchUpProviderID": "", "catchUpModel": "", "catchUpFromStart": false,
+          "summaryLength": "concise", "chatLength": "concise", "catchUpLength": "concise",
           "summaryLanguage": "auto", "chatContextMessages": 10, "ragEnabled": false,
           "embeddingModelID": "gguf-qwen3-embedding-0.6b", "embeddingAPIModel": "", "cloudEmbeddingConfirmed": [],
           "meetingDetection": true, "perAppBehavior": {}, "pillPositions": {}, "showPill": true,
@@ -447,7 +450,7 @@ public sealed class SettingsTests : IDisposable
           "globalHotKeyWindows": {"virtualKey": 82, "modifiers": 3}, "globalHotKeyEnabled": true,
           "globalPauseHotKeyWindows": {"virtualKey": 80, "modifiers": 3}, "globalPauseHotKeyEnabled": true,
           "autoExcludedProviderIDs": [], "providerAvailabilityMigrated": false, "aiSettingsMigrated": false,
-          "cloudLiveSource": "off", "realtimeAsFinal": false
+          "cloudLiveSource": "off", "realtimeAsFinal": false, "libraryPageSize": 100
         }
         """;
 }

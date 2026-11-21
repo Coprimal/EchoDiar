@@ -202,6 +202,14 @@
     <value>Permitir micrófono</value>
     <comment>Allow Microphone</comment>
   </data>
+  <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
+    <value>También responde en la pestaña Chat durante la grabación.</value>
+    <comment>Also answers the Chat tab while recording.</comment>
+  </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>También para las respuestas de la pestaña Chat durante la grabación. Conciso: unas pocas viñetas cortas.</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Siempre para {0}</value>
     <comment>Always for %@</comment>
@@ -209,6 +217,10 @@
   <data name="AlwaysRecord" xml:space="preserve">
     <value>Grabar siempre</value>
     <comment>Always record</comment>
+  </data>
+  <data name="AnAnswerIsBeingWritten" xml:space="preserve">
+    <value>Se está escribiendo una respuesta.</value>
+    <comment>An answer is being written.</comment>
   </data>
   <data name="AnUpdateIsAvailableUpdateInTheToolbarInstallsIt" xml:space="preserve">
     <value>Hay una actualización disponible: Actualizar, en la barra de herramientas, la instala.</value>
@@ -229,6 +241,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>otra conversación</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>Longitud de las respuestas</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>Respondiendo…</value>
@@ -305,6 +321,10 @@
   <data name="AskAQuestionAboutThisConversationBelow" xml:space="preserve">
     <value>Haz una pregunta sobre esta conversación aquí abajo.</value>
     <comment>Ask a question about this conversation below.</comment>
+  </data>
+  <data name="AskAboutTheMeetingSoFar" xml:space="preserve">
+    <value>Pregunta sobre la reunión hasta ahora.</value>
+    <comment>Ask about the meeting so far.</comment>
   </data>
   <data name="AskAboutThisConversation" xml:space="preserve">
     <value>Pregunta sobre esta conversación</value>
@@ -514,6 +534,10 @@
     <value>Puesta al día en {0}</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>Longitud de la puesta al día</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>Modelo de puesta al día</value>
     <comment>Catch-up model</comment>
@@ -593,6 +617,10 @@
   <data name="ChooseWhatToRecordAndTheLanguage" xml:space="preserve">
     <value>Elige qué grabar y el idioma</value>
     <comment>Choose what to record and the language</comment>
+  </data>
+  <data name="ClearSearch" xml:space="preserve">
+    <value>Borrar la búsqueda</value>
+    <comment>Clear search</comment>
   </data>
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>Haz clic para definir un nuevo atajo</value>
@@ -677,6 +705,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>Error de compresión</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>Conciso</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>Conciso: de una a tres frases o unas pocas viñetas cortas.</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>Conciso: los puntos principales, con cada decisión y tarea pendiente.</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>Confirmar…</value>
@@ -1230,6 +1270,10 @@
     <value>Introduce el modelo de embeddings de {0} en Ajustes › RAG</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
   </data>
+  <data name="EntriesPerPage" xml:space="preserve">
+    <value>Entradas por página</value>
+    <comment>Entries per page</comment>
+  </data>
   <data name="EveryLicenseAboveInOneTextFile" xml:space="preserve">
     <value>Todas las licencias anteriores en un solo archivo de texto.</value>
     <comment>Every license above in one text file.</comment>
@@ -1294,6 +1338,10 @@
     <value>Francés</value>
     <comment>French</comment>
   </data>
+  <data name="Full" xml:space="preserve">
+    <value>Completo</value>
+    <comment>Full</comment>
+  </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
     <comment>%@ GB</comment>
@@ -1349,6 +1397,14 @@
   <data name="HideItWhileAnEchoDiarWindowIsInFront" xml:space="preserve">
     <value>Ocultarlo cuando haya una ventana de EchoDiar delante</value>
     <comment>Hide it while an EchoDiar window is in front</comment>
+  </data>
+  <data name="HideSidebar" xml:space="preserve">
+    <value>Ocultar la barra lateral</value>
+    <comment>Hide Sidebar</comment>
+  </data>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>Ocultar la barra lateral (⌘B)</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>Historial</value>
@@ -1574,6 +1630,14 @@
     <value>Conversaciones más grandes</value>
     <comment>Largest conversations</comment>
   </data>
+  <data name="Last30Days" xml:space="preserve">
+    <value>Últimos 30 días</value>
+    <comment>Last 30 days</comment>
+  </data>
+  <data name="Last7Days" xml:space="preserve">
+    <value>Últimos 7 días</value>
+    <comment>Last 7 days</comment>
+  </data>
   <data name="LastChecked" xml:space="preserve">
     <value>Última comprobación: {0}</value>
     <comment>Last checked %@</comment>
@@ -1613,6 +1677,10 @@
   <data name="Listening" xml:space="preserve">
     <value>Escuchando…</value>
     <comment>Listening…</comment>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>En directo</value>
+    <comment>Live</comment>
   </data>
   <data name="LiveModel" xml:space="preserve">
     <value>Modelo en directo</value>
@@ -1689,6 +1757,10 @@
   <data name="LldLanguages__One" xml:space="preserve">
     <value>{0} idioma</value>
     <comment>%lld languages</comment>
+  </data>
+  <data name="LldLldOfLld" xml:space="preserve">
+    <value>{0}–{1} de {2}</value>
+    <comment>%lld–%lld of %lld</comment>
   </data>
   <data name="LldMB" xml:space="preserve">
     <value>{0} MB</value>
@@ -1878,6 +1950,10 @@
     <value>Modelo</value>
     <comment>Model</comment>
   </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>Modelo para puestas al día y chat en directo</value>
+    <comment>Model for catch-ups and live chat</comment>
+  </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>Modelo para preguntas</value>
     <comment>Model for questions</comment>
@@ -2010,6 +2086,10 @@
     <value>Nuevo evento…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>Página siguiente</value>
+    <comment>Next page</comment>
+  </data>
   <data name="NextRunLldConversations" xml:space="preserve">
     <value>Próxima ejecución: {0} conversaciones</value>
     <comment>Next run: %lld conversations</comment>
@@ -2037,6 +2117,10 @@
   <data name="NoCalendarAccountCanHoldEchoDiarSCalendar" xml:space="preserve">
     <value>Ninguna cuenta de calendario puede alojar el calendario de EchoDiar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
+  </data>
+  <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
+    <value>Aún no hay ninguna puesta al día. Pulsa Ponerse al día para resumir la reunión hasta ahora.</value>
+    <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
   </data>
   <data name="NoConversationsMatch" xml:space="preserve">
     <value>Ninguna conversación coincide con "{0}"</value>
@@ -2182,6 +2266,10 @@
     <value>Nada nuevo desde la última puesta al día</value>
     <comment>Nothing new since the last catch-up</comment>
   </data>
+  <data name="NothingToAskAboutYet" xml:space="preserve">
+    <value>Aún no hay nada sobre lo que preguntar.</value>
+    <comment>Nothing to ask about yet.</comment>
+  </data>
   <data name="NothingToCatchUpOnYet" xml:space="preserve">
     <value>Aún no hay nada que resumir.</value>
     <comment>Nothing to catch up on yet.</comment>
@@ -2221,6 +2309,10 @@
   <data name="OffersToRecordWhenAMeetingAppStartsUsingTheMicrophone" xml:space="preserve">
     <value>Ofrece grabar cuando una app de reuniones empieza a usar el micrófono.</value>
     <comment>Offers to record when a meeting app starts using the microphone.</comment>
+  </data>
+  <data name="Older" xml:space="preserve">
+    <value>Más antiguas</value>
+    <comment>Older</comment>
   </data>
   <data name="OlderThan" xml:space="preserve">
     <value>Con más de</value>
@@ -2501,6 +2593,14 @@
   <data name="PressToStartRecordingFromAnywhere" xml:space="preserve">
     <value>Pulsa {0} para empezar a grabar desde cualquier lugar.</value>
     <comment>Press %@ to start recording from anywhere.</comment>
+  </data>
+  <data name="Previous3Days" xml:space="preserve">
+    <value>3 días anteriores</value>
+    <comment>Previous 3 days</comment>
+  </data>
+  <data name="PreviousPage" xml:space="preserve">
+    <value>Página anterior</value>
+    <comment>Previous page</comment>
   </data>
   <data name="PricesAreApproximateListPricesPerAudioHourTheMicAndSystemCha" xml:space="preserve">
     <value>Los precios son precios de lista aproximados por hora de audio; los canales del micrófono y del sistema se envían y se facturan por separado.</value>
@@ -2926,6 +3026,14 @@
     <value>Volver a mostrar la introducción</value>
     <comment>Show onboarding again</comment>
   </data>
+  <data name="ShowSidebar" xml:space="preserve">
+    <value>Mostrar la barra lateral</value>
+    <comment>Show Sidebar</comment>
+  </data>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>Mostrar la barra lateral (⌘B)</value>
+    <comment>Show Sidebar (⌘B)</comment>
+  </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>Mostrar los demás hablantes</value>
     <comment>Show the other speakers</comment>
@@ -3166,6 +3274,10 @@
     <value>Resumir la reunión hasta ahora, sobre todo sus últimos 5 minutos</value>
     <comment>Summarize the meeting so far, mostly its last 5 minutes</comment>
   </data>
+  <data name="SummarizeWhatIsNewSinceTheLastCatchUp" xml:space="preserve">
+    <value>Resumir lo nuevo desde la última puesta al día</value>
+    <comment>Summarize what is new since the last catch-up</comment>
+  </data>
   <data name="Summarizing" xml:space="preserve">
     <value>Resumiendo</value>
     <comment>Summarizing</comment>
@@ -3185,6 +3297,10 @@
   <data name="Summary" xml:space="preserve">
     <value>Resumen</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>Longitud del resumen</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>Modelo de resumen</value>

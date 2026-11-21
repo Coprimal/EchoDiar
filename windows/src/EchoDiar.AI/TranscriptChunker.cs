@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Settings;
 
 namespace EchoDiar.AI;
 
@@ -41,11 +42,12 @@ public static class TranscriptChunker
 
     // Summary
 
-    /// <summary>Swift <c>summaryPlan(conversation:transcript:language:contextWindow:)</c>.</summary>
+    /// <summary>Swift <c>summaryPlan(conversation:transcript:language:length:contextWindow:)</c>.</summary>
     public static SummaryPlan PlanSummary(
-        Conversation conversation, Transcript transcript, OutputLanguage language, int contextWindow)
+        Conversation conversation, Transcript transcript, OutputLanguage language, int contextWindow,
+        AnswerLength length = AnswerLength.Full)
     {
-        var single = PromptBuilder.SummaryMessages(conversation, transcript, language);
+        var single = PromptBuilder.SummaryMessages(conversation, transcript, language, length);
         if (Tokens(single) <= Budget(contextWindow, 0)) return new SummaryPlan.SinglePass();
         var lines = LineTokens(transcript.Segments, transcript);
         var map = PromptBuilder.MapMessages(
@@ -63,9 +65,9 @@ public static class TranscriptChunker
     /// </summary>
     public static List<List<string>> ReduceGroups(
         IReadOnlyList<string> notes, Conversation conversation, Transcript transcript, OutputLanguage language,
-        int contextWindow)
+        int contextWindow, AnswerLength length = AnswerLength.Full)
     {
-        var instructions = PromptBuilder.ReduceMessages(conversation, transcript, [], language);
+        var instructions = PromptBuilder.ReduceMessages(conversation, transcript, [], language, length);
         var limit = Budget(contextWindow, Tokens(instructions));
         var groups = new List<List<string>>();
         var group = new List<string>();
@@ -129,11 +131,11 @@ public static class TranscriptChunker
     /// </summary>
     public static List<List<Transcript.Segment>> QuestionExcerpts(
         Conversation conversation, Transcript transcript, string question, string? summary, int contextWindow,
-        IReadOnlyList<LLMMessage>? history = null, OutputLanguage? language = null)
+        IReadOnlyList<LLMMessage>? history = null, OutputLanguage? language = null, AnswerLength length = AnswerLength.Full)
     {
         var empty = transcript with { Segments = [] };
         var instructions = PromptBuilder.QuestionMessages(
-            conversation, empty, [], summary, question, history, language);
+            conversation, empty, [], summary, question, history, language, length);
         var limit = Budget(contextWindow, Tokens(instructions));
         var segments = transcript.Segments;
         var lines = LineTokens(segments, transcript);

@@ -178,6 +178,14 @@
     <value>允许使用麦克风</value>
     <comment>Allow Microphone</comment>
   </data>
+  <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
+    <value>录音时也用于回答“聊天”标签页中的问题。</value>
+    <comment>Also answers the Chat tab while recording.</comment>
+  </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>录音时也用于“聊天”标签页中的回答。简洁：几条简短要点。</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>始终录制 {0}</value>
     <comment>Always for %@</comment>
@@ -185,6 +193,10 @@
   <data name="AlwaysRecord" xml:space="preserve">
     <value>始终录制</value>
     <comment>Always record</comment>
+  </data>
+  <data name="AnAnswerIsBeingWritten" xml:space="preserve">
+    <value>正在生成回答。</value>
+    <comment>An answer is being written.</comment>
   </data>
   <data name="AnUpdateIsAvailableUpdateInTheToolbarInstallsIt" xml:space="preserve">
     <value>有可用更新：点击工具栏中的“更新”即可安装。</value>
@@ -205,6 +217,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>另一个对话</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>回答长度</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>正在回答…</value>
@@ -281,6 +297,10 @@
   <data name="AskAQuestionAboutThisConversationBelow" xml:space="preserve">
     <value>在下方就此对话提问。</value>
     <comment>Ask a question about this conversation below.</comment>
+  </data>
+  <data name="AskAboutTheMeetingSoFar" xml:space="preserve">
+    <value>就会议至今的内容提问。</value>
+    <comment>Ask about the meeting so far.</comment>
   </data>
   <data name="AskAboutThisConversation" xml:space="preserve">
     <value>就此对话提问</value>
@@ -490,6 +510,10 @@
     <value>{0} 时的回顾</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>回顾长度</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>回顾模型</value>
     <comment>Catch-up model</comment>
@@ -569,6 +593,10 @@
   <data name="ChooseWhatToRecordAndTheLanguage" xml:space="preserve">
     <value>选择要录制的内容和语言</value>
     <comment>Choose what to record and the language</comment>
+  </data>
+  <data name="ClearSearch" xml:space="preserve">
+    <value>清除搜索</value>
+    <comment>Clear search</comment>
   </data>
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>点按以录制新的快捷键</value>
@@ -653,6 +681,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>压缩失败</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>简洁</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>简洁：一到三句话或几条简短要点。</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>简洁：主要要点，并保留每项决定和待办事项。</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>确认…</value>
@@ -1182,6 +1222,10 @@
     <value>在“设置 › RAG”中输入 {0} 的嵌入模型</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
   </data>
+  <data name="EntriesPerPage" xml:space="preserve">
+    <value>每页条目数</value>
+    <comment>Entries per page</comment>
+  </data>
   <data name="EveryLicenseAboveInOneTextFile" xml:space="preserve">
     <value>上述所有许可证，汇总在一个文本文件中。</value>
     <comment>Every license above in one text file.</comment>
@@ -1246,6 +1290,10 @@
     <value>法语</value>
     <comment>French</comment>
   </data>
+  <data name="Full" xml:space="preserve">
+    <value>完整</value>
+    <comment>Full</comment>
+  </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
     <comment>%@ GB</comment>
@@ -1301,6 +1349,14 @@
   <data name="HideItWhileAnEchoDiarWindowIsInFront" xml:space="preserve">
     <value>EchoDiar 窗口位于最前面时隐藏</value>
     <comment>Hide it while an EchoDiar window is in front</comment>
+  </data>
+  <data name="HideSidebar" xml:space="preserve">
+    <value>隐藏边栏</value>
+    <comment>Hide Sidebar</comment>
+  </data>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>隐藏边栏（⌘B）</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>历史记录</value>
@@ -1522,6 +1578,14 @@
     <value>最大的对话</value>
     <comment>Largest conversations</comment>
   </data>
+  <data name="Last30Days" xml:space="preserve">
+    <value>最近 30 天</value>
+    <comment>Last 30 days</comment>
+  </data>
+  <data name="Last7Days" xml:space="preserve">
+    <value>最近 7 天</value>
+    <comment>Last 7 days</comment>
+  </data>
   <data name="LastChecked" xml:space="preserve">
     <value>上次检查：{0}</value>
     <comment>Last checked %@</comment>
@@ -1561,6 +1625,10 @@
   <data name="Listening" xml:space="preserve">
     <value>正在聆听…</value>
     <comment>Listening…</comment>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>实时</value>
+    <comment>Live</comment>
   </data>
   <data name="LiveModel" xml:space="preserve">
     <value>实时转写模型</value>
@@ -1621,6 +1689,10 @@
   <data name="LldLanguages" xml:space="preserve">
     <value>{0} 种语言</value>
     <comment>%lld languages</comment>
+  </data>
+  <data name="LldLldOfLld" xml:space="preserve">
+    <value>第 {0}–{1} 条，共 {2} 条</value>
+    <comment>%lld–%lld of %lld</comment>
   </data>
   <data name="LldMB" xml:space="preserve">
     <value>{0} MB</value>
@@ -1790,6 +1862,10 @@
     <value>模型</value>
     <comment>Model</comment>
   </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>用于回顾和实时聊天的模型</value>
+    <comment>Model for catch-ups and live chat</comment>
+  </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>用于提问的模型</value>
     <comment>Model for questions</comment>
@@ -1922,6 +1998,10 @@
     <value>新建日程…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>下一页</value>
+    <comment>Next page</comment>
+  </data>
   <data name="NextRunLldConversations" xml:space="preserve">
     <value>下次运行：{0} 个对话</value>
     <comment>Next run: %lld conversations</comment>
@@ -1945,6 +2025,10 @@
   <data name="NoCalendarAccountCanHoldEchoDiarSCalendar" xml:space="preserve">
     <value>没有日历账户可以存放 EchoDiar 的日历。</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
+  </data>
+  <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
+    <value>还没有回顾。点按“快速回顾”即可总结会议至今的内容。</value>
+    <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
   </data>
   <data name="NoConversationsMatch" xml:space="preserve">
     <value>没有与“{0}”匹配的对话</value>
@@ -2090,6 +2174,10 @@
     <value>自上次回顾以来没有新内容</value>
     <comment>Nothing new since the last catch-up</comment>
   </data>
+  <data name="NothingToAskAboutYet" xml:space="preserve">
+    <value>暂时还没有可提问的内容。</value>
+    <comment>Nothing to ask about yet.</comment>
+  </data>
   <data name="NothingToCatchUpOnYet" xml:space="preserve">
     <value>暂时还没有可回顾的内容。</value>
     <comment>Nothing to catch up on yet.</comment>
@@ -2129,6 +2217,10 @@
   <data name="OffersToRecordWhenAMeetingAppStartsUsingTheMicrophone" xml:space="preserve">
     <value>会议应用开始使用麦克风时提示录制。</value>
     <comment>Offers to record when a meeting app starts using the microphone.</comment>
+  </data>
+  <data name="Older" xml:space="preserve">
+    <value>更早</value>
+    <comment>Older</comment>
   </data>
   <data name="OlderThan" xml:space="preserve">
     <value>超过</value>
@@ -2409,6 +2501,14 @@
   <data name="PressToStartRecordingFromAnywhere" xml:space="preserve">
     <value>在任何地方按下 {0} 即可开始录音。</value>
     <comment>Press %@ to start recording from anywhere.</comment>
+  </data>
+  <data name="Previous3Days" xml:space="preserve">
+    <value>前 3 天</value>
+    <comment>Previous 3 days</comment>
+  </data>
+  <data name="PreviousPage" xml:space="preserve">
+    <value>上一页</value>
+    <comment>Previous page</comment>
   </data>
   <data name="PricesAreApproximateListPricesPerAudioHourTheMicAndSystemCha" xml:space="preserve">
     <value>价格为每音频小时的大致标价；麦克风声道和系统声道会分别发送和计费。</value>
@@ -2834,6 +2934,14 @@
     <value>再次显示引导</value>
     <comment>Show onboarding again</comment>
   </data>
+  <data name="ShowSidebar" xml:space="preserve">
+    <value>显示边栏</value>
+    <comment>Show Sidebar</comment>
+  </data>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>显示边栏（⌘B）</value>
+    <comment>Show Sidebar (⌘B)</comment>
+  </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>显示其他说话人</value>
     <comment>Show the other speakers</comment>
@@ -3074,6 +3182,10 @@
     <value>总结会议至今的内容，重点是最近 5 分钟</value>
     <comment>Summarize the meeting so far, mostly its last 5 minutes</comment>
   </data>
+  <data name="SummarizeWhatIsNewSinceTheLastCatchUp" xml:space="preserve">
+    <value>总结自上次回顾以来的新内容</value>
+    <comment>Summarize what is new since the last catch-up</comment>
+  </data>
   <data name="Summarizing" xml:space="preserve">
     <value>正在生成摘要</value>
     <comment>Summarizing</comment>
@@ -3093,6 +3205,10 @@
   <data name="Summary" xml:space="preserve">
     <value>摘要</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>摘要长度</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>摘要模型</value>

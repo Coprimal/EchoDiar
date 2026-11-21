@@ -98,7 +98,8 @@ struct AIPanelView: View {
         }
         .task(id: LoadKey(id: conversation.id, hasTranscript: conversation.hasTranscript,
                           jobsEnded: model.aiJobEnds[conversation.id] ?? 0)) { await load() }
-        // Start fresh, Resume and a new title: the chat and the history only (`load()` resets the shown version).
+        // Start fresh, Resume, a new title and a live answer saved: the chat and the history only (`load()` resets the
+        // shown version).
         .task(id: HistoryKey(id: conversation.id, changes: model.chatHistoryChanges)) { await loadChat() }
         // Again when a catch-up still writing at Stop saves its card.
         .task(id: CatchUpKey(id: conversation.id, saved: model.recordingCatchUps.count)) { await loadCatchUps() }
@@ -154,7 +155,7 @@ struct AIPanelView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     ForEach(Array(chat.enumerated()), id: \.offset) { _, message in
-                        messageView(message.role, text: message.text, model: message.model)
+                        messageView(message.role, text: message.text, model: message.model, live: message.live == true)
                     }
                     if let job = questionJob, case .question(let asked) = job.payload.kind {
                         messageView(.user, text: asked, model: nil)
@@ -183,18 +184,22 @@ struct AIPanelView: View {
     }
 
     @ViewBuilder private func messageView(
-        _ role: ChatLog.Message.Role, text: String, model: String?, isStreaming: Bool = false
+        _ role: ChatLog.Message.Role, text: String, model: String?, isStreaming: Bool = false, live: Bool = false
     ) -> some View {
         if role == .user {
-            Text(text)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Palette.hoverFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            VStack(alignment: .trailing, spacing: 6) {
+                Text(text)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Palette.hoverFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                if live { liveBadge }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 MarkdownText(text: text)
                 HStack(spacing: 6) {
+                    if live { liveBadge }
                     if let model, !model.isEmpty {
                         Text(model)
                             .font(.caption2)
@@ -213,6 +218,16 @@ struct AIPanelView: View {
                 }
             }
         }
+    }
+
+    /// Marks a message asked or answered in the live chat during the recording, like the model badge.
+    private var liveBadge: some View {
+        Text("Live")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .frame(height: Self.answerFooterHeight)
+            .background(Capsule().fill(Palette.inputSurface))
     }
 
     // MARK: - History
@@ -763,7 +778,8 @@ struct AIPanelView: View {
         guard let transcript else { return }
         let prompt = PromptBuilder.copyPrompt(
             conversation: conversation, transcript: transcript, question: model.detailTab == .chat ? question : nil,
-            languageSetting: model.settings.summaryLanguage)
+            languageSetting: model.settings.summaryLanguage, summaryLength: model.settings.summaryLength,
+            chatLength: model.settings.chatLength)
         // Transient (nspasteboard.org) and this Mac only: clipboard managers and Universal Clipboard skip the transcript.
         let pasteboard = NSPasteboard.general
         let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
@@ -809,14 +825,15 @@ struct AIPanelView: View {
 }
 
 /// Every provider with the models it offers, on this Mac first; Foundation Models shows why it cannot run (the AI
-/// pane's bottom bar and the global chat's). Shows and edits `purpose`'s default.
+/// pane's bottom bar, the global chat's and the recording's right panel). Shows and edits `purpose`'s default; for
+/// `.catchUp`, no in-app provider (the live transcriber holds the model during a recording).
 struct AIModelMenu: View {
     let model: AppModel
     let purpose: AppModel.AIPurpose
     let height: CGFloat
 
     var body: some View {
-        let providers = model.aiProviders
+        let providers = purpose == .catchUp ? model.aiProviders.filter { $0.kind != .inApp } : model.aiProviders
         let inApp = providers.filter { $0.kind == .inApp }
         let hosts = providers.filter { $0.kind != .inApp && !$0.leavesMac } + providers.filter(\.leavesMac)
         Menu {
@@ -842,7 +859,15 @@ struct AIModelMenu: View {
         }
         .modifier(CompactMenu(maxWidth: 180, height: height))
         .layoutPriority(1)
-        .help(purpose == .summary ? Text("Model for summaries") : Text("Model for questions"))
+        .help(helpText)
+    }
+
+    private var helpText: Text {
+        switch purpose {
+        case .summary: Text("Model for summaries")
+        case .chat: Text("Model for questions")
+        case .catchUp: Text("Model for catch-ups and live chat")
+        }
     }
 
     private func modelItem(_ provider: AppModel.AIProvider, _ id: String, title: String) -> some View {

@@ -303,8 +303,8 @@ extension AppModel {
         aiJobStatus[nil] = nil
         return aiService.askLibrary(
             question: question, sources: sources, references: references, history: history, historyLimit: limit,
-            provider: client, providerID: providerID, model: model, language: settings.summaryLanguage, folder: folder,
-            jobID: jobID)
+            provider: client, providerID: providerID, model: model, language: settings.summaryLanguage,
+            length: settings.chatLength, folder: folder, jobID: jobID)
     }
 
     /// The question's embedding; nil (BM25 only) without a usable embedder, while the API embedder's destination is

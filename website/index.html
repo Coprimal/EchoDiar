@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EchoDiar: local-first meeting recorder for Mac and Windows</title>
-    <meta name="description" content="Record any meeting on your Mac or Windows PC, see who said what, and ask AI about it. Transcription and AI can run fully on-device." />
+    <meta name="description" content="Record any meeting on your Mac or Windows PC, see who said what, and catch up or ask AI while it is still going. Transcription and AI can run fully on-device." />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="EchoDiar: local-first meeting recorder for Mac and Windows" />
-    <meta property="og:description" content="A lightweight, local-first meeting recorder for macOS and Windows: on-device transcription, speakers, AI summaries and chat with the AI you choose." />
+    <meta property="og:description" content="A lightweight, local-first meeting recorder for macOS and Windows: on-device transcription, speakers, catch-ups and chat while recording, AI summaries, with the AI you choose." />
     <meta property="og:image" content="https://echodiar.coprimal.dev/poster.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="logo.png" type="image/png" />
@@ -43,6 +43,7 @@
           >
         </div>
         <nav aria-label="Primary navigation">
+          <a class="nav-link nav-link--text hide-sm" href="./#live">Catch-up</a>
           <a class="nav-link nav-link--text hide-sm" href="./#features">Features</a>
           <a class="nav-link nav-link--text" href="docs.html">Docs</a>
           <a class="nav-link nav-link--text hide-sm" href="privacy.html">Privacy</a>
@@ -76,7 +77,7 @@
       <section class="hero wrap">
         <div class="hero__copy">
           <h1>Record any meeting, see who said what, and ask AI about it.</h1>
-          <p class="lede">A lightweight meeting recorder for Mac and Windows. Transcription and AI can run fully on your computer.</p>
+          <p class="lede">A lightweight meeting recorder for Mac and Windows. <a href="#live">Catch up or ask AI</a> while the meeting is still on. Transcription and AI can run fully on your computer.</p>
           <div class="actions" id="download">
             <a class="button button--primary" href="https://github.com/Coprimal/EchoDiar/releases/latest" target="_blank" rel="noopener noreferrer">
               <svg class="fill" viewBox="0 0 24 24" aria-hidden="true">
@@ -104,7 +105,7 @@
               <span class="win__lights"><i></i><i></i><i></i></span>
               <span class="win__title">
                 <strong>Sprint planning: the 2.4 release date</strong>
-                <span>Oct 20, 2026 at 10:00 AM</span>
+                <span>Nov 20, 2026 at 10:00 AM</span>
               </span>
               <span class="rec-pill"><i></i><span data-rec-time>17:30</span></span>
             </div>
@@ -144,20 +145,127 @@
               <li class="tx__line" data-speaker="lan" data-at="17:23" data-cited>
                 <time>17:23</time>
                 <span class="tx__who"><i class="dot dot--lan"></i>Lan</span>
-                <span class="tx__text">Okay, that's decided. 2.4 ships on November 15, and refunds move to 2.5.</span>
+                <span class="tx__text">Okay, that's decided. 2.4 ships on December 15, and refunds move to 2.5.</span>
               </li>
             </ol>
 
             <div class="ask">
               <p class="ask__q">When does 2.4 ship?</p>
               <p class="ask__a">
-                On November 15. Refunds were split out and move to 2.5 <span class="cite">17:23</span>
+                On December 15. Refunds were split out and move to 2.5 <span class="cite">17:23</span>
               </p>
             </div>
           </div>
           <figcaption class="visually-hidden">
             An EchoDiar window during a sprint planning call: your mic and the meeting audio on two channels, the transcript
             appearing line by line with each speaker named, and an AI answer that cites the moment it comes from.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section wrap live" id="live" aria-labelledby="live-title">
+        <div class="live__copy">
+          <p class="live__new">New</p>
+          <h2 id="live-title">Catch up or ask, mid-meeting</h2>
+          <p class="live__lede">Missed a few minutes? Two tabs sit next to the live transcript.</p>
+          <dl class="live__legend" data-live-legend>
+            <div data-for="live-tab-catchup" class="is-active">
+              <dt>Catch-up</dt>
+              <dd>Sums up what is new since the last one.</dd>
+            </div>
+            <div data-for="live-tab-chat">
+              <dt>Chat</dt>
+              <dd>Answers questions about the meeting so far.</dd>
+            </div>
+          </dl>
+          <p class="live__note">On the model you pick: a local server, a cloud API or a CLI.</p>
+        </div>
+
+        <figure class="live__art" data-live>
+          <div class="win live-win">
+            <div class="win__bar">
+              <span class="win__lights" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="win__title">
+                <strong>2.4 release check-in</strong>
+                <span>Recording now</span>
+              </span>
+              <span class="rec-pill" aria-hidden="true"><i></i><span>01:44</span></span>
+            </div>
+            <div class="live-win__body">
+              <div class="live-win__tx" aria-label="Live transcript">
+                <span class="live-win__label">Live transcript</span>
+                <ol class="tx">
+                  <li class="tx__line">
+                    <time>00:46</time>
+                    <span class="tx__who"><i class="dot dot--minh"></i>Minh</span>
+                    <span class="tx__text">On Android, rotating the phone during payment shows the confirmation twice.</span>
+                  </li>
+                  <li class="tx__line">
+                    <time>00:54</time>
+                    <span class="tx__who"><i class="dot dot--me"></i>Me</span>
+                    <span class="tx__text">That's mine. The fix is small, it goes into review today.</span>
+                  </li>
+                  <li class="tx__line">
+                    <time>01:26</time>
+                    <span class="tx__who"><i class="dot dot--lan"></i>Lan</span>
+                    <span class="tx__text">Marketing still wants Thursday. Is that realistic?</span>
+                  </li>
+                  <li class="tx__line" data-live-cited>
+                    <time>01:33</time>
+                    <span class="tx__who"><i class="dot dot--minh"></i>Minh</span>
+                    <span class="tx__text">If the fix passes QA tomorrow, yes. If not, I'd rather move to Monday.</span>
+                  </li>
+                  <li class="tx__line">
+                    <time>01:40</time>
+                    <span class="tx__who"><i class="dot dot--lan"></i>Lan</span>
+                    <span class="tx__text">So we decide go or no-go at noon tomorrow.</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div class="live-win__panel">
+                <div class="live-win__head">
+                  <div class="live-tabs" role="tablist" aria-label="While recording">
+                    <button type="button" role="tab" id="live-tab-catchup" aria-controls="live-pane-catchup" aria-selected="true">Catch-up</button>
+                    <button type="button" role="tab" id="live-tab-chat" aria-controls="live-pane-chat" aria-selected="false" tabindex="-1">Chat</button>
+                  </div>
+                  <span class="live-win__model">Ollama · qwen3:8b</span>
+                </div>
+
+                <div class="live-pane" id="live-pane-catchup" role="tabpanel" aria-labelledby="live-tab-catchup">
+                  <p class="live-cu live-cu--old"><span aria-hidden="true">›</span> Catch-up at 0:40</p>
+                  <div class="live-cu">
+                    <p class="live-cu__head"><span aria-hidden="true">⌄</span> Catch-up at 1:44 <em>only what is new</em></p>
+                    <p class="live-cu__h">What happened</p>
+                    <ul>
+                      <li><span class="cite">00:46</span> Android shows the payment confirmation twice on rotation.</li>
+                      <li><span class="cite">00:54</span> The fix goes into review today.</li>
+                      <li><span class="cite">01:33</span> Thursday holds only if QA passes; otherwise Monday.</li>
+                    </ul>
+                    <p class="live-cu__h">Right now</p>
+                    <p>Settling when to decide on the launch.</p>
+                    <p class="live-cu__h">New decisions</p>
+                    <ul>
+                      <li>Go or no-go at noon tomorrow <span class="cite">01:40</span></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="live-pane" id="live-pane-chat" role="tabpanel" aria-labelledby="live-tab-chat" hidden>
+                  <p class="ask__q">Are we shipping on Thursday?</p>
+                  <p class="live-chat__a">
+                    Not decided yet. Thursday holds only if the Android fix passes QA tomorrow <span class="cite">01:33</span>. The go or
+                    no-go call is at noon <span class="cite">01:40</span>.
+                  </p>
+                  <span class="live-chat__tag">Live</span>
+                  <span class="live-chat__input" aria-hidden="true">Ask about the meeting so far</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <figcaption class="visually-hidden">
+            EchoDiar while recording: the live transcript on the left, and on the right a panel with a Catch-up tab, which
+            sums up what is new since the last catch-up, and a Chat tab, which answers questions about the meeting so far.
           </figcaption>
         </figure>
       </section>
@@ -231,47 +339,34 @@
         </ol>
       </section>
 
-      <section class="section wrap catchup" id="catch-up" aria-labelledby="catchup-title">
-        <div class="catchup__copy">
-          <h2 id="catchup-title">Catch up mid-meeting</h2>
-          <p>Missed a few minutes? One click sums them up, and the recording keeps going.</p>
-        </div>
-        <div class="catchup__art" aria-hidden="true">
-          <div class="cu-track">
-            <span class="cu-track__wave" data-wave="60"></span>
-            <span class="cu-track__span"><em>Last 5 min</em></span>
-            <span class="rec-pill"><i></i><span>12:40</span></span>
-          </div>
-          <div class="cu-card">
-            <span class="cu-card__btn">
-              <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4h6v3H9zM9 11h6M9 15h4" /></svg>
-              Catch up
-            </span>
-            <ul class="cu-card__points">
-              <li>The release date is tight</li>
-              <li>A refunds bug would move it to the 22nd</li>
-              <li>Nothing decided yet</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
       <section class="section wrap" aria-labelledby="shots-title">
         <div class="section__head">
           <h2 id="shots-title">A look inside</h2>
         </div>
         <div class="shots">
           <figure class="shot">
-            <button type="button" data-zoom aria-label="View screenshot full screen: recording a call">
+            <button type="button" data-zoom aria-label="View screenshot full screen: catch-up while recording">
               <img
                 src="screenshots/echodiar_s_1.webp"
-                alt="EchoDiar recording a call: the recording card on top of the conversation list and the floating indicator with its timer and level"
+                alt="EchoDiar on Mac while recording: the live transcript next to the Catch-up tab, with two catch-ups, the newest summing up only what is new since the first"
                 width="1412"
-                height="979"
+                height="972"
                 loading="lazy"
               />
             </button>
-            <figcaption>Recording a call</figcaption>
+            <figcaption>Catch-up while recording</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" data-zoom aria-label="View screenshot full screen: live chat while recording">
+              <img
+                src="screenshots/echodiar_s_2.webp"
+                alt="EchoDiar on Mac while recording: the live transcript next to the Chat tab, answering what blocks the release and whether it ships on Thursday, with cited times"
+                width="1412"
+                height="972"
+                loading="lazy"
+              />
+            </button>
+            <figcaption>Chat while recording</figcaption>
           </figure>
           <figure class="shot">
             <button type="button" data-zoom aria-label="View screenshot full screen: transcript with speakers">
@@ -279,7 +374,7 @@
                 src="screenshots/echodiar_s_3.webp"
                 alt="EchoDiar transcript of a sprint meeting with named speakers, the line being played back highlighted"
                 width="1412"
-                height="979"
+                height="972"
                 loading="lazy"
               />
             </button>
@@ -291,7 +386,7 @@
                 src="screenshots/echodiar_s_4.webp"
                 alt="EchoDiar AI summary of a meeting with timestamped key points, decisions and action items"
                 width="1412"
-                height="979"
+                height="972"
                 loading="lazy"
               />
             </button>
@@ -303,7 +398,7 @@
                 src="screenshots/echodiar_s_5.webp"
                 alt="EchoDiar chat about a meeting with answers that cite timestamps"
                 width="1412"
-                height="979"
+                height="972"
                 loading="lazy"
               />
             </button>
@@ -315,7 +410,7 @@
                 src="screenshots/echodiar_s_6.webp"
                 alt="EchoDiar library chat answering from four meetings, with numbered sources, next to the cited transcript"
                 width="1412"
-                height="979"
+                height="972"
                 loading="lazy"
               />
             </button>
@@ -324,14 +419,50 @@
           <figure class="shot">
             <button type="button" data-zoom aria-label="View screenshot full screen: on-device models">
               <img
-                src="screenshots/echodiar_s_2.webp"
+                src="screenshots/echodiar_s_7.webp"
                 alt="EchoDiar Settings, AI Providers, Local AI, Transcription: on-device Whisper and Parakeet models and the installed default model"
                 width="1412"
-                height="979"
+                height="972"
                 loading="lazy"
               />
             </button>
             <figcaption>On-device models</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" data-zoom aria-label="View screenshot full screen: Windows, catch-up">
+              <img
+                src="screenshots/echodiar_s_8.webp"
+                alt="EchoDiar on Windows 11 while recording, in the light theme: the live transcript next to two catch-ups"
+                width="1412"
+                height="972"
+                loading="lazy"
+              />
+            </button>
+            <figcaption>Windows: catch-up</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" data-zoom aria-label="View screenshot full screen: Windows, live chat in dark mode">
+              <img
+                src="screenshots/echodiar_s_9.webp"
+                alt="EchoDiar on Windows 11 while recording, in the dark theme: the live transcript next to the Chat tab with two cited answers"
+                width="1412"
+                height="972"
+                loading="lazy"
+              />
+            </button>
+            <figcaption>Windows: chat, dark theme</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" data-zoom aria-label="View screenshot full screen: Windows, transcript">
+              <img
+                src="screenshots/echodiar_s_10.webp"
+                alt="EchoDiar on Windows 11, in the light theme: the transcript of a sprint meeting with named speakers, the line being played back highlighted"
+                width="1412"
+                height="972"
+                loading="lazy"
+              />
+            </button>
+            <figcaption>Windows: transcript</figcaption>
           </figure>
         </div>
       </section>
@@ -341,6 +472,28 @@
           <h2 id="features-title">Features</h2>
         </div>
         <ul class="tiles">
+          <li class="tile">
+            <div class="tile__art art-catchup" aria-hidden="true">
+              <span class="art-catchup__tabs"><b class="is-on">Catch-up</b><b>Chat</b><span class="rec-pill"><i></i><span>01:44</span></span></span>
+              <span class="art-catchup__old">› Catch-up at 0:40</span>
+              <span class="art-catchup__card">
+                <strong>Catch-up at 1:44 <em>only what is new</em></strong>
+                <span><span class="cite">00:54</span> The fix goes into review today</span>
+                <span><span class="cite">01:40</span> Go or no-go at noon tomorrow</span>
+              </span>
+            </div>
+            <h3>Catch up while recording</h3>
+            <p>What is new since the last catch-up.</p>
+          </li>
+          <li class="tile">
+            <div class="tile__art art-livechat" aria-hidden="true">
+              <span class="art-catchup__tabs"><b>Catch-up</b><b class="is-on">Chat</b><span class="rec-pill"><i></i><span>01:52</span></span></span>
+              <span class="art-livechat__q">Are we shipping on Thursday?</span>
+              <span class="art-livechat__a">Only if the Android fix passes QA tomorrow <span class="cite">01:33</span></span>
+            </div>
+            <h3>Chat while recording</h3>
+            <p>Ask about the meeting so far.</p>
+          </li>
           <li class="tile">
             <div class="tile__art art-menu" aria-hidden="true">
               <div class="menubar">
@@ -396,6 +549,15 @@
             </div>
             <h3>Summaries</h3>
             <p>Key points, decisions and action items.</p>
+          </li>
+          <li class="tile">
+            <div class="tile__art art-library" aria-hidden="true">
+              <span class="art-livechat__q">When does 2.4 ship?</span>
+              <span class="art-livechat__a">December 15. Refunds moved to 2.5 <span class="cite">4 14:42</span></span>
+              <span class="art-library__src"><i>1</i>Q4 kick-off <i>4</i>Sprint planning</span>
+            </div>
+            <h3>Ask your whole library</h3>
+            <p>Answers from every meeting, with sources.</p>
           </li>
           <li class="tile">
             <div class="tile__art art-search" aria-hidden="true">

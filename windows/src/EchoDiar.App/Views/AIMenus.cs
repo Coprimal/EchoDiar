@@ -4,10 +4,10 @@ using Microsoft.UI.Xaml.Controls;
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The model and language menus of the AI panel's Chat and Summary tabs and of the library chat (macOS
-/// <c>AIModelMenu</c> and <c>AILanguageMenu</c>, shared by AIPanelView.swift and GlobalChatView.swift), and the setup hint
-/// shown while no model can run. Built when they open, from the providers model. The model menu shows and edits one
-/// <see cref="AIPurpose"/>'s default.
+/// The model and language menus of the AI panel's Chat and Summary tabs, of the library chat and of the recording's right
+/// panel (macOS <c>AIModelMenu</c> and <c>AILanguageMenu</c>, shared by AIPanelView.swift, GlobalChatView.swift and
+/// RecordingViews.swift), and the setup hint shown while no model can run. Built when they open, from the providers
+/// model. The model menu shows and edits one <see cref="AIPurpose"/>'s default.
 /// </summary>
 internal static class AIMenus
 {
@@ -35,12 +35,15 @@ internal static class AIMenus
     /// Every provider with the models it offers (macOS <c>AIModelMenu</c>): on this PC first, then the hosts, then the
     /// ones whose data leaves this PC; a provider without a model says to choose one in Settings, one that cannot run now
     /// is off with why; then "Choose Models…" (<paramref name="chooseModels"/>: Settings › AI Providers › Cloud). Checks
-    /// and picks <paramref name="purpose"/>'s default.
+    /// and picks <paramref name="purpose"/>'s default; for <see cref="AIPurpose.CatchUp"/>, no in-app provider (the live
+    /// transcriber holds the model during a recording).
     /// </summary>
     public static void FillModelMenu(MenuFlyout menu, ProvidersViewModel providers, AIPurpose purpose, Action chooseModels)
     {
         menu.Items.Clear();
-        var all = providers.AIProviders;
+        var all = purpose == AIPurpose.CatchUp
+            ? providers.AIProviders.Where(p => p.Kind != AIProviderKind.InApp).ToList()
+            : providers.AIProviders;
         var current = providers.CurrentAIProvider(purpose);
         var currentModel = current is null ? null : providers.AIModelFor(current, purpose);
         var inApp = all.Where(p => p.Kind == AIProviderKind.InApp).ToList();

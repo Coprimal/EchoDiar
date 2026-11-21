@@ -189,13 +189,14 @@ public sealed partial class AppViewModel
         var config = provider.Kind == AIProviderKind.InApp ? null : ProvidersModel.Config(provider.Id);
         var settings = Settings;
         job.Work = RunAIJobAsync(kind, question, conversation, transcript, summary, history, provider, config, model,
-            settings.SummaryLanguage, settings.ChatContextMessages, job);
+            settings.SummaryLanguage, settings.ChatContextMessages,
+            kind == AIJobKind.Summary ? settings.SummaryLength : settings.ChatLength, job);
     }
 
     private async Task RunAIJobAsync(
         AIJobKind kind, string? question, Conversation conversation, Transcript transcript, string? summary,
         IReadOnlyList<ChatLog.Message> history, AIProviderInfo provider, ProviderConfig? config, string model,
-        string language, int historyLimit, AIJob job)
+        string language, int historyLimit, AnswerLength length, AIJob job)
     {
         var id = conversation.Id;
         var cancel = job.Cancel;
@@ -204,9 +205,9 @@ public sealed partial class AppViewModel
             if (await MakeJobClientAsync(provider, config, id, cancel.Token) is not { } client) return;
             var stream = kind == AIJobKind.Summary
                 ? _services.AI.Summarize(conversation, transcript, client, provider.Id, model, language, cancel.Token,
-                    job.JobId)
+                    job.JobId, length)
                 : _services.AI.Ask(question!, conversation, transcript, summary, history, historyLimit, client, provider.Id,
-                    model, language, cancel.Token, job.JobId);
+                    model, language, cancel.Token, job.JobId, length);
             await StreamAIJobAsync(id, job, stream, cancel.Token);
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)

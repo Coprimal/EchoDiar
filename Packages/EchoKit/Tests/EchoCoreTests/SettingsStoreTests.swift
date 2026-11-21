@@ -32,6 +32,7 @@ struct SettingsStoreTests {
             #expect(store.load().calendar.ownCalendarID == nil)
             #expect(store.load().rememberRecordingLanguage == false)
             #expect(store.load().lastRecordingLanguage == nil)
+            #expect(store.load().libraryPageSize == 100)
             #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         }
     }
@@ -127,6 +128,20 @@ struct SettingsStoreTests {
     func pillSizeDefaultsToMedium(json: String) throws {
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
         #expect(settings.pillSize == .medium)
+    }
+
+    /// Summaries, chat answers and catch-ups are concise unless the user picked Full.
+    @Test(arguments: [#"{}"#, #"{"summaryLength":"tiny","chatLength":"tiny","catchUpLength":"tiny"}"#])
+    func answerLengthsDefaultToConcise(json: String) throws {
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect([settings.summaryLength, settings.chatLength, settings.catchUpLength] == [.concise, .concise, .concise])
+    }
+
+    @Test func answerLengthsRoundTrip() throws {
+        let data = try JSONEncoder().encode(
+            AppSettings(summaryLength: .concise, chatLength: .full, catchUpLength: .concise))
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+        #expect([settings.summaryLength, settings.chatLength, settings.catchUpLength] == [.concise, .full, .concise])
     }
 
     @Test func pillSizeLargeRoundTrips() throws {
