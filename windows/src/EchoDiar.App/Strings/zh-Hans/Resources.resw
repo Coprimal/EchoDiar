@@ -182,6 +182,10 @@
     <value>录音时也用于回答“聊天”标签页中的问题。</value>
     <comment>Also answers the Chat tab while recording.</comment>
   </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>录音时也用于“聊天”标签页中的回答。简洁：几条简短要点。</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>始终录制 {0}</value>
     <comment>Always for %@</comment>
@@ -213,6 +217,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>另一个对话</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>回答长度</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>正在回答…</value>
@@ -502,6 +510,10 @@
     <value>{0} 时的回顾</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>回顾长度</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>回顾模型</value>
     <comment>Catch-up model</comment>
@@ -669,6 +681,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>压缩失败</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>简洁</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>简洁：一到三句话或几条简短要点。</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>简洁：主要要点，并保留每项决定和待办事项。</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>确认…</value>
@@ -1265,6 +1289,10 @@
   <data name="French" xml:space="preserve">
     <value>法语</value>
     <comment>French</comment>
+  </data>
+  <data name="Full" xml:space="preserve">
+    <value>完整</value>
+    <comment>Full</comment>
   </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
@@ -3177,6 +3205,10 @@
   <data name="Summary" xml:space="preserve">
     <value>摘要</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>摘要长度</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>摘要模型</value>

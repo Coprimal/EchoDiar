@@ -487,4 +487,46 @@ struct PromptBuilderTests {
         #expect(TranscriptChunker.bm25Rank(query: "ngân sách?", documents: documents).first == 0)
         #expect(TranscriptChunker.bm25Rank(query: "Quand est le lancement ?", documents: documents).first == 1)
     }
+
+    /// Concise replaces the detail rules of each prompt (not added after them, which the model would weigh against
+    /// each other); Full keeps them, and the decisions and action items stay in a concise summary.
+    @Test(arguments: [AnswerLength.concise, .full])
+    func lengthPicksTheDetailRules(length: AnswerLength) {
+        let concise = length == .concise
+        let transcript = transcript(["Budget is 5k.", "Anna writes the notes by Friday."])
+        let english = OutputLanguage(code: "en")
+        let summary = PromptBuilder.summaryMessages(
+            conversation: conversation, transcript: transcript, language: english, length: length)[0].content
+        let reduce = PromptBuilder.reduceMessages(
+            conversation: conversation, transcript: transcript, notes: ["a"], language: english, length: length)[0].content
+        let line = CatchUpLine(id: 0, start: 1, speaker: .others, text: "Budget is 5k.")
+        let catchUp = PromptBuilder.catchUpMessages(
+            plan: CatchUpPlan(
+                previous: nil, context: [], transcript: [line], omitted: false, fullPass: true, throughLineID: 0,
+                throughTime: 1),
+            title: "", startedAt: conversation.createdAt, elapsed: 5, language: nil, length: length)[0].content
+        let live = PromptBuilder.liveQuestionMessages(
+            plan: LiveChatPlan(summaries: [], lines: [line], omitted: false), title: "",
+            startedAt: conversation.createdAt, elapsed: 5, question: "Budget?", history: [], language: nil,
+            length: length)[0].content
+        let question = PromptBuilder.questionMessages(
+            conversation: conversation, transcript: transcript, excerpts: [transcript.segments], summary: nil,
+            question: "Budget?", length: length)[0].content
+        let library = PromptBuilder.libraryQuestionMessages(question: "Budget?", sources: [], length: length)[0].content
+
+        for text in [summary, reduce] {
+            #expect(text.contains("2-3 sentences.") != concise)
+            #expect(text.contains("Keep every decision and action item") == concise)
+            #expect(text.contains("## Action items"))
+        }
+        #expect(catchUp.contains("Do not compress away points.") != concise)
+        #expect(catchUp.contains("At most 5 bullets") == concise)
+        #expect(catchUp.contains("## New decisions / action items / open questions"))
+        #expect(live.contains("answer in useful detail") != concise)
+        #expect(live.contains("Answer briefly: one to three sentences") == concise)
+        for text in [question, library] {
+            #expect(text.contains("Answer briefly: one to three sentences") == concise)
+            #expect(text.hasSuffix("Answer concisely.") != concise)
+        }
+    }
 }

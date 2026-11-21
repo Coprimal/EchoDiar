@@ -206,6 +206,10 @@
     <value>Also answers the Chat tab while recording.</value>
     <comment>Also answers the Chat tab while recording.</comment>
   </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>Also for answers in the Chat tab while recording. Concise: a few short bullets.</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Always for {0}</value>
     <comment>Always for %@</comment>
@@ -237,6 +241,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>another conversation</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>Answer length</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>Answering…</value>
@@ -526,6 +534,10 @@
     <value>Catch-up at {0}</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>Catch-up length</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>Catch-up model</value>
     <comment>Catch-up model</comment>
@@ -693,6 +705,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>Compression failed</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>Concise</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>Concise: one to three sentences or a few short bullets.</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>Concise: the main points, with every decision and action item.</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>Confirm…</value>
@@ -1313,6 +1337,10 @@
   <data name="French" xml:space="preserve">
     <value>French</value>
     <comment>French</comment>
+  </data>
+  <data name="Full" xml:space="preserve">
+    <value>Full</value>
+    <comment>Full</comment>
   </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
@@ -3289,6 +3317,10 @@
   <data name="Summary" xml:space="preserve">
     <value>Summary</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>Summary length</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>Summary model</value>

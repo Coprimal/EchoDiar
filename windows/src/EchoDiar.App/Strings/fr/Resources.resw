@@ -206,6 +206,10 @@
     <value>Répond aussi dans l’onglet Discussion pendant l’enregistrement.</value>
     <comment>Also answers the Chat tab while recording.</comment>
   </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>S’applique aussi aux réponses de l’onglet Discussion pendant l’enregistrement. Concis : quelques puces courtes.</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Toujours pour {0}</value>
     <comment>Always for %@</comment>
@@ -237,6 +241,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>une autre conversation</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>Longueur des réponses</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>Réponse en cours…</value>
@@ -526,6 +534,10 @@
     <value>Récapitulatif à {0}</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>Longueur du récapitulatif</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>Modèle du récapitulatif</value>
     <comment>Catch-up model</comment>
@@ -693,6 +705,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>Échec de la compression</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>Concis</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>Concis : une à trois phrases ou quelques puces courtes.</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>Concis : les points principaux, avec chaque décision et chaque action à mener.</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>Confirmer…</value>
@@ -1313,6 +1337,10 @@
   <data name="French" xml:space="preserve">
     <value>Français</value>
     <comment>French</comment>
+  </data>
+  <data name="Full" xml:space="preserve">
+    <value>Complet</value>
+    <comment>Full</comment>
   </data>
   <data name="GB" xml:space="preserve">
     <value>{0} Go</value>
@@ -3269,6 +3297,10 @@
   <data name="Summary" xml:space="preserve">
     <value>Résumé</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>Longueur du résumé</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>Modèle de résumé</value>

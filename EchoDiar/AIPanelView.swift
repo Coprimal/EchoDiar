@@ -778,7 +778,8 @@ struct AIPanelView: View {
         guard let transcript else { return }
         let prompt = PromptBuilder.copyPrompt(
             conversation: conversation, transcript: transcript, question: model.detailTab == .chat ? question : nil,
-            languageSetting: model.settings.summaryLanguage)
+            languageSetting: model.settings.summaryLanguage, summaryLength: model.settings.summaryLength,
+            chatLength: model.settings.chatLength)
         // Transient (nspasteboard.org) and this Mac only: clipboard managers and Universal Clipboard skip the transcript.
         let pasteboard = NSPasteboard.general
         let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")

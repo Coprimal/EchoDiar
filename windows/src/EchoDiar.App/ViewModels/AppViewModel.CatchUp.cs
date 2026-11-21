@@ -199,7 +199,8 @@ public sealed partial class AppViewModel
         var title = RecordingTitle ?? _recordingEvent?.Title ?? "";
         var language = OutputLanguage.CatchUp(Settings.SummaryLanguage, RecordingLanguage);
         var fromStart = Settings.CatchUpFromStart;
-        _ = RunCatchUpAsync(run, provider, config, transcriber, folder, title, language, fromStart);
+        var length = Settings.CatchUpLength;
+        _ = RunCatchUpAsync(run, provider, config, transcriber, folder, title, language, fromStart, length);
     }
 
     /// <summary>
@@ -224,7 +225,7 @@ public sealed partial class AppViewModel
 
     private async Task RunCatchUpAsync(
         CatchUpRun run, AIProviderInfo provider, ProviderConfig? config, RecordingTranscriber transcriber, string folder,
-        string title, OutputLanguage? language, bool fromStart)
+        string title, OutputLanguage? language, bool fromStart, AnswerLength length)
     {
         _runningCatchUps++;
         try
@@ -261,9 +262,11 @@ public sealed partial class AppViewModel
                     var saved = CatchUpLog.Load(folder);
                     var startedAt = RecordingSession.Read(folder).StartedAt;
                     var context = await client.ContextWindowAsync(model);
-                    var maxCharacters = CatchUpCharacters(context, finalized, title, startedAt, elapsed, language);
+                    var maxCharacters = CatchUpCharacters(context, finalized, title, startedAt, elapsed, language, length);
                     var planned = CatchUpPlan.Make(finalized, saved, fromStart, maxCharacters);
-                    var sent = planned is null ? null : PromptBuilder.CatchUpMessages(planned, title, startedAt, elapsed, language);
+                    var sent = planned is null
+                        ? null
+                        : PromptBuilder.CatchUpMessages(planned, title, startedAt, elapsed, language, length);
                     return (saved, planned, sent);
                 });
             }
@@ -328,11 +331,11 @@ public sealed partial class AppViewModel
     /// </summary>
     private static int CatchUpCharacters(
         int contextWindow, IReadOnlyList<CatchUpLine> lines, string title, DateTimeOffset startedAt, double elapsed,
-        OutputLanguage? language)
+        OutputLanguage? language, AnswerLength length)
     {
         var empty = new CatchUpPlan(
             null, Context: [], Transcript: [], Omitted: true, FullPass: true, ThroughLineID: -1, ThroughTime: 0);
-        var instructions = PromptBuilder.CatchUpMessages(empty, title, startedAt, elapsed, language)
+        var instructions = PromptBuilder.CatchUpMessages(empty, title, startedAt, elapsed, language, length)
             .Sum(m => TranscriptChunker.EstimateTokens(m.Content));
         var bytes = TranscriptChunker.Budget(contextWindow, instructions) * 4;
         var textBytes = lines.Sum(l => Encoding.UTF8.GetByteCount(l.Text));

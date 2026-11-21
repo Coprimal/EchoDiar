@@ -673,8 +673,7 @@ public sealed partial class AppViewModel : ObservableObject
         RecordingTitle = eventTitle;
         // A catch-up still writing for the previous recording finishes and saves in its folder, out of sight.
         ResetCatchUps();
-        var showsPage = bringForward || MainWindowOpen();
-        ResetRecordingPage(showsPage);
+        ResetRecordingPage();
         if (bringForward)
         {
             ShowRecording();
@@ -729,7 +728,6 @@ public sealed partial class AppViewModel : ObservableObject
             RecordingError = e is RecordingDiskFullException
                 ? Loc.T("There is not enough free disk space to record.")
                 : $"{Loc.T("The recording could not start.")} ({e.Message})";
-            RestoreAutoHiddenSidebar();
             // The recording page opened before the start; nothing to show there now.
             if (Route.Kind == RouteKind.Recording) Route = Route.List;
         }
@@ -900,7 +898,6 @@ public sealed partial class AppViewModel : ObservableObject
         CalendarSuggestion = null;
         _dismissedSuggestionIds.Clear();
         if (snapshot.EndReason is not { } reason) return;
-        RestoreAutoHiddenSidebar();
         EndEndWatch();
         TakeRecordingEvent();
         // The next recording starts with the remembered or default language again.

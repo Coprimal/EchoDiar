@@ -100,10 +100,9 @@ public sealed partial class AppViewModel
         private set => SetProperty(ref _sidebarHidden, value);
     }
 
-    /// <summary>The title bar's sidebar button. During a recording, the user's choice outlasts its end.</summary>
+    /// <summary>The title bar's sidebar button.</summary>
     public void ToggleSidebar()
     {
-        _sidebarAutoHidden = false;
         SetSidebarHidden(!SidebarHidden);
     }
 

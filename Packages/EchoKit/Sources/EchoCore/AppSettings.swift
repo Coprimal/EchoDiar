@@ -55,6 +55,12 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var catchUpModel: String
     /// Each catch-up summarizes the recording from the start, instead of building on the previous one.
     public var catchUpFromStart: Bool
+    /// Length of summaries.
+    public var summaryLength: AnswerLength
+    /// Length of answers in the Chat tab and Library chat.
+    public var chatLength: AnswerLength
+    /// Length of catch-ups and of answers in the Chat tab while recording.
+    public var catchUpLength: AnswerLength
     /// Summary language: "auto" (the transcript's dominant language), "en", "fr", "vi" or another BCP-47 code.
     public var summaryLanguage: String
     /// Earlier chat messages sent with each question; 0 = the whole chat.
@@ -165,6 +171,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         catchUpProviderID: String = "",
         catchUpModel: String = "",
         catchUpFromStart: Bool = false,
+        summaryLength: AnswerLength = .full,
+        chatLength: AnswerLength = .full,
+        catchUpLength: AnswerLength = .full,
         summaryLanguage: String = "auto",
         chatContextMessages: Int = 10,
         ragEnabled: Bool = false,
@@ -230,6 +239,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.catchUpProviderID = catchUpProviderID
         self.catchUpModel = catchUpModel
         self.catchUpFromStart = catchUpFromStart
+        self.summaryLength = summaryLength
+        self.chatLength = chatLength
+        self.catchUpLength = catchUpLength
         self.summaryLanguage = summaryLanguage
         self.chatContextMessages = chatContextMessages
         self.ragEnabled = ragEnabled
@@ -288,7 +300,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case defaultASRModelID, defaultDiarizerModelID, providers
         case cloudSTTConfirmed, defaultAIProviderID, defaultAIModel, summaryLanguage, chatContextMessages
         case summaryAIProviderID, summaryAIModel, chatAIProviderID, chatAIModel
-        case catchUpProviderID, catchUpModel, catchUpFromStart
+        case catchUpProviderID, catchUpModel, catchUpFromStart, summaryLength, chatLength, catchUpLength
         case ragEnabled, embeddingModelID, embeddingAPIModel, cloudEmbeddingConfirmed
         case micDeviceUID, meetingDetection, perAppBehavior, pillPositions, showPill, hidePillWhenAppActive
         case showPillInScreenCaptures, attachPillToWindow, pillWindowOffset, pillSize, endMonitor, routeChangeBehavior
@@ -329,6 +341,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         catchUpProviderID = try container.decodeIfPresent(String.self, forKey: .catchUpProviderID) ?? ""
         catchUpModel = try container.decodeIfPresent(String.self, forKey: .catchUpModel) ?? ""
         catchUpFromStart = try container.decodeIfPresent(Bool.self, forKey: .catchUpFromStart) ?? false
+        summaryLength = try container.decodeIfPresent(AnswerLength.self, forKey: .summaryLength) ?? .full
+        chatLength = try container.decodeIfPresent(AnswerLength.self, forKey: .chatLength) ?? .full
+        catchUpLength = try container.decodeIfPresent(AnswerLength.self, forKey: .catchUpLength) ?? .full
         summaryLanguage = try container.decodeIfPresent(String.self, forKey: .summaryLanguage) ?? "auto"
         chatContextMessages = try container.decodeIfPresent(Int.self, forKey: .chatContextMessages) ?? 10
         ragEnabled = try container.decodeIfPresent(Bool.self, forKey: .ragEnabled) ?? false
@@ -524,6 +539,17 @@ public struct HotKey: Codable, Equatable, Sendable {
     /// Has ⌘, ⌥ or ⌃: a shortcut with ⇧ alone (or none) would take a key away from typing everywhere.
     public var hasCommandModifier: Bool {
         modifiers & (1 << 8 | 1 << 11 | 1 << 12) != 0
+    }
+}
+
+/// How long AI summaries, catch-ups and answers are: `full` as before, `concise` short.
+public enum AnswerLength: String, Codable, Sendable, CaseIterable {
+    case concise
+    case full
+
+    /// An unrecognized raw value (written by another build) falls back to `full`.
+    public init(from decoder: Decoder) throws {
+        self = AnswerLength(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .full
     }
 }
 

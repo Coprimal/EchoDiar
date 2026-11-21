@@ -689,6 +689,27 @@ public sealed partial class ProvidersViewModel : ObservableObject
         set => _app.ApplySettings(Settings with { ChatContextMessages = value });
     }
 
+    /// <summary>Length of answers in the Chat tab and Library chat.</summary>
+    public AnswerLength ChatLength
+    {
+        get => Settings.ChatLength;
+        set => _app.ApplySettings(Settings with { ChatLength = value });
+    }
+
+    /// <summary>Length of summaries.</summary>
+    public AnswerLength SummaryLength
+    {
+        get => Settings.SummaryLength;
+        set => _app.ApplySettings(Settings with { SummaryLength = value });
+    }
+
+    /// <summary>Length of catch-ups and of answers in the Chat tab while recording.</summary>
+    public AnswerLength CatchUpLength
+    {
+        get => Settings.CatchUpLength;
+        set => _app.ApplySettings(Settings with { CatchUpLength = value });
+    }
+
     /// <summary>The "Catch-up provider" setting ("" = Automatic); picking one clears the model picked for the previous one.</summary>
     public void SetCatchUpProvider(string id) => _app.ApplySettings(Settings with { CatchUpProviderID = id, CatchUpModel = "" });
 

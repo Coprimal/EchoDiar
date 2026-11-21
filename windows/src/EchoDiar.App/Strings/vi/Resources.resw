@@ -182,6 +182,10 @@
     <value>Cũng trả lời trong tab Trò chuyện khi đang ghi âm.</value>
     <comment>Also answers the Chat tab while recording.</comment>
   </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>Cũng áp dụng cho câu trả lời trong tab Trò chuyện khi đang ghi âm. Ngắn gọn: vài gạch đầu dòng ngắn.</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Luôn ghi âm {0}</value>
     <comment>Always for %@</comment>
@@ -213,6 +217,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>một cuộc hội thoại khác</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>Độ dài câu trả lời</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>Đang trả lời…</value>
@@ -502,6 +510,10 @@
     <value>Tóm tắt nhanh lúc {0}</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>Độ dài tóm tắt nhanh</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>Mô hình tóm tắt nhanh</value>
     <comment>Catch-up model</comment>
@@ -669,6 +681,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>Nén không thành công</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>Ngắn gọn</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>Ngắn gọn: một đến ba câu hoặc vài gạch đầu dòng ngắn.</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>Ngắn gọn: các ý chính, kèm mọi quyết định và việc cần làm.</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>Xác nhận…</value>
@@ -1265,6 +1289,10 @@
   <data name="French" xml:space="preserve">
     <value>Tiếng Pháp</value>
     <comment>French</comment>
+  </data>
+  <data name="Full" xml:space="preserve">
+    <value>Đầy đủ</value>
+    <comment>Full</comment>
   </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
@@ -3177,6 +3205,10 @@
   <data name="Summary" xml:space="preserve">
     <value>Bản tóm tắt</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>Độ dài bản tóm tắt</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>Mô hình tóm tắt</value>

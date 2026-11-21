@@ -46,8 +46,8 @@ public sealed class LiveChatRun(Guid jobId, string question)
 }
 
 /// <summary>
-/// The recording page's right panel tab and live chat (macOS AppModel's <c>recordingTab</c>, sidebar auto-hide and
-/// <c>// MARK: - Live chat</c>): the tab shown, the sidebar hidden for the recording, and questions
+/// The recording page's right panel tab and live chat (macOS AppModel's <c>recordingTab</c> and
+/// <c>// MARK: - Live chat</c>): the tab shown and questions
 /// about the meeting so far, on the catch-up provider, streamed into <see cref="LiveChatRun"/>, then saved in the
 /// recording's <c>chat.json</c> (marked live) and listed in <see cref="LiveChatMessages"/>. On the UI thread; files, the
 /// client and the plan are made off it.
@@ -57,12 +57,6 @@ public sealed partial class AppViewModel
     private RecordingTab _recordingTab = RecordingTab.CatchUp;
     private LiveChatRun? _liveChatRun;
     private IReadOnlyList<ChatLog.Message> _liveChatMessages = [];
-
-    /// <summary>
-    /// This recording's start hid the sidebar and the user has not toggled it since: the end of the recording shows it
-    /// again.
-    /// </summary>
-    private bool _sidebarAutoHidden;
 
     /// <summary>
     /// The recording page's right panel tab: Catch-up at start; the finished recording opens on the matching
@@ -139,7 +133,8 @@ public sealed partial class AppViewModel
         var elapsed = RecordingSnapshot.Elapsed;
         var language = OutputLanguage.Answer(Settings.SummaryLanguage);
         var history = PromptBuilder.HistoryTurns(LiveChatMessages, Settings.ChatContextMessages);
-        _ = RunLiveChatAsync(run, provider, config, transcriber, folder, title, elapsed, model, language, history);
+        var length = Settings.CatchUpLength;
+        _ = RunLiveChatAsync(run, provider, config, transcriber, folder, title, elapsed, model, language, history, length);
     }
 
     /// <summary>
@@ -154,31 +149,13 @@ public sealed partial class AppViewModel
         _services.AI.Stop(run.JobId);
     }
 
-    /// <summary>
-    /// A recording starts: its page shows none of the previous recording's live chat, on the Catch-up tab, and, when
-    /// <paramref name="showsPage"/> (the route becomes the recording page now), a shown sidebar hides until its end,
-    /// through the user's path, so an open library chat closes (a sidebar already hidden stays so at the end). A window
-    /// shown later shows the page it had, with its sidebar.
-    /// </summary>
-    private void ResetRecordingPage(bool showsPage)
+    /// <summary>A recording starts: its page shows none of the previous recording's live chat, on the Catch-up tab.</summary>
+    private void ResetRecordingPage()
     {
         LiveChatRun?.FlushTimer?.Stop();
         LiveChatRun = null;
         LiveChatMessages = [];
         RecordingTab = RecordingTab.CatchUp;
-        _sidebarAutoHidden = showsPage && !SidebarHidden;
-        if (_sidebarAutoHidden) SetSidebarHidden(true);
-    }
-
-    /// <summary>
-    /// The end of a recording (or its failed start): the sidebar its start hid shows again, unless the user toggled it
-    /// since.
-    /// </summary>
-    private void RestoreAutoHiddenSidebar()
-    {
-        if (!_sidebarAutoHidden) return;
-        _sidebarAutoHidden = false;
-        SetSidebarHidden(false);
     }
 
     /// <summary>The recording's <c>chat.json</c> into <see cref="LiveChatMessages"/>, read off the UI thread, while <paramref name="folder"/> is still the recording's.</summary>
@@ -200,7 +177,8 @@ public sealed partial class AppViewModel
 
     private async Task RunLiveChatAsync(
         LiveChatRun run, AIProviderInfo provider, ProviderConfig? config, RecordingTranscriber transcriber, string folder,
-        string title, double elapsed, string model, OutputLanguage? language, List<LLMMessage> history)
+        string title, double elapsed, string model, OutputLanguage? language, List<LLMMessage> history,
+        AnswerLength length)
     {
         // Counted with the catch-ups: quit stops it as it stops them (ShutdownAI).
         _runningCatchUps++;
@@ -236,9 +214,10 @@ public sealed partial class AppViewModel
                     var startedAt = RecordingSession.Read(folder).StartedAt;
                     var context = await client.ContextWindowAsync(model);
                     var maxCharacters = LiveChatPlan.CharacterBudget(
-                        context, lines, title, startedAt, elapsed, question, history, language);
+                        context, lines, title, startedAt, elapsed, question, history, language, length);
                     var plan = LiveChatPlan.Make(lines, catchUps, maxCharacters);
-                    return PromptBuilder.LiveQuestionMessages(plan, title, startedAt, elapsed, question, history, language);
+                    return PromptBuilder.LiveQuestionMessages(
+                        plan, title, startedAt, elapsed, question, history, language, length);
                 });
             }
             catch (Exception e)

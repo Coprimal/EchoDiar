@@ -57,6 +57,12 @@ struct AISettingsView: View {
                 Text("Chat context")
                 Text("Earlier messages sent with each question.")
             }
+            Picker(selection: model.setting(\.chatLength)) {
+                lengthOptions
+            } label: {
+                Text("Answer length")
+                Text("Concise: one to three sentences or a few short bullets.")
+            }
             languagePicker
         }
     }
@@ -66,8 +72,20 @@ struct AISettingsView: View {
             AIModelPicker(
                 model: model, purpose: .summary, title: "Summary model",
                 caption: "Used for new summaries. The model menu in the Summary tab changes it too.")
+            Picker(selection: model.setting(\.summaryLength)) {
+                lengthOptions
+            } label: {
+                Text("Summary length")
+                Text("Concise: the main points, with every decision and action item.")
+            }
             languagePicker
         }
+    }
+
+    /// The options of an `AnswerLength` picker.
+    @ViewBuilder private var lengthOptions: some View {
+        Text("Concise").tag(AnswerLength.concise)
+        Text("Full").tag(AnswerLength.full)
     }
 
     /// `summaryLanguage`, one setting for summaries and answers, with the options of the AI pane's language menu.
@@ -130,6 +148,12 @@ struct AISettingsView: View {
             if external.isEmpty {
                 Text("Catch up needs an AI provider outside the app: a cloud API, a local server or a command-line tool. Add one in Settings › AI Providers.")
                     .foregroundStyle(.secondary)
+            }
+            Picker(selection: model.setting(\.catchUpLength)) {
+                lengthOptions
+            } label: {
+                Text("Catch-up length")
+                Text("Also for answers in the Chat tab while recording. Concise: a few short bullets.")
             }
             Toggle(isOn: model.setting(\.catchUpFromStart)) {
                 Text("Re-summarize from the start each time")

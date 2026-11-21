@@ -555,7 +555,7 @@ public sealed partial class AppViewModel
             }
             await StreamAIJobAsync(null, job, _services.AI.AskLibrary(
                 question, sources, references, history, limit, client, provider.Id, model, settings.SummaryLanguage, folder,
-                token, job.JobId), token);
+                token, job.JobId, settings.ChatLength), token);
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)
         {

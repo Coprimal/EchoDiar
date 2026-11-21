@@ -377,9 +377,6 @@ final class AppModel {
     @ObservationIgnored private var pendingOpenFolder: URL?
     /// The tab `pendingOpenFolder` opens on: the recording page's tab at Stop.
     @ObservationIgnored private var pendingOpenTab: DetailTab = .transcript
-    /// This recording's start hid the sidebar and the user has not toggled it since: the end of the recording shows
-    /// it again.
-    @ObservationIgnored private var sidebarAutoHidden = false
     @ObservationIgnored private var terminateObserver: (any NSObjectProtocol)?
     /// `supportedLanguages(engineID:)` by catalog id, sorted by name once.
     @ObservationIgnored private var languageCache: [String: [String]] = [:]
@@ -545,10 +542,6 @@ final class AppModel {
         liveChatFlush = nil
         pendingLiveChatText = ""
         recordingTab = .catchUp
-        // Only when the recording page shows now (a window reopened later shows the page it had, with its sidebar).
-        // Through the user's path, so an open library chat closes; a sidebar already hidden stays so at the end.
-        sidebarAutoHidden = (bringForward || mainWindowOpen) && !sidebarHidden
-        if sidebarAutoHidden { setSidebarHidden(true) }
         if settings.endPromptNotification { requestNotificationAccess() }
         if bringForward {
             route = .recording
@@ -590,7 +583,6 @@ final class AppModel {
                 recordingEvent = nil
                 recordingTitle = nil
                 recordingError = Self.captureFailureMessage(error, action: .start)
-                restoreAutoHiddenSidebar()
                 // The recording page opened before the start; nothing to show there now.
                 if route == .recording { route = .list }
             }
@@ -978,7 +970,6 @@ final class AppModel {
                 // A start navigates in `startRecording`. An end on the recording page shows the list, then the
                 // finished entry once the library lists it; Settings opened from that page returns to the list.
                 if wasRecording && !isRecording {
-                    restoreAutoHiddenSidebar()
                     if route == .recording {
                         pendingOpenFolder = activeFolder
                         pendingOpenTab = switch recordingTab {
@@ -1964,18 +1955,9 @@ final class AppModel {
         searchPresented = true
     }
 
-    /// ⌘B and the toolbar's sidebar button. During a recording, the user's choice outlasts its end.
+    /// ⌘B and the toolbar's sidebar button.
     func toggleSidebar() {
-        sidebarAutoHidden = false
         setSidebarHidden(!sidebarHidden)
-    }
-
-    /// The end of a recording (or its failed start): the sidebar its start hid shows again, unless the user toggled
-    /// it since.
-    private func restoreAutoHiddenSidebar() {
-        guard sidebarAutoHidden else { return }
-        sidebarAutoHidden = false
-        setSidebarHidden(false)
     }
 
     /// The one path that hides or shows the library sidebar: hiding it closes the library chat, which lives in it.
@@ -2271,12 +2253,13 @@ extension AppModel {
         case .summary:
             aiService.summarize(
                 conversation: conversation, transcript: transcript, provider: client, providerID: provider.id,
-                model: model, language: settings.summaryLanguage, jobID: jobID)
+                model: model, language: settings.summaryLanguage, length: settings.summaryLength, jobID: jobID)
         case .question(let question):
             aiService.ask(
                 question: question, conversation: conversation, transcript: transcript, summary: summary,
                 history: history, historyLimit: settings.chatContextMessages, provider: client,
-                providerID: provider.id, model: model, language: settings.summaryLanguage, jobID: jobID)
+                providerID: provider.id, model: model, language: settings.summaryLanguage,
+                length: settings.chatLength, jobID: jobID)
         }
         let task = Task { [weak self] in
             do {
@@ -2500,6 +2483,7 @@ extension AppModel {
         let title = recordingTitle ?? recordingEvent?.title ?? ""
         let language = OutputLanguage.catchUp(setting: settings.summaryLanguage, recordingLanguage: recordingLanguage)
         let fromStart = settings.catchUpFromStart
+        let length = settings.catchUpLength
         Task { [weak self, aiService] in
             let lines = await transcriber.finalizedLines(after: nil).map {
                 CatchUpLine(id: $0.id, start: $0.start, speaker: $0.speaker == .me ? .me : .others, text: $0.text)
@@ -2521,14 +2505,14 @@ extension AppModel {
             }
             let maxCharacters = Self.catchUpCharacters(
                 contextWindow: context, lines: lines, title: title, startedAt: startedAt, elapsed: elapsed,
-                language: language)
+                language: language, length: length)
             guard let plan = CatchUpPlan.make(
                 lines: lines, log: log, fromStart: fromStart, maxCharacters: maxCharacters) else {
                 recordingCatchUps = log.catchUps
                 return failCatchUp(jobID, String(localized: "Nothing new since the last catch-up"))
             }
             let messages = PromptBuilder.catchUpMessages(
-                plan: plan, title: title, startedAt: startedAt, elapsed: elapsed, language: language)
+                plan: plan, title: title, startedAt: startedAt, elapsed: elapsed, language: language, length: length)
             let stream = aiService.catchUp(
                 plan: plan, messages: messages, provider: client, providerID: provider.id, model: model,
                 elapsed: elapsed, folder: folder, jobID: jobID)
@@ -2554,13 +2538,13 @@ extension AppModel {
     /// per byte of `lines`' text, so accented and CJK text count as many tokens as for a summary.
     private static func catchUpCharacters(
         contextWindow: Int, lines: [CatchUpLine], title: String, startedAt: Date, elapsed: Double,
-        language: OutputLanguage?
+        language: OutputLanguage?, length: AnswerLength
     ) -> Int {
         let empty = CatchUpPlan(
             previous: nil, context: [], transcript: [], omitted: true, fullPass: true, throughLineID: -1,
             throughTime: 0)
         let instructions = PromptBuilder.catchUpMessages(
-            plan: empty, title: title, startedAt: startedAt, elapsed: elapsed, language: language
+            plan: empty, title: title, startedAt: startedAt, elapsed: elapsed, language: language, length: length
         ).reduce(0) { $0 + TranscriptChunker.estimateTokens($1.content) }
         let bytes = TranscriptChunker.budget(contextWindow: contextWindow, instructionTokens: instructions) * 4
         let textBytes = lines.reduce(0) { $0 + $1.text.utf8.count }
@@ -2663,6 +2647,7 @@ extension AppModel {
         let title = recordingTitle ?? recordingEvent?.title ?? ""
         let language = OutputLanguage.answer(setting: settings.summaryLanguage)
         let history = PromptBuilder.historyTurns(liveChatMessages, limit: settings.chatContextMessages)
+        let length = settings.catchUpLength
         Task { [weak self, aiService] in
             let lines = await transcriber.finalizedLines(after: nil).map {
                 CatchUpLine(id: $0.id, start: $0.start, speaker: $0.speaker == .me ? .me : .others, text: $0.text)
@@ -2684,11 +2669,11 @@ extension AppModel {
             }
             let maxCharacters = LiveChatPlan.characterBudget(
                 contextWindow: context, lines: lines, title: title, startedAt: startedAt, elapsed: elapsed,
-                question: question, history: history, language: language)
+                question: question, history: history, language: language, length: length)
             let plan = LiveChatPlan.make(lines: lines, catchUps: log.catchUps, maxCharacters: maxCharacters)
             let messages = PromptBuilder.liveQuestionMessages(
                 plan: plan, title: title, startedAt: startedAt, elapsed: elapsed, question: question,
-                history: history, language: language)
+                history: history, language: language, length: length)
             let stream = aiService.askLive(
                 question: question, messages: messages, provider: client, providerID: provider.id, model: model,
                 folder: folder, jobID: jobID)

@@ -1,6 +1,7 @@
 using System.Globalization;
 using EchoDiar.AI;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Settings;
 
 namespace EchoDiar.Tests.AI;
 
@@ -439,4 +440,44 @@ public sealed class PromptBuilderTests
     [InlineData(3725.5, "62:06")]
     public void TimestampRoundsLikeSwift(double seconds, string expected) =>
         Assert.Equal(expected, PromptBuilder.Timestamp(seconds));
+
+    // Concise replaces the detail rules of each prompt (not added after them, which the model would weigh against each
+    // other); Full keeps them, and the decisions and action items stay in a concise summary (Swift
+    // lengthPicksTheDetailRules).
+    [Theory]
+    [InlineData(AnswerLength.Concise)]
+    [InlineData(AnswerLength.Full)]
+    public void LengthPicksTheDetailRules(AnswerLength length)
+    {
+        var concise = length == AnswerLength.Concise;
+        var transcript = MakeTranscript(["Budget is 5k.", "Anna writes the notes by Friday."]);
+        var english = new OutputLanguage("en");
+        var summary = PromptBuilder.SummaryMessages(conversation, transcript, english, length)[0].Content;
+        var reduce = PromptBuilder.ReduceMessages(conversation, transcript, ["a"], english, length)[0].Content;
+        var line = new CatchUpLine(0, 1, CatchUpSpeaker.Others, "Budget is 5k.");
+        var catchUp = PromptBuilder.CatchUpMessages(
+            new CatchUpPlan(null, [], [line], false, true, 0, 1), "", conversation.CreatedAt, 5, null, length)[0].Content;
+        var live = PromptBuilder.LiveQuestionMessages(
+            new LiveChatPlan([], [line], false), "", conversation.CreatedAt, 5, "Budget?", [], null, length)[0].Content;
+        var question = PromptBuilder.QuestionMessages(
+            conversation, transcript, [transcript.Segments], null, "Budget?", length: length)[0].Content;
+        var library = PromptBuilder.LibraryQuestionMessages("Budget?", [], length: length)[0].Content;
+
+        foreach (var text in new[] { summary, reduce })
+        {
+            Assert.Equal(!concise, text.Contains("2-3 sentences."));
+            Assert.Equal(concise, text.Contains("Keep every decision and action item"));
+            Assert.Contains("## Action items", text);
+        }
+        Assert.Equal(!concise, catchUp.Contains("Do not compress away points."));
+        Assert.Equal(concise, catchUp.Contains("At most 5 bullets"));
+        Assert.Contains("## New decisions / action items / open questions", catchUp);
+        Assert.Equal(!concise, live.Contains("answer in useful detail"));
+        Assert.Equal(concise, live.Contains("Answer briefly: one to three sentences"));
+        foreach (var text in new[] { question, library })
+        {
+            Assert.Equal(concise, text.Contains("Answer briefly: one to three sentences"));
+            Assert.Equal(!concise, text.EndsWith("Answer concisely.", StringComparison.Ordinal));
+        }
+    }
 }

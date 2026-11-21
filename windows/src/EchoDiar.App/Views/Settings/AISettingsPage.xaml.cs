@@ -41,12 +41,15 @@ public sealed partial class AISettingsPage : UserControl
     [
         new("Chat model", ["chat", "questions", "LLM", "default model", "library chat"], ChatTab),
         new("Chat context", ["chat", "history", "context", "messages", "memory"], ChatTab),
+        new("Answer length", ["chat", "concise", "full", "short", "detail", "verbose"], ChatTab),
         new("AI answer language", ["language", "output language", "answers", "summaries"], ChatTab),
         new("Summary model", ["summary", "summaries", "LLM", "default model"], SummaryTab),
+        new("Summary length", ["summary", "concise", "full", "short", "detail", "verbose"], SummaryTab),
         new("AI answer language", ["language", "output language", "answers", "summaries"], SummaryTab),
         new("Catch-up", ["catch up", "live summary", "recording", "meeting so far"], CatchUpTab),
         new("Catch-up provider", ["catch up", "live summary", "cloud", "CLI", "local server", "live chat"], CatchUpTab),
         new("Catch-up model", ["catch up", "live summary", "LLM"], CatchUpTab),
+        new("Catch-up length", ["catch up", "live chat", "concise", "full", "short", "detail", "verbose"], CatchUpTab),
         new("Re-summarize from the start each time", ["catch up", "incremental", "whole recording", "from start"], CatchUpTab),
         new("Default transcription model",
             ["default engine", "Whisper", "Parakeet", "cloud", "speech to text", .. TranscriptionSettingsPage.SpeechToTextNames()],
@@ -133,6 +136,9 @@ public sealed partial class AISettingsPage : UserControl
             if (_syncing || index < 0 || index >= _catchUpModels.Count || _catchUpModels[index] == _providers.CatchUpModel) return;
             _providers.CatchUpModel = _catchUpModels[index];
         };
+        SetUpLengthCombo(ChatLengthCombo, () => _providers.ChatLength, value => _providers.ChatLength = value);
+        SetUpLengthCombo(SummaryLengthCombo, () => _providers.SummaryLength, value => _providers.SummaryLength = value);
+        SetUpLengthCombo(CatchUpLengthCombo, () => _providers.CatchUpLength, value => _providers.CatchUpLength = value);
         CatchUpFromStartToggle.Toggled += (_, _) =>
         {
             if (_syncing || CatchUpFromStartToggle.IsOn == _providers.CatchUpFromStart) return;
@@ -204,6 +210,9 @@ public sealed partial class AISettingsPage : UserControl
             RefreshLanguages(ChatLanguageCombo);
             RefreshLanguages(SummaryLanguageCombo);
             RefreshChatContext();
+            ChatLengthCombo.SelectedIndex = (int)_providers.ChatLength;
+            SummaryLengthCombo.SelectedIndex = (int)_providers.SummaryLength;
+            CatchUpLengthCombo.SelectedIndex = (int)_providers.CatchUpLength;
             RefreshCatchUp();
         }
         finally
@@ -248,6 +257,21 @@ public sealed partial class AISettingsPage : UserControl
         if (_syncing || !_languageCodes.TryGetValue(combo, out var codes) || index < 0 || index >= codes.Count
             || codes[index] == _providers.SummaryLanguage) return;
         _providers.SummaryLanguage = codes[index];
+    }
+
+    /// <summary>
+    /// An <see cref="AnswerLength"/> picker: Concise, Full, in the enum's order (macOS <c>lengthOptions</c>); a pick
+    /// other than <paramref name="current"/> goes to <paramref name="pick"/>.
+    /// </summary>
+    private void SetUpLengthCombo(ComboBox combo, Func<AnswerLength> current, Action<AnswerLength> pick)
+    {
+        combo.Items.Add(Loc.T("Concise"));
+        combo.Items.Add(Loc.T("Full"));
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (_syncing || combo.SelectedIndex < 0 || (AnswerLength)combo.SelectedIndex == current()) return;
+            pick((AnswerLength)combo.SelectedIndex);
+        };
     }
 
     /// <summary>The offered sizes, the whole chat, plus a hand-edited value (macOS <c>chatSection</c>).</summary>
