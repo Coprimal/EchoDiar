@@ -243,7 +243,61 @@ const watchVisibility = (element, onChange) => {
   apply();
 };
 
-document.querySelectorAll(".vignette, .catchup__art").forEach((element) => watchVisibility(element));
+document.querySelectorAll(".vignette").forEach((element) => watchVisibility(element));
+
+// Live section: Catch-up and Chat are real tabs (click, or Left/Right on the focused tab). While the window is on
+// screen they take turns every few seconds, until the visitor picks one; reduced motion keeps Catch-up still.
+(() => {
+  const art = document.querySelector("[data-live]");
+  if (!art) return;
+  const tabs = [...art.querySelectorAll('[role="tab"]')];
+  const panes = tabs.map((tab) => document.getElementById(tab.getAttribute("aria-controls")));
+  const cited = art.querySelector("[data-live-cited]");
+  const legend = [...document.querySelectorAll("[data-live-legend] [data-for]")];
+  if (tabs.length < 2 || panes.some((pane) => !pane)) return;
+
+  let current = 0;
+  const select = (next, focus = false) => {
+    if (next === current) return;
+    current = next;
+    tabs.forEach((tab, i) => {
+      const on = i === next;
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+      panes[i].hidden = !on;
+      if (on) {
+        panes[i].classList.remove("is-entering");
+        void panes[i].offsetWidth; // restart the entrance animation
+        panes[i].classList.add("is-entering");
+      }
+    });
+    // The chat's answer cites 01:33: the transcript lights that line while Chat shows.
+    cited?.classList.toggle("is-cited", tabs[next].id === "live-tab-chat");
+    legend.forEach((item) => item.classList.toggle("is-active", item.dataset.for === tabs[next].id));
+    if (focus) tabs[next].focus();
+  };
+
+  let auto = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  tabs.forEach((tab, i) => {
+    tab.addEventListener("click", () => {
+      auto = false;
+      select(i);
+    });
+    tab.addEventListener("keydown", (event) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      auto = false;
+      select((i + step + tabs.length) % tabs.length, true);
+    });
+  });
+
+  let visible = false;
+  watchVisibility(art, (now) => (visible = now));
+  setInterval(() => {
+    if (auto && visible) select((current + 1) % tabs.length);
+  }, 5500);
+})();
 
 // Hero stage: the call plays out line by line. A new line shows grey (the draft the live
 // model refreshes) and turns solid when its chunk is final; then a question is asked and the
