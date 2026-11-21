@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-21
+
 ### Added
 
 - Library: conversations are in sections (Today, Previous 3 days, Last 7 days, Last 30 days, Older) and shown one page at a time, with a page bar at the bottom ("1–100 of 742"). Set "Entries per page" (50, 100, 200 or 500; 100 by default) in Settings > General > Library.
