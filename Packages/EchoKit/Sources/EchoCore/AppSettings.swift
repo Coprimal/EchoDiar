@@ -171,9 +171,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         catchUpProviderID: String = "",
         catchUpModel: String = "",
         catchUpFromStart: Bool = false,
-        summaryLength: AnswerLength = .full,
-        chatLength: AnswerLength = .full,
-        catchUpLength: AnswerLength = .full,
+        summaryLength: AnswerLength = .concise,
+        chatLength: AnswerLength = .concise,
+        catchUpLength: AnswerLength = .concise,
         summaryLanguage: String = "auto",
         chatContextMessages: Int = 10,
         ragEnabled: Bool = false,
@@ -341,9 +341,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         catchUpProviderID = try container.decodeIfPresent(String.self, forKey: .catchUpProviderID) ?? ""
         catchUpModel = try container.decodeIfPresent(String.self, forKey: .catchUpModel) ?? ""
         catchUpFromStart = try container.decodeIfPresent(Bool.self, forKey: .catchUpFromStart) ?? false
-        summaryLength = try container.decodeIfPresent(AnswerLength.self, forKey: .summaryLength) ?? .full
-        chatLength = try container.decodeIfPresent(AnswerLength.self, forKey: .chatLength) ?? .full
-        catchUpLength = try container.decodeIfPresent(AnswerLength.self, forKey: .catchUpLength) ?? .full
+        summaryLength = try container.decodeIfPresent(AnswerLength.self, forKey: .summaryLength) ?? .concise
+        chatLength = try container.decodeIfPresent(AnswerLength.self, forKey: .chatLength) ?? .concise
+        catchUpLength = try container.decodeIfPresent(AnswerLength.self, forKey: .catchUpLength) ?? .concise
         summaryLanguage = try container.decodeIfPresent(String.self, forKey: .summaryLanguage) ?? "auto"
         chatContextMessages = try container.decodeIfPresent(Int.self, forKey: .chatContextMessages) ?? 10
         ragEnabled = try container.decodeIfPresent(Bool.self, forKey: .ragEnabled) ?? false
@@ -542,14 +542,14 @@ public struct HotKey: Codable, Equatable, Sendable {
     }
 }
 
-/// How long AI summaries, catch-ups and answers are: `full` as before, `concise` short.
+/// How long AI summaries, catch-ups and answers are: `concise` short (the default), `full` as before.
 public enum AnswerLength: String, Codable, Sendable, CaseIterable {
     case concise
     case full
 
-    /// An unrecognized raw value (written by another build) falls back to `full`.
+    /// An unrecognized raw value (written by another build) falls back to `concise`, the default.
     public init(from decoder: Decoder) throws {
-        self = AnswerLength(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .full
+        self = AnswerLength(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .concise
     }
 }
 

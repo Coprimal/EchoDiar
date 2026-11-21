@@ -130,11 +130,11 @@ struct SettingsStoreTests {
         #expect(settings.pillSize == .medium)
     }
 
-    /// Summaries, chat answers and catch-ups stay full length unless the user picked Concise.
+    /// Summaries, chat answers and catch-ups are concise unless the user picked Full.
     @Test(arguments: [#"{}"#, #"{"summaryLength":"tiny","chatLength":"tiny","catchUpLength":"tiny"}"#])
-    func answerLengthsDefaultToFull(json: String) throws {
+    func answerLengthsDefaultToConcise(json: String) throws {
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
-        #expect([settings.summaryLength, settings.chatLength, settings.catchUpLength] == [.full, .full, .full])
+        #expect([settings.summaryLength, settings.chatLength, settings.catchUpLength] == [.concise, .concise, .concise])
     }
 
     @Test func answerLengthsRoundTrip() throws {

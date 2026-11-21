@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings has its own search field.
 - While recording, the live transcript sits next to a panel with two tabs, Catch-up and Chat. The panel's model menu picks the model for catch-ups and live chat, next to the language of summaries and answers. Catch-ups are listed oldest first. When the recording ends, the conversation opens on the matching tab (Catch-up opens Summary).
 - Chat while recording, on the catch-up provider (on-device models can't be used until Stop). Its questions and answers are saved in the conversation's chat, marked "Live".
-- Concise or Full length for summaries, chat answers, and catch-ups (with the chat while recording), each set in its tab of Settings > AI Settings. Full, the default, keeps the current length; Concise asks for a few short bullets or sentences, keeping every decision and action item of a summary.
+- Concise or Full length for summaries, chat answers, and catch-ups (with the chat while recording), each set in its tab of Settings > AI Settings. Concise, the default, asks for a few short bullets or sentences and keeps every decision and action item of a summary; Full keeps the previous length.
 
 ### Changed
 
