@@ -202,7 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         return credits
     }
 
-    // MARK: - Main menu actions (the menu owns ⌘R, ⇧⌘P, ⌘1, ⌘2, ⌘I, ⌘[, ⌃⌘S and ⌘F, so they work from every window)
+    // MARK: - Main menu actions (the menu owns ⌘R, ⇧⌘P, ⌘1, ⌘2, ⌘I, ⌘[, ⌘B and ⌘F, so they work from every window)
     // The route is set before the window is shown, so a new window opens on that page.
 
     @objc private func toggleRecording() { model.toggleRecording() }
@@ -375,8 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         viewMenu.addItem(withTitle: String(localized: "Chat"), action: #selector(openChat), keyEquivalent: "i").target = self
         viewMenu.addItem(withTitle: String(localized: "Back"), action: #selector(goBack), keyEquivalent: "[").target = self
         let sidebarItem = viewMenu.addItem(withTitle: String(localized: "Hide Sidebar"),
-                                           action: #selector(toggleSidebar), keyEquivalent: "s")
-        sidebarItem.keyEquivalentModifierMask = [.control, .command]
+                                           action: #selector(toggleSidebar), keyEquivalent: "b")
         sidebarItem.target = self
         viewMenu.addItem(withTitle: String(localized: "Search"), action: #selector(showSearch), keyEquivalent: "f")
             .target = self

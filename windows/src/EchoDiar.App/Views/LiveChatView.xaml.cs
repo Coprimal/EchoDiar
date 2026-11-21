@@ -65,7 +65,7 @@ public sealed partial class LiveChatView : UserControl
         };
     }
 
-    /// <summary>The messages and the question row in cards of their own; false inside a panel that draws one (side by side).</summary>
+    /// <summary>The messages and the question row in cards of their own; false inside a panel that draws one (the recording's right panel).</summary>
     public bool Framed
     {
         get => _framed;

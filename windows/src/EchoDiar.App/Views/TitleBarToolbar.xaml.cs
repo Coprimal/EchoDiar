@@ -4,7 +4,6 @@ using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Audio;
 using EchoDiar.Core.Model;
-using EchoDiar.Core.Settings;
 using EchoDiar.Platform.SystemServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -54,9 +53,6 @@ public sealed partial class TitleBarToolbar : UserControl
 
     /// <summary>The tabs or their selection are being set from the model: not a pick.</summary>
     private bool _syncingTabs;
-
-    /// <summary>Whether the middle tab was last labeled for the recording (Catch-up) or the conversation (Summary).</summary>
-    private bool? _shownRecordingTabs;
 
     /// <summary>Record's tooltip, "Record" and the target; set again only when the target changes.</summary>
     private string? _recordTip;
@@ -169,9 +165,6 @@ public sealed partial class TitleBarToolbar : UserControl
                 ShowNextDialog();
                 break;
             case nameof(AppViewModel.DetailTab):
-            case nameof(AppViewModel.RecordingTab):
-            // The recording layout: Tabs shows the recording's tabs here, side by side none.
-            case nameof(AppViewModel.Settings):
                 UpdateTabs();
                 break;
             case nameof(AppViewModel.AIJobs):
@@ -259,44 +252,23 @@ public sealed partial class TitleBarToolbar : UserControl
     // Tabs
 
     /// <summary>
-    /// The recording page's tabs take the conversation's place (macOS MainView <c>recordingTabs</c>): on the recording
-    /// page, while recording, in the Tabs layout; side by side has its own Catch-up | Chat on the page.
-    /// </summary>
-    private bool RecordingTabsShown() =>
-        _model is { Route.Kind: RouteKind.Recording, IsRecording: true }
-        && _model.Settings.RecordingLayout == RecordingLayout.Tabs;
-
-    /// <summary>
-    /// Shows the conversation's or the recording's tabs, the middle one labeled Summary or Catch-up, with the model's
-    /// tab selected; each set only when it changes (the recording's snapshot calls this at 15 Hz).
+    /// Shows the conversation's tabs with the model's tab selected; each set only when it changes (the recording's
+    /// snapshot calls this at 15 Hz). The recording page has its own Catch-up | Chat in its right panel.
     /// </summary>
     private void UpdateTabs()
     {
         if (_model is null) return;
-        var recordingTabs = RecordingTabsShown();
-        var visibility = Shown(recordingTabs || ShownConversation() is not null);
+        var visibility = Shown(ShownConversation() is not null);
         if (TabsBar.Visibility != visibility) TabsBar.Visibility = visibility;
-        var item = recordingTabs
-            ? _model.RecordingTab switch
-            {
-                RecordingTab.CatchUp => SummaryTab,
-                RecordingTab.Chat => ChatTab,
-                _ => TranscriptTab,
-            }
-            : _model.DetailTab switch
-            {
-                DetailTab.Summary => SummaryTab,
-                DetailTab.Chat => ChatTab,
-                _ => TranscriptTab,
-            };
+        var item = _model.DetailTab switch
+        {
+            DetailTab.Summary => SummaryTab,
+            DetailTab.Chat => ChatTab,
+            _ => TranscriptTab,
+        };
         _syncingTabs = true;
         try
         {
-            if (recordingTabs != _shownRecordingTabs)
-            {
-                _shownRecordingTabs = recordingTabs;
-                SummaryTab.Text = recordingTabs ? Loc.T("Catch-up") : Loc.T("Summary");
-            }
             if (TabsBar.SelectedItem != item) TabsBar.SelectedItem = item;
         }
         finally
@@ -305,23 +277,14 @@ public sealed partial class TitleBarToolbar : UserControl
         }
     }
 
-    /// <summary>A picked tab shows on the recording page, or else on the conversation page.</summary>
+    /// <summary>A picked tab shows on the conversation page.</summary>
     private void OnTabSelected()
     {
         if (_syncingTabs || _model is null || TabsBar.Visibility != Visibility.Visible
             || TabsBar.SelectedItem is not { } item) return;
-        if (RecordingTabsShown())
-        {
-            _model.RecordingTab = item == SummaryTab ? RecordingTab.CatchUp
-                : item == ChatTab ? RecordingTab.Chat
-                : RecordingTab.Transcript;
-        }
-        else
-        {
-            _model.DetailTab = item == SummaryTab ? DetailTab.Summary
-                : item == ChatTab ? DetailTab.Chat
-                : DetailTab.Transcript;
-        }
+        _model.DetailTab = item == SummaryTab ? DetailTab.Summary
+            : item == ChatTab ? DetailTab.Chat
+            : DetailTab.Transcript;
     }
 
     // Update

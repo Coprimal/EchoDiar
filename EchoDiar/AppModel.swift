@@ -24,12 +24,12 @@ final class AppModel {
     /// The open conversation's tab.
     enum DetailTab { case transcript, summary, chat }
 
-    /// The recording page's tab (Tabs layout), or the right panel's Catchup | Chat (side by side, never `.transcript`
-    /// once a recording runs in it).
-    enum RecordingTab { case transcript, catchUp, chat }
+    /// The recording page's right panel: Catch-up | Chat.
+    enum RecordingTab { case catchUp, chat }
 
-    /// Which AI default a job or menu uses: summaries (and catch-ups) or chat (questions, library chat, chat titles).
-    enum AIPurpose { case summary, chat }
+    /// Which AI default a job or menu uses: summaries, chat (questions, library chat, chat titles), or the recording's
+    /// catch-ups and live chat (the catch-up settings, never an in-app model).
+    enum AIPurpose { case summary, chat, catchUp }
 
     /// DEBUG harness launch args handled here; they skip onboarding and auto-queued work.
     static let harnessArguments: Set<String> = [
@@ -39,9 +39,9 @@ final class AppModel {
     private(set) var settings = AppSettings()
     var route: Route = .list
     var detailTab: DetailTab = .transcript
-    /// The recording page's tab: `.transcript` at start (`.catchUp` side by side); the finished recording opens on
-    /// the matching `DetailTab` when its page was showing at Stop.
-    var recordingTab: RecordingTab = .transcript
+    /// The recording page's right panel tab: `.catchUp` at start; the finished recording opens on the matching
+    /// `DetailTab` when its page was showing at Stop.
+    var recordingTab: RecordingTab = .catchUp
     /// Where Back leaves Settings to: the route Settings was opened from.
     private(set) var settingsReturnRoute: Route = .list
     /// Where Back leaves the Calendar page to: a library route, never Settings, so Back cannot cycle between the two.
@@ -172,7 +172,7 @@ final class AppModel {
     var searchPresented = false
     /// ⌘F on the Settings page asks the Settings sidebar's search field to take the focus.
     var settingsSearchPresented = false
-    /// The library sidebar is hidden (⌃⌘S, the toolbar button); this session only. Hide it with `setSidebarHidden(_:)`.
+    /// The library sidebar is hidden (⌘B, the toolbar button); this session only. Hide it with `setSidebarHidden(_:)`.
     var sidebarHidden = false
     /// Cards are selected in the list: Esc cancels the selection instead of going back.
     var listSelectionActive = false
@@ -377,8 +377,8 @@ final class AppModel {
     @ObservationIgnored private var pendingOpenFolder: URL?
     /// The tab `pendingOpenFolder` opens on: the recording page's tab at Stop.
     @ObservationIgnored private var pendingOpenTab: DetailTab = .transcript
-    /// The side-by-side layout hid the sidebar at this recording's start and the user has not toggled it since: the
-    /// end of the recording shows it again.
+    /// This recording's start hid the sidebar and the user has not toggled it since: the end of the recording shows
+    /// it again.
     @ObservationIgnored private var sidebarAutoHidden = false
     @ObservationIgnored private var terminateObserver: (any NSObjectProtocol)?
     /// `supportedLanguages(engineID:)` by catalog id, sorted by name once.
@@ -544,10 +544,10 @@ final class AppModel {
         liveChatFlush?.cancel()
         liveChatFlush = nil
         pendingLiveChatText = ""
-        let sideBySide = settings.recordingLayout == .sideBySide
-        recordingTab = sideBySide ? .catchUp : .transcript
+        recordingTab = .catchUp
+        // Only when the recording page shows now (a window reopened later shows the page it had, with its sidebar).
         // Through the user's path, so an open library chat closes; a sidebar already hidden stays so at the end.
-        sidebarAutoHidden = sideBySide && !sidebarHidden
+        sidebarAutoHidden = (bringForward || mainWindowOpen) && !sidebarHidden
         if sidebarAutoHidden { setSidebarHidden(true) }
         if settings.endPromptNotification { requestNotificationAccess() }
         if bringForward {
@@ -982,7 +982,6 @@ final class AppModel {
                     if route == .recording {
                         pendingOpenFolder = activeFolder
                         pendingOpenTab = switch recordingTab {
-                        case .transcript: .transcript
                         case .catchUp: .summary
                         case .chat: .chat
                         }
@@ -1926,9 +1925,6 @@ final class AppModel {
             || updated.globalPauseHotKeyEnabled != settings.globalPauseHotKeyEnabled
         let notificationTurnedOn = updated.endPromptNotification && !settings.endPromptNotification
         let notificationTurnedOff = !updated.endPromptNotification && settings.endPromptNotification
-        // Side by side has no Transcript tab on the right: a switch to it mid-recording shows Catchup there.
-        let switchedToSideBySide = updated.recordingLayout == .sideBySide && settings.recordingLayout != .sideBySide
-            && (isRecording || isStarting)
         let ragChanged = updated.ragEnabled != settings.ragEnabled
             || updated.embeddingModelID != settings.embeddingModelID
             // An edit of the API embedder's `embeddingModel` changes `providers`.
@@ -1945,7 +1941,6 @@ final class AppModel {
         if hotKeyChanged { syncHotKey() }
         if notificationTurnedOn { requestNotificationAccess() }
         if notificationTurnedOff { endPromptNotifier.dismiss() }
-        if switchedToSideBySide && recordingTab == .transcript { recordingTab = .catchUp }
         // A pass still running would keep embedding with the old choice.
         if ragChanged { syncLibraryIndex(restart: true) }
     }
@@ -1969,14 +1964,14 @@ final class AppModel {
         searchPresented = true
     }
 
-    /// ⌃⌘S and the toolbar's sidebar button. During a recording, the user's choice outlasts its end.
+    /// ⌘B and the toolbar's sidebar button. During a recording, the user's choice outlasts its end.
     func toggleSidebar() {
         sidebarAutoHidden = false
         setSidebarHidden(!sidebarHidden)
     }
 
-    /// The end of a recording (or its failed start): the sidebar the side-by-side layout hid at its start shows again,
-    /// unless the user toggled it since.
+    /// The end of a recording (or its failed start): the sidebar its start hid shows again, unless the user toggled
+    /// it since.
     private func restoreAutoHiddenSidebar() {
         guard sidebarAutoHidden else { return }
         sidebarAutoHidden = false
@@ -2159,6 +2154,10 @@ extension AppModel {
                     models.append(saved)
                 }
             }
+            let catchUpSaved = settings.catchUpModel.trimmingCharacters(in: .whitespacesAndNewlines)
+            if config.id == settings.catchUpProviderID, !catchUpSaved.isEmpty, !models.contains(catchUpSaved) {
+                models.append(catchUpSaved)
+            }
             providers.append(AIProvider(
                 id: config.id, name: config.displayName, kind: kind, defaultModel: config.defaultModel, models: models,
                 cliPreset: kind == .cli ? CLIPreset(rawValue: config.preset ?? "") : nil,
@@ -2185,26 +2184,30 @@ extension AppModel {
     private static let foundationModelsReasonTTL = Duration.seconds(5)
     private static var foundationModelsReasonCache: (reason: String?, at: ContinuousClock.Instant)?
 
-    /// The settings pair (provider id, model) holding `purpose`'s default.
+    /// The settings pair (provider id, model) holding `purpose`'s default; `.catchUp` has its own (non-optional)
+    /// settings, handled by each caller before this.
     private static func aiDefault(
         _ purpose: AIPurpose
     ) -> (provider: WritableKeyPath<AppSettings, String?>, model: WritableKeyPath<AppSettings, String?>) {
         switch purpose {
         case .summary: (\.summaryAIProviderID, \.summaryAIModel)
         case .chat: (\.chatAIProviderID, \.chatAIModel)
+        case .catchUp: preconditionFailure("The catch-up settings are not an optional pair")
         }
     }
 
     /// `purpose`'s default provider when it can run, else the first one that can and is not in
-    /// `autoExcludedProviderIDs`.
+    /// `autoExcludedProviderIDs`; for `.catchUp`, `catchUpProvider`.
     func currentAIProvider(for purpose: AIPurpose) -> AIProvider? {
+        if purpose == .catchUp { return catchUpProvider }
         let usable = aiProviders.filter { $0.unavailableReason == nil }
         return usable.first { $0.id == settings[keyPath: Self.aiDefault(purpose).provider] }
             ?? usable.first { !settings.autoExcludedProviderIDs.contains($0.id) }
     }
 
-    /// The saved model of `purpose`'s default provider, else the provider's own.
+    /// The saved model of `purpose`'s default provider, else the provider's own; for `.catchUp`, `catchUpModel(for:)`.
     func aiModel(for provider: AIProvider, purpose: AIPurpose) -> String {
+        if purpose == .catchUp { return catchUpModel(for: provider) }
         let (providerID, saved) = Self.aiDefault(purpose)
         if provider.id == settings[keyPath: providerID], let model = settings[keyPath: saved], !model.isEmpty {
             return model
@@ -2212,8 +2215,16 @@ extension AppModel {
         return provider.defaultModel
     }
 
-    /// The model menu's pick: `model` of `provider` for the next jobs of `purpose`.
+    /// The model menu's pick: `model` of `provider` for the next jobs of `purpose`. A catch-up pick saves the model as
+    /// is: an empty "Catch-up model" runs the summary model.
     func setAIModel(_ model: String, of provider: AIProvider, purpose: AIPurpose) {
+        if purpose == .catchUp {
+            updateSettings {
+                $0.catchUpProviderID = provider.id
+                $0.catchUpModel = model
+            }
+            return
+        }
         let (providerID, saved) = Self.aiDefault(purpose)
         updateSettings {
             $0[keyPath: providerID] = provider.id

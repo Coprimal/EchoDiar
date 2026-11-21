@@ -212,7 +212,7 @@ struct MainView: View {
             ToolbarItem(placement: leadingPlacement) {
                 SingleToolbarButton(title: model.sidebarHidden ? "Show Sidebar" : "Hide Sidebar",
                                     systemImage: "sidebar.left", action: model.toggleSidebar)
-                    .help(model.sidebarHidden ? "Show Sidebar (⌃⌘S)" : "Hide Sidebar (⌃⌘S)")
+                    .help(model.sidebarHidden ? "Show Sidebar (⌘B)" : "Hide Sidebar (⌘B)")
             }
             .highVisibilityPriority()
             fixedSpacer
@@ -383,7 +383,7 @@ struct MainView: View {
     private static let titleMinWidth: CGFloat = 120
     /// Approximate widths of the other items: the traffic lights, the sidebar button, Back and the record capsule; the
     /// tabs; Reveal in Finder with Delete, Settings, Calendar and the library chat. Only the conversation page has a
-    /// title: the recording's toolbar tabs (Tabs layout) or none (side by side) never meet it, so they need no width.
+    /// title: the recording page has no toolbar tabs, so it needs no width.
     private static let leadingWidth: CGFloat = 302
     private static let tabsWidth: CGFloat = 240
     private static let trailingButtonsWidth: CGFloat = 244
@@ -447,15 +447,11 @@ struct MainView: View {
     }
 
     /// A conversation's tabs, in a capsule of their own like the buttons', at the trailing edge after Settings and the
-    /// library chat; in the same place the recording's Transcript / Catch-up / Chat tabs in the Tabs layout (side by
-    /// side, its right panel has its own tabs).
+    /// library chat (the recording's right panel has its own tabs).
     @ToolbarContentBuilder private var tabsItem: some ToolbarContent {
         if toolbarConversation != nil {
             fixedSpacer
             ToolbarItem { tabs }
-        } else if model.route == .recording && model.isRecording && model.settings.recordingLayout == .tabs {
-            fixedSpacer
-            ToolbarItem { recordingTabs }
         }
     }
 
@@ -465,16 +461,6 @@ struct MainView: View {
         CapsuleTabs(
             selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
             tabs: TranscriptView.tabs, title: { Text(TranscriptView.tabTitle($0)) }
-        )
-        .padding(.horizontal, 4)
-        .fixedSize()
-    }
-
-    /// Padded like `tabs`.
-    private var recordingTabs: some View {
-        CapsuleTabs(
-            selection: Binding(get: { model.recordingTab }, set: { model.recordingTab = $0 }),
-            tabs: RecordingDetailView.tabs, title: { Text(RecordingDetailView.tabTitle($0)) }
         )
         .padding(.horizontal, 4)
         .fixedSize()
@@ -534,7 +520,7 @@ struct MainView: View {
     }
 
     /// The library page: the cards (or the library chat) as a sidebar, then the detail. The sidebar stays while the
-    /// detail changes; hidden (⌃⌘S, the toolbar's sidebar button), it slides out and the detail takes the window.
+    /// detail changes; hidden (⌘B, the toolbar's sidebar button), it slides out and the detail takes the window.
     private var libraryPage: some View {
         // Both panes pad 12 pt on every side; overlapping those paddings by 6 pt leaves an 18 pt gap between them.
         HStack(spacing: -6) {

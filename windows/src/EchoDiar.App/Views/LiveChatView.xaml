@@ -4,7 +4,7 @@
     their model), then the answer being written (or the last one that failed, with its error), or a note while there
     are none; under it the question row (Enter sends, Shift+Enter starts a new line; Stop while an answer is written),
     or why no question can be asked now. Fluent cards in theme resources (Light and Dark), dropped when the view is not
-    Framed (side by side); the messages are built in code.
+    Framed (the recording's right panel); the messages are built in code.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.LiveChatView"

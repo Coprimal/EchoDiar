@@ -6,9 +6,12 @@
     xmlns:local="using:EchoDiar.App">
 
     <UserControl.Resources>
-        <!-- The section headers (macOS DayHeader): muted, semibold caption text, left-aligned with the cards. -->
+        <!--
+            The section headers (macOS BucketHeader): muted, semibold caption text, left-aligned in line with the cards'
+            content (their 8 px inset).
+        -->
         <Style x:Key="DayHeaderText" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
-            <Setter Property="Margin" Value="0,8,0,0" />
+            <Setter Property="Margin" Value="8,8,0,0" />
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />

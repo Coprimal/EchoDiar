@@ -1326,9 +1326,9 @@
     <value>隐藏边栏</value>
     <comment>Hide Sidebar</comment>
   </data>
-  <data name="HideSidebarS" xml:space="preserve">
-    <value>隐藏边栏（⌃⌘S）</value>
-    <comment>Hide Sidebar (⌃⌘S)</comment>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>隐藏边栏（⌘B）</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>历史记录</value>
@@ -1833,6 +1833,10 @@
   <data name="Model" xml:space="preserve">
     <value>模型</value>
     <comment>Model</comment>
+  </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>用于回顾和实时聊天的模型</value>
+    <comment>Model for catch-ups and live chat</comment>
   </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>用于提问的模型</value>
@@ -2614,10 +2618,6 @@
     <value>各地的录音法规不尽相同。许多地方要求通话中的每个人都同意。</value>
     <comment>Recording laws differ from place to place. Many require everyone on the call to agree.</comment>
   </data>
-  <data name="RecordingLayout" xml:space="preserve">
-    <value>录音布局</value>
-    <comment>Recording layout</comment>
-  </data>
   <data name="RecordingOptions" xml:space="preserve">
     <value>录音选项</value>
     <comment>Recording options</comment>
@@ -2645,10 +2645,6 @@
   <data name="RecordingSwitchesToTheDefaultInput" xml:space="preserve">
     <value>录音会切换到默认输入设备。</value>
     <comment>Recording switches to the default input.</comment>
-  </data>
-  <data name="RecordingWindow" xml:space="preserve">
-    <value>录音窗口</value>
-    <comment>Recording window</comment>
   </data>
   <data name="Recording_2" xml:space="preserve">
     <value>正在录制 {0}</value>
@@ -2914,9 +2910,9 @@
     <value>显示边栏</value>
     <comment>Show Sidebar</comment>
   </data>
-  <data name="ShowSidebarS" xml:space="preserve">
-    <value>显示边栏（⌃⌘S）</value>
-    <comment>Show Sidebar (⌃⌘S)</comment>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>显示边栏（⌘B）</value>
+    <comment>Show Sidebar (⌘B)</comment>
   </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>显示其他说话人</value>
@@ -2961,14 +2957,6 @@
   <data name="ShowsTheTranscriptWhileRecordingWithAModelOnThisPCFreeNothin" xml:space="preserve">
     <value>录音时使用这台电脑上的模型显示转写文本。免费：录音期间不会上传任何内容，但会占用 CPU、内存和电量。保存的转写文本仍会在停止后由 {0} 生成，因此可能与你看到的不同。</value>
     <comment>Shows the transcript while recording with a model on this PC. Free: nothing is uploaded while recording, but it uses CPU, memory and battery. The saved transcript still comes from %@ after Stop, so it can differ from what you saw.</comment>
-  </data>
-  <data name="SideBySide" xml:space="preserve">
-    <value>并排</value>
-    <comment>Side by side</comment>
-  </data>
-  <data name="SideBySideShowsTheLiveTranscriptNextToCatchUpAndChatAndHides" xml:space="preserve">
-    <value>“并排”会在录音时将实时转写显示在“回顾”和“聊天”旁边，并隐藏边栏。</value>
-    <comment>Side by side shows the live transcript next to Catch-up and Chat and hides the sidebar while recording.</comment>
   </data>
   <data name="SimulateState" xml:space="preserve">
     <value>模拟状态</value>
@@ -3225,10 +3213,6 @@
   <data name="SystemModelLanguageAssetsInstalledOnDemandAutoUsesTheDefault" xml:space="preserve">
     <value>系统模型 — 语言资源按需安装。“自动”使用默认语言（不检测语言）。</value>
     <comment>System model — language assets installed on demand. Auto uses the default language (no language detection).</comment>
-  </data>
-  <data name="Tabs" xml:space="preserve">
-    <value>标签页</value>
-    <comment>Tabs</comment>
   </data>
   <data name="TellSpeakersApart" xml:space="preserve">
     <value>区分说话人</value>

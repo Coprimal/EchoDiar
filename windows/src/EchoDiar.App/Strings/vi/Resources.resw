@@ -1326,9 +1326,9 @@
     <value>Ẩn thanh bên</value>
     <comment>Hide Sidebar</comment>
   </data>
-  <data name="HideSidebarS" xml:space="preserve">
-    <value>Ẩn thanh bên (⌃⌘S)</value>
-    <comment>Hide Sidebar (⌃⌘S)</comment>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>Ẩn thanh bên (⌘B)</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>Lịch sử</value>
@@ -1833,6 +1833,10 @@
   <data name="Model" xml:space="preserve">
     <value>Mô hình</value>
     <comment>Model</comment>
+  </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>Mô hình cho bản tóm tắt nhanh và trò chuyện trực tiếp</value>
+    <comment>Model for catch-ups and live chat</comment>
   </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>Mô hình cho câu hỏi</value>
@@ -2614,10 +2618,6 @@
     <value>Luật về ghi âm khác nhau ở mỗi nơi. Nhiều nơi yêu cầu mọi người trong cuộc gọi phải đồng ý.</value>
     <comment>Recording laws differ from place to place. Many require everyone on the call to agree.</comment>
   </data>
-  <data name="RecordingLayout" xml:space="preserve">
-    <value>Bố cục khi ghi âm</value>
-    <comment>Recording layout</comment>
-  </data>
   <data name="RecordingOptions" xml:space="preserve">
     <value>Tuỳ chọn ghi âm</value>
     <comment>Recording options</comment>
@@ -2645,10 +2645,6 @@
   <data name="RecordingSwitchesToTheDefaultInput" xml:space="preserve">
     <value>Chuyển sang ghi âm bằng đầu vào mặc định.</value>
     <comment>Recording switches to the default input.</comment>
-  </data>
-  <data name="RecordingWindow" xml:space="preserve">
-    <value>Cửa sổ ghi âm</value>
-    <comment>Recording window</comment>
   </data>
   <data name="Recording_2" xml:space="preserve">
     <value>Đang ghi âm {0}</value>
@@ -2914,9 +2910,9 @@
     <value>Hiện thanh bên</value>
     <comment>Show Sidebar</comment>
   </data>
-  <data name="ShowSidebarS" xml:space="preserve">
-    <value>Hiện thanh bên (⌃⌘S)</value>
-    <comment>Show Sidebar (⌃⌘S)</comment>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>Hiện thanh bên (⌘B)</value>
+    <comment>Show Sidebar (⌘B)</comment>
   </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>Hiện những người nói khác</value>
@@ -2961,14 +2957,6 @@
   <data name="ShowsTheTranscriptWhileRecordingWithAModelOnThisPCFreeNothin" xml:space="preserve">
     <value>Hiển thị bản chép lời trong khi ghi âm bằng một mô hình trên máy tính này. Miễn phí: không có gì được tải lên trong khi ghi âm, nhưng dùng CPU, bộ nhớ và pin. Bản chép lời được lưu vẫn do {0} tạo sau khi bấm Dừng, nên có thể khác với những gì bạn đã thấy.</value>
     <comment>Shows the transcript while recording with a model on this PC. Free: nothing is uploaded while recording, but it uses CPU, memory and battery. The saved transcript still comes from %@ after Stop, so it can differ from what you saw.</comment>
-  </data>
-  <data name="SideBySide" xml:space="preserve">
-    <value>Cạnh nhau</value>
-    <comment>Side by side</comment>
-  </data>
-  <data name="SideBySideShowsTheLiveTranscriptNextToCatchUpAndChatAndHides" xml:space="preserve">
-    <value>Cạnh nhau hiển thị bản chép lời trực tiếp bên cạnh Tóm tắt nhanh và Trò chuyện, đồng thời ẩn thanh bên trong khi ghi âm.</value>
-    <comment>Side by side shows the live transcript next to Catch-up and Chat and hides the sidebar while recording.</comment>
   </data>
   <data name="SimulateState" xml:space="preserve">
     <value>Mô phỏng trạng thái</value>
@@ -3225,10 +3213,6 @@
   <data name="SystemModelLanguageAssetsInstalledOnDemandAutoUsesTheDefault" xml:space="preserve">
     <value>Mô hình hệ thống — tài nguyên ngôn ngữ được cài khi cần. Tự động dùng ngôn ngữ mặc định (không phát hiện ngôn ngữ).</value>
     <comment>System model — language assets installed on demand. Auto uses the default language (no language detection).</comment>
-  </data>
-  <data name="Tabs" xml:space="preserve">
-    <value>Tab</value>
-    <comment>Tabs</comment>
   </data>
   <data name="TellSpeakersApart" xml:space="preserve">
     <value>Phân biệt người nói</value>

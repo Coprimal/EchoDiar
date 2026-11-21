@@ -24,7 +24,7 @@ struct ConversationListView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 4, pinnedViews: .sectionHeaders) {
+                LazyVStack(alignment: .leading, spacing: 8, pinnedViews: .sectionHeaders) {
                     if model.isRecording {
                         RecordingCard(model: model, selected: model.route == .recording)
                             .id(Self.recordingCardID)
@@ -206,12 +206,12 @@ private struct SelectionBar: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .modifier(GlassCard(cornerRadius: 20, raised: true, fill: Palette.raisedSurface))
+        .modifier(GlassCard(cornerRadius: 12, raised: true, fill: Palette.raisedSurface))
     }
 }
 
-/// The section's title ("Today", "Previous 3 days", …) as muted text, centered. On the sidebar's panel, so cards
-/// scrolling under the pinned header do not show through.
+/// The section's title ("Today", "Previous 3 days", …) as muted text, leading, in line with the cards' content (their
+/// 8 pt inset). On the sidebar's panel, so cards scrolling under the pinned header do not show through.
 private struct BucketHeader: View {
     let bucket: LibraryBucket
 
@@ -220,7 +220,8 @@ private struct BucketHeader: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
             .accessibilityAddTraits(.isHeader)
-            .frame(maxWidth: .infinity)
+            .padding(.leading, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 6)
             // The list's 12 pt padding, so the background reaches the column edges.
             .background(Palette.surface.padding(.horizontal, -12))

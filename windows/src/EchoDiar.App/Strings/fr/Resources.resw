@@ -1374,9 +1374,9 @@
     <value>Masquer la barre latérale</value>
     <comment>Hide Sidebar</comment>
   </data>
-  <data name="HideSidebarS" xml:space="preserve">
-    <value>Masquer la barre latérale (⌃⌘S)</value>
-    <comment>Hide Sidebar (⌃⌘S)</comment>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>Masquer la barre latérale (⌘B)</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>Historique</value>
@@ -1921,6 +1921,10 @@
   <data name="Model" xml:space="preserve">
     <value>Modèle</value>
     <comment>Model</comment>
+  </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>Modèle pour les récapitulatifs et la discussion en direct</value>
+    <comment>Model for catch-ups and live chat</comment>
   </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>Modèle pour les questions</value>
@@ -2706,10 +2710,6 @@
     <value>Les lois sur l’enregistrement varient d’un endroit à l’autre. Beaucoup exigent l’accord de toutes les personnes présentes à l’appel.</value>
     <comment>Recording laws differ from place to place. Many require everyone on the call to agree.</comment>
   </data>
-  <data name="RecordingLayout" xml:space="preserve">
-    <value>Disposition pendant l’enregistrement</value>
-    <comment>Recording layout</comment>
-  </data>
   <data name="RecordingOptions" xml:space="preserve">
     <value>Options d’enregistrement</value>
     <comment>Recording options</comment>
@@ -2737,10 +2737,6 @@
   <data name="RecordingSwitchesToTheDefaultInput" xml:space="preserve">
     <value>L’enregistrement passe à l’entrée par défaut.</value>
     <comment>Recording switches to the default input.</comment>
-  </data>
-  <data name="RecordingWindow" xml:space="preserve">
-    <value>Fenêtre d’enregistrement</value>
-    <comment>Recording window</comment>
   </data>
   <data name="Recording_2" xml:space="preserve">
     <value>Enregistrement de {0}</value>
@@ -3006,9 +3002,9 @@
     <value>Afficher la barre latérale</value>
     <comment>Show Sidebar</comment>
   </data>
-  <data name="ShowSidebarS" xml:space="preserve">
-    <value>Afficher la barre latérale (⌃⌘S)</value>
-    <comment>Show Sidebar (⌃⌘S)</comment>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>Afficher la barre latérale (⌘B)</value>
+    <comment>Show Sidebar (⌘B)</comment>
   </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>Afficher les autres intervenants</value>
@@ -3053,14 +3049,6 @@
   <data name="ShowsTheTranscriptWhileRecordingWithAModelOnThisPCFreeNothin" xml:space="preserve">
     <value>Affiche la transcription pendant l’enregistrement avec un modèle sur ce PC. Gratuit : rien n’est envoyé pendant l’enregistrement, mais cela utilise processeur, mémoire et batterie. La transcription enregistrée vient toujours de {0} après l’arrêt et peut donc différer de ce que vous avez vu.</value>
     <comment>Shows the transcript while recording with a model on this PC. Free: nothing is uploaded while recording, but it uses CPU, memory and battery. The saved transcript still comes from %@ after Stop, so it can differ from what you saw.</comment>
-  </data>
-  <data name="SideBySide" xml:space="preserve">
-    <value>Côte à côte</value>
-    <comment>Side by side</comment>
-  </data>
-  <data name="SideBySideShowsTheLiveTranscriptNextToCatchUpAndChatAndHides" xml:space="preserve">
-    <value>Côte à côte affiche la transcription en direct à côté de Récapitulatif et de Discussion, et masque la barre latérale pendant l’enregistrement.</value>
-    <comment>Side by side shows the live transcript next to Catch-up and Chat and hides the sidebar while recording.</comment>
   </data>
   <data name="SimulateState" xml:space="preserve">
     <value>Simuler un état</value>
@@ -3317,10 +3305,6 @@
   <data name="SystemModelLanguageAssetsInstalledOnDemandAutoUsesTheDefault" xml:space="preserve">
     <value>Modèle du système — ressources linguistiques installées à la demande. Auto utilise la langue par défaut (pas de détection de la langue).</value>
     <comment>System model — language assets installed on demand. Auto uses the default language (no language detection).</comment>
-  </data>
-  <data name="Tabs" xml:space="preserve">
-    <value>Onglets</value>
-    <comment>Tabs</comment>
   </data>
   <data name="TellSpeakersApart" xml:space="preserve">
     <value>Distinguer les intervenants</value>

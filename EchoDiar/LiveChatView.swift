@@ -7,7 +7,7 @@ import SwiftUI
 /// (or the last one that failed, with its error); under it the question row, or why no question can be asked.
 struct LiveChatView: View {
     let model: AppModel
-    /// The messages and the question row in cards of their own; false inside a panel that draws one (side by side).
+    /// The messages and the question row in cards of their own; false inside a panel that draws one (the recording's right panel).
     var framed = true
 
     private static let chatEnd = "chatEnd"

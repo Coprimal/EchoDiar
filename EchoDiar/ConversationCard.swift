@@ -52,7 +52,7 @@ struct ConversationCard: View {
         .background {
             if selected { Self.shape.fill(Color.accentColor.opacity(0.18)) }
         }
-        .modifier(GlassCard(cornerRadius: 20, raised: true, fill: Palette.raisedSurface))
+        .modifier(GlassCard(cornerRadius: 12, raised: true, fill: Palette.raisedSurface))
         .overlay {
             if selected { Self.shape.strokeBorder(Color.accentColor, lineWidth: 1.5).allowsHitTesting(false) }
         }
@@ -82,7 +82,7 @@ struct ConversationCard: View {
     }
 
     /// The `GlassCard` shape, for the selection.
-    private static let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+    private static let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
 
     @ViewBuilder private var title: some View {
         if editing {

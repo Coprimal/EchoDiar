@@ -3,6 +3,7 @@ using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Audio;
 using EchoDiar.Core.Settings;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -14,11 +15,11 @@ namespace EchoDiar.App.Views;
 /// <summary>
 /// The recording page (macOS RecordingViews.swift RecordingDetailView, RecordingHeader, ChannelMeters and
 /// RecordingWave), opened from the recording's card: the title, "Catch up", the calendar suggestion and the capture
-/// warnings, pinned on every tab and in both layouts, then the tab's content (<see cref="AppViewModel.RecordingTab"/>):
-/// the live transcript (or the wave and why there is none), the catch-ups (macOS CatchUpPanel) or the live chat; side by
-/// side (<see cref="AppSettings.RecordingLayout"/>), the transcript on the left and the catch-ups or the chat on the
-/// right. The meters and the wave move at 15 Hz while the window is shown and the recording is not paused; the wave
-/// stands still when Windows animations are off (Reduce Motion).
+/// warnings, pinned on top, then the live transcript (or the wave and why there is none) on the left and a panel on the
+/// right with its Catch-up | Chat tabs (<see cref="AppViewModel.RecordingTab"/>), the catch-up model and the answer
+/// language over the catch-ups (macOS CatchUpPanel) or the live chat. The meters and the wave move at 15 Hz while the
+/// window is shown and the recording is not paused; the wave stands still when Windows animations are off (Reduce
+/// Motion).
 /// </summary>
 public sealed partial class RecordingView : UserControl
 {
@@ -56,8 +57,11 @@ public sealed partial class RecordingView : UserControl
     /// <summary>The card of <see cref="AppViewModel.CatchUpRun"/>: the only one <see cref="AppViewModel.CatchUpTextChanged"/> updates.</summary>
     private CatchUpCard? _runCard;
 
-    /// <summary>The layout as last applied: side by side, Tabs, or none yet (the XAML's, Tabs).</summary>
-    private bool? _sideBySide;
+    /// <summary>
+    /// What the catch-ups were last scrolled to the end for: their count, the run's id and whether it failed; another
+    /// one scrolls again.
+    /// </summary>
+    private (int Count, Guid? Run, bool Failed)? _scrolledCatchUps;
 
     /// <summary>"Catch up"'s tooltip as last set: one set again while shown closes under the pointer (the captions change it often).</summary>
     private string? _catchUpTip;
@@ -87,13 +91,19 @@ public sealed partial class RecordingView : UserControl
         TitleBox.TextChanged += (_, _) => _model.SetRecordingTitle(TitleBox.Text);
         AcceptSuggestionButton.Click += (_, _) => _model.AcceptCalendarSuggestion();
         DismissSuggestionButton.Click += (_, _) => _model.DismissCalendarSuggestion();
-        // Sets CatchUpRun at once, so its card shows in this update; in the Catch-up tab, which it selects (side by side too).
+        // Sets CatchUpRun at once, so its card shows in this update; in the Catch-up tab, which it selects.
         CatchUpButton.Click += (_, _) =>
         {
             _model.StartCatchUp();
             _model.RecordingTab = RecordingTab.CatchUp;
         };
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
+        ToolTipService.SetToolTip(PanelLanguageButton,
+            Loc.T("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)"));
+        PanelModelMenu.Opening += (_, _) => AIMenus.FillModelMenu(PanelModelMenu, _model.ProvidersModel, AIPurpose.CatchUp,
+            () => _model.OpenSettings(SettingsSearch.Providers, ProvidersSettingsPage.CloudTab));
+        PanelLanguageMenu.Opening += (_, _) =>
+            AIMenus.FillLanguageMenu(PanelLanguageMenu, _model.ProvidersModel, _model.Settings.SummaryLanguage);
         Loaded += (_, _) =>
         {
             _model.PropertyChanged += OnModelChanged;
@@ -107,6 +117,8 @@ public sealed partial class RecordingView : UserControl
             UpdateCatchUps();
             UpdateCatchUpButton();
             UpdateContent();
+            UpdatePanelMenus();
+            ScrollCatchUpsToEnd();
         };
         Unloaded += (_, _) =>
         {
@@ -129,7 +141,7 @@ public sealed partial class RecordingView : UserControl
             case nameof(AppViewModel.Settings):
                 UpdateReason();
                 UpdateCatchUpButton();
-                UpdateContent();
+                UpdatePanelMenus();
                 break;
             case nameof(AppViewModel.RecordingLanguage):
             case nameof(AppViewModel.InstalledModelIds):
@@ -212,54 +224,50 @@ public sealed partial class RecordingView : UserControl
     }
 
     /// <summary>
-    /// The tab's content in the layout (macOS <c>RecordingDetailView</c>): Tabs, the transcript, the catch-ups or the chat
-    /// across the width; side by side, the transcript on the left and the right panel in a card, with its Catch-up | Chat
-    /// tabs, Transcript shown as Catch-up so it is never empty. A layout switch only moves the panes: the live transcript
-    /// keeps its view, which holds the stream. The chat is made when its tab shows, so its question takes the focus, and
-    /// dropped when another one does (macOS: only the selected tab's view).
+    /// The right panel's tab (macOS <c>RecordingDetailView</c> <c>sidePanel</c>): the catch-ups or the chat. The chat is
+    /// made when its tab shows, so its question takes the focus, and dropped when the other one does (macOS: only the
+    /// selected tab's view). Back on the catch-ups, the newest is in view.
     /// </summary>
     private void UpdateContent()
     {
-        var sideBySide = _model.Settings.RecordingLayout == RecordingLayout.SideBySide;
-        var tab = _model.RecordingTab;
-        if (sideBySide && tab == RecordingTab.Transcript) tab = RecordingTab.CatchUp;
-        if (sideBySide != _sideBySide)
+        var chat = _model.RecordingTab == RecordingTab.Chat;
+        var catchUpsShown = CatchUpPanel.Visibility == Visibility.Visible;
+        CatchUpPanel.Visibility = Shown(!chat);
+        if (!chat)
         {
-            _sideBySide = sideBySide;
-            Grid.SetColumnSpan(TranscriptPane, sideBySide ? 1 : 2);
-            Grid.SetColumn(SidePanel, sideBySide ? 1 : 0);
-            Grid.SetColumnSpan(SidePanel, sideBySide ? 1 : 2);
-            PanelTabsBar.Visibility = Shown(sideBySide);
-            SetFramed(SidePanel, sideBySide);
-            SetFramed(CatchUpPanel, !sideBySide);
-            if (ChatHost.Child is LiveChatView shownChat) shownChat.Framed = !sideBySide;
+            ChatHost.Child = null;
+            if (!catchUpsShown) ScrollCatchUpsToEnd();
         }
-        TranscriptPane.Visibility = Shown(sideBySide || tab == RecordingTab.Transcript);
-        SidePanel.Visibility = Shown(tab != RecordingTab.Transcript);
-        CatchUpPanel.Visibility = Shown(tab == RecordingTab.CatchUp);
-        if (tab != RecordingTab.Chat) ChatHost.Child = null;
-        else if (ChatHost.Child is null) ChatHost.Child = new LiveChatView(_model) { Framed = !sideBySide };
-        var item = tab == RecordingTab.Chat ? ChatPanelTab : CatchUpPanelTab;
+        else if (ChatHost.Child is null)
+        {
+            ChatHost.Child = new LiveChatView(_model) { Framed = false };
+        }
+        var item = chat ? ChatPanelTab : CatchUpPanelTab;
         if (PanelTabsBar.SelectedItem != item) PanelTabsBar.SelectedItem = item;
     }
 
-    /// <summary>
-    /// A tab picked in the side-by-side panel. Only a pick that differs from the tab shown is written, so showing the
-    /// model's tab (Transcript as Catch-up) never changes it.
-    /// </summary>
+    /// <summary>A tab picked in the right panel; only a pick that differs from the model's tab is written.</summary>
     private void OnPanelTabSelected()
     {
         if (PanelTabsBar.SelectedItem is not { } item) return;
         var picked = item == ChatPanelTab ? RecordingTab.Chat : RecordingTab.CatchUp;
-        var shown = _model.RecordingTab == RecordingTab.Chat ? RecordingTab.Chat : RecordingTab.CatchUp;
-        if (picked != shown) _model.RecordingTab = picked;
+        if (picked != _model.RecordingTab) _model.RecordingTab = picked;
     }
 
-    /// <summary>The card's look (<c>PaneStyle</c>), or none inside a card that draws one.</summary>
-    private void SetFramed(Border pane, bool framed)
+    /// <summary>
+    /// The right panel's catch-up model (<see cref="AIPurpose.CatchUp"/>) and answer language labels (macOS
+    /// <c>AIModelMenu</c> and <c>AILanguageMenu</c>), as the conversation's AI panel shows them.
+    /// </summary>
+    private void UpdatePanelMenus()
     {
-        if (framed) pane.Style = (Style)Resources["PaneStyle"];
-        else pane.ClearValue(FrameworkElement.StyleProperty);
+        var title = AIMenus.ModelTitle(_model.ProvidersModel, AIPurpose.CatchUp);
+        if (PanelModelText.Text != title)
+        {
+            PanelModelText.Text = title;
+            AutomationProperties.SetName(PanelModelButton, title);
+        }
+        var language = LanguageOptions.ShortCode(_model.Settings.SummaryLanguage);
+        if (PanelLanguageText.Text != language) PanelLanguageText.Text = language;
     }
 
     private static Visibility Shown(bool shown) => shown ? Visibility.Visible : Visibility.Collapsed;
@@ -267,14 +275,15 @@ public sealed partial class RecordingView : UserControl
     private void UpdateReason() => RecordingCard.SetText(ReasonText, NoCaptionsReason(_model));
 
     /// <summary>
-    /// The providers changed: which one "Catch up" runs on, the saved cards' provider names, and the default cloud
-    /// engine the reason names.
+    /// The providers changed: which one "Catch up" runs on (and the panel's model), the saved cards' provider names, and
+    /// the default cloud engine the reason names.
     /// </summary>
     private void OnProvidersChanged()
     {
         UpdateReason();
         UpdateCatchUps();
         UpdateCatchUpButton();
+        UpdatePanelMenus();
     }
 
     /// <summary>
@@ -294,24 +303,25 @@ public sealed partial class RecordingView : UserControl
     }
 
     /// <summary>
-    /// The cards: the run first, then the saved catch-ups, newest first; each kept by id (the run's card becomes its
-    /// saved catch-up's), the newest open unless clicked otherwise. A hint to press Catch up while there are none.
+    /// The cards, oldest first: the saved catch-ups, then the run at the bottom; each kept by id (the run's card becomes
+    /// its saved catch-up's), the newest open unless clicked otherwise. A new card, or the run's failure, scrolls to the
+    /// end. A hint to press Catch up while there are none.
     /// </summary>
     private void UpdateCatchUps()
     {
         List<CatchUpCardState> states = [];
         var run = _model.CatchUpRun;
-        if (run is not null) states.Add(CatchUpCardState.From(run));
         var saved = _model.RecordingCatchUps;
         if (saved.Count > 0)
         {
             var providers = _model.ProvidersModel.AIProviders;
             // The run's catch-up is listed once saved, a moment before the run is cleared: its card shows it once.
-            for (var i = saved.Count - 1; i >= 0; i--)
+            foreach (var catchUp in saved)
             {
-                if (saved[i].Id != run?.JobId) states.Add(CatchUpCardState.From(saved[i], providers));
+                if (catchUp.Id != run?.JobId) states.Add(CatchUpCardState.From(catchUp, providers));
             }
         }
+        if (run is not null) states.Add(CatchUpCardState.From(run));
         List<CatchUpCard> cards = [];
         for (var i = 0; i < states.Count; i++)
         {
@@ -324,7 +334,7 @@ public sealed partial class RecordingView : UserControl
                 card.StopRequested += _model.StopCatchUp;
                 _catchUpCards[id] = card;
             }
-            card.IsOpen = _catchUpOpenStates.TryGetValue(state.Id, out var open) ? open : i == 0;
+            card.IsOpen = _catchUpOpenStates.TryGetValue(state.Id, out var open) ? open : i == states.Count - 1;
             card.Show(state);
             cards.Add(card);
         }
@@ -341,13 +351,35 @@ public sealed partial class RecordingView : UserControl
         }
         CatchUpScroller.Visibility = Shown(cards.Count > 0);
         CatchUpEmptyText.Visibility = Shown(cards.Count == 0);
+        var shown = (saved.Count, run?.JobId, run is { IsRunning: false });
+        if (shown != _scrolledCatchUps)
+        {
+            _scrolledCatchUps = shown;
+            ScrollCatchUpsToEnd();
+        }
     }
 
-    /// <summary>The run's text or status changed (at most every 120 ms): only its card, whose Markdown is rendered again.</summary>
+    /// <summary>
+    /// The run's text or status changed (at most every 120 ms): only its card, whose Markdown is rendered again, kept in
+    /// view as it grows while the list is at or near its bottom, so an older catch-up being read stays put.
+    /// </summary>
     private void OnCatchUpTextChanged()
     {
-        if (_model.CatchUpRun is { } run && _runCard is { } card) card.Show(CatchUpCardState.From(run));
+        if (_model.CatchUpRun is not { } run || _runCard is not { } card) return;
+        // Before the card grows: the offsets are still those of the last layout.
+        var atBottom = CatchUpScroller.VerticalOffset >= CatchUpScroller.ScrollableHeight - CatchUpFollowThreshold;
+        card.Show(CatchUpCardState.From(run));
+        if (atBottom) ScrollCatchUpsToEnd();
     }
+
+    /// <summary>How near the bottom, in pixels, still counts as at it for <see cref="OnCatchUpTextChanged"/>.</summary>
+    private const double CatchUpFollowThreshold = 48;
+
+    /// <summary>The newest catch-up at the bottom into view, once laid out, so the new height is known.</summary>
+    private void ScrollCatchUpsToEnd() => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+    {
+        if (!_model.IsClosing) CatchUpScroller.ChangeView(null, CatchUpScroller.ScrollableHeight, null, disableAnimation: true);
+    });
 
     private void ToggleCatchUp(Guid id)
     {
@@ -447,9 +479,8 @@ public sealed partial class RecordingView : UserControl
         SystemFill.Width = SystemTrack.ActualWidth * system;
         SetPercent(MicMeter, mic, ref _micPercent);
         SetPercent(SystemMeter, system, ref _systemPercent);
-        // The live transcript, or another tab, hides the wave.
-        if (!UISettings.AnimationsEnabled || NoLivePanel.Visibility != Visibility.Visible
-            || TranscriptPane.Visibility != Visibility.Visible) return;
+        // The live transcript hides the wave.
+        if (!UISettings.AnimationsEnabled || NoLivePanel.Visibility != Visibility.Visible) return;
         // The louder channel's peak; a fall decays from the last bar so the wave does not flicker.
         Array.Copy(_history, 1, _history, 0, BarCount - 1);
         _history[^1] = Math.Max(Math.Max(mic, system), _history[^2] * 0.8);

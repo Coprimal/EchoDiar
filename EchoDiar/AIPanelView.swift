@@ -824,14 +824,15 @@ struct AIPanelView: View {
 }
 
 /// Every provider with the models it offers, on this Mac first; Foundation Models shows why it cannot run (the AI
-/// pane's bottom bar and the global chat's). Shows and edits `purpose`'s default.
+/// pane's bottom bar, the global chat's and the recording's right panel). Shows and edits `purpose`'s default; for
+/// `.catchUp`, no in-app provider (the live transcriber holds the model during a recording).
 struct AIModelMenu: View {
     let model: AppModel
     let purpose: AppModel.AIPurpose
     let height: CGFloat
 
     var body: some View {
-        let providers = model.aiProviders
+        let providers = purpose == .catchUp ? model.aiProviders.filter { $0.kind != .inApp } : model.aiProviders
         let inApp = providers.filter { $0.kind == .inApp }
         let hosts = providers.filter { $0.kind != .inApp && !$0.leavesMac } + providers.filter(\.leavesMac)
         Menu {
@@ -857,7 +858,15 @@ struct AIModelMenu: View {
         }
         .modifier(CompactMenu(maxWidth: 180, height: height))
         .layoutPriority(1)
-        .help(purpose == .summary ? Text("Model for summaries") : Text("Model for questions"))
+        .help(helpText)
+    }
+
+    private var helpText: Text {
+        switch purpose {
+        case .summary: Text("Model for summaries")
+        case .chat: Text("Model for questions")
+        case .catchUp: Text("Model for catch-ups and live chat")
+        }
     }
 
     private func modelItem(_ provider: AppModel.AIProvider, _ id: String, title: String) -> some View {

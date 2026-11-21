@@ -22,7 +22,7 @@ struct CatchUpButton: View {
         .help(Text(reason ?? help))
     }
 
-    /// Side by side too: there `recordingTab` is the right panel's Catch-up | Chat.
+    /// `recordingTab` is the right panel's Catch-up | Chat.
     private func catchUp() {
         model.startCatchUp()
         model.recordingTab = .catchUp
@@ -40,17 +40,24 @@ struct CatchUpButton: View {
     }
 }
 
-/// The current recording's catch-ups, filling the recording page's Catch-up tab, newest first: the one being written
-/// on top (a placeholder until its text comes, then its streamed Markdown, with Stop), then the saved ones. The
-/// newest is open and the others collapsed, each opening or closing with a click on its header; each has Copy. While
-/// there are none, a hint to press Catch up.
+/// The current recording's catch-ups, filling the recording page's Catch-up tab, oldest first: the saved ones, then
+/// the one being written at the bottom (a placeholder until its text comes, then its streamed Markdown, with Stop),
+/// kept in view as it grows while the view is at its bottom. The newest is open and the others collapsed, each opening
+/// or closing with a click on its header; each has Copy. While there are none, a hint to press Catch up.
 struct CatchUpPanel: View {
     let model: AppModel
-    /// In its own card; false inside a panel that draws one (side by side).
+    /// In its own card; false inside a panel that draws one (the recording page's right panel).
     var framed = true
     /// The open state the user gave cards with a click; the others: the newest open, the older ones collapsed.
     @State private var openStates: [UUID: Bool] = [:]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// The scroll view is at or near its bottom: streamed text keeps it there.
+    @State private var atBottom = true
+
+    private static let listEnd = "catchUpEnd"
+    /// How near the bottom, in points, still counts as at it.
+    private static let followThreshold: CGFloat = 48
 
     var body: some View {
         let cards = self.cards
@@ -61,17 +68,34 @@ struct CatchUpPanel: View {
                     .multilineTextAlignment(.center)
                     .padding(20)
             } else {
-                ScrollView {
-                    VStack(spacing: 6) {
-                        ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                            let open = openStates[card.id] ?? (index == 0)
-                            CatchUpCardView(
-                                card: card, open: open, toggle: { toggle(card.id, open: !open) }, stop: model.stopCatchUp)
+                let run = model.catchUpRun
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 6) {
+                            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                                let open = openStates[card.id] ?? (index == cards.count - 1)
+                                CatchUpCardView(
+                                    card: card, open: open, toggle: { toggle(card.id, open: !open) },
+                                    stop: model.stopCatchUp)
+                            }
+                            Color.clear.frame(height: 1).id(Self.listEnd)
                         }
+                        .padding(8)
                     }
-                    .padding(8)
+                    .scrollBounceBehavior(.basedOnSize)
+                    // Content that grows under a view at the bottom keeps it there: the follow below scrolls it.
+                    .onScrollGeometryChange(for: ScrollGeometry.self) { $0 } action: { old, new in
+                        if new.contentSize.height != old.contentSize.height, atBottom { return }
+                        atBottom = new.visibleRect.maxY >= new.contentSize.height - Self.followThreshold
+                    }
+                    .onAppear { scrollToEnd(proxy) }
+                    // A catch-up the user just asked for, or saved: always in view.
+                    .onChange(of: model.recordingCatchUps.count) { _, _ in scrollToEnd(proxy) }
+                    .onChange(of: run?.jobID) { _, _ in scrollToEnd(proxy) }
+                    // Streamed text follows only a view at the bottom, so an older catch-up being read stays put.
+                    .onChange(of: run?.text.count) { _, _ in if atBottom { scrollToEnd(proxy) } }
+                    .onChange(of: run?.error) { _, _ in if atBottom { scrollToEnd(proxy) } }
                 }
-                .scrollBounceBehavior(.basedOnSize)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -80,9 +104,10 @@ struct CatchUpPanel: View {
         .environment(\.openURL, OpenURLAction { _ in .discarded })
     }
 
-    /// The run first, then the saved catch-ups, newest first.
+    /// The saved catch-ups, oldest first, then the run.
     private var cards: [CatchUpCard] {
-        var cards: [CatchUpCard] = []
+        let providers = model.aiProviders
+        var cards = model.recordingCatchUps.map { CatchUpCard($0, providers: providers) }
         if let run = model.catchUpRun {
             cards.append(CatchUpCard(
                 id: run.jobID, elapsed: run.elapsed, text: run.text, running: run.isRunning, stopping: run.stopping,
@@ -90,12 +115,17 @@ struct CatchUpPanel: View {
                 provider: CatchUpCard.providerLabel(run.providerName, leavesMac: run.providerLeavesMac),
                 model: run.model))
         }
-        let providers = model.aiProviders
-        cards += model.recordingCatchUps.reversed().map { CatchUpCard($0, providers: providers) }
         return cards
     }
 
+    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+        atBottom = true
+        proxy.scrollTo(Self.listEnd, anchor: .bottom)
+    }
+
+    /// A card opened or closed by the user moves the content under the view: measured again, not followed.
     private func toggle(_ id: UUID, open: Bool) {
+        atBottom = false
         withAnimation(reduceMotion ? nil : Motion.standard) { openStates[id] = open }
     }
 }
@@ -255,8 +285,8 @@ private struct DelayedSpinner: View {
     }
 }
 
-/// `GlassCard` when `framed`; nothing for content inside a panel that draws its own card (the recording's side by
-/// side panel), so no card sits on a card of the same surface.
+/// `GlassCard` when `framed`; nothing for content inside a panel that draws its own card (the recording's right
+/// panel), so no card sits on a card of the same surface.
 struct FramedCard: ViewModifier {
     let framed: Bool
     var cornerRadius: CGFloat = 14

@@ -46,28 +46,27 @@ public sealed class LiveChatRun(Guid jobId, string question)
 }
 
 /// <summary>
-/// The recording page's tabs and live chat (macOS AppModel's <c>recordingTab</c>, sidebar auto-hide and
-/// <c>// MARK: - Live chat</c>): the tab shown, the sidebar the side-by-side layout hides for the recording, and questions
+/// The recording page's right panel tab and live chat (macOS AppModel's <c>recordingTab</c>, sidebar auto-hide and
+/// <c>// MARK: - Live chat</c>): the tab shown, the sidebar hidden for the recording, and questions
 /// about the meeting so far, on the catch-up provider, streamed into <see cref="LiveChatRun"/>, then saved in the
 /// recording's <c>chat.json</c> (marked live) and listed in <see cref="LiveChatMessages"/>. On the UI thread; files, the
 /// client and the plan are made off it.
 /// </summary>
 public sealed partial class AppViewModel
 {
-    private RecordingTab _recordingTab = RecordingTab.Transcript;
+    private RecordingTab _recordingTab = RecordingTab.CatchUp;
     private LiveChatRun? _liveChatRun;
     private IReadOnlyList<ChatLog.Message> _liveChatMessages = [];
 
     /// <summary>
-    /// The side-by-side layout hid the sidebar at this recording's start and the user has not toggled it since: the end
-    /// of the recording shows it again.
+    /// This recording's start hid the sidebar and the user has not toggled it since: the end of the recording shows it
+    /// again.
     /// </summary>
     private bool _sidebarAutoHidden;
 
     /// <summary>
-    /// The recording page's tab (Tabs layout), or the right panel's Catchup | Chat (side by side, which shows
-    /// Transcript as Catchup): Transcript at start (Catchup side by side); the finished
-    /// recording opens on the matching <see cref="DetailTab"/> when its page was showing at Stop.
+    /// The recording page's right panel tab: Catch-up at start; the finished recording opens on the matching
+    /// <see cref="DetailTab"/> when its page was showing at Stop.
     /// </summary>
     public RecordingTab RecordingTab
     {
@@ -156,24 +155,24 @@ public sealed partial class AppViewModel
     }
 
     /// <summary>
-    /// A recording starts: its page shows none of the previous recording's live chat, on its first tab (Catchup side by
-    /// side), and the side-by-side layout hides a shown sidebar until its end, through the user's path, so an open library
-    /// chat closes (a sidebar already hidden stays so at the end).
+    /// A recording starts: its page shows none of the previous recording's live chat, on the Catch-up tab, and, when
+    /// <paramref name="showsPage"/> (the route becomes the recording page now), a shown sidebar hides until its end,
+    /// through the user's path, so an open library chat closes (a sidebar already hidden stays so at the end). A window
+    /// shown later shows the page it had, with its sidebar.
     /// </summary>
-    private void ResetRecordingPage()
+    private void ResetRecordingPage(bool showsPage)
     {
         LiveChatRun?.FlushTimer?.Stop();
         LiveChatRun = null;
         LiveChatMessages = [];
-        var sideBySide = Settings.RecordingLayout == RecordingLayout.SideBySide;
-        RecordingTab = sideBySide ? RecordingTab.CatchUp : RecordingTab.Transcript;
-        _sidebarAutoHidden = sideBySide && !SidebarHidden;
+        RecordingTab = RecordingTab.CatchUp;
+        _sidebarAutoHidden = showsPage && !SidebarHidden;
         if (_sidebarAutoHidden) SetSidebarHidden(true);
     }
 
     /// <summary>
-    /// The end of a recording (or its failed start): the sidebar the side-by-side layout hid at its start shows again,
-    /// unless the user toggled it since.
+    /// The end of a recording (or its failed start): the sidebar its start hid shows again, unless the user toggled it
+    /// since.
     /// </summary>
     private void RestoreAutoHiddenSidebar()
     {

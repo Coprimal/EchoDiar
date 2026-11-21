@@ -66,7 +66,7 @@ struct RecordingCard: View {
         .background {
             if selected { Self.shape.fill(Color.accentColor.opacity(0.18)) }
         }
-        .modifier(GlassCard(cornerRadius: 20, raised: true, fill: Palette.raisedSurface))
+        .modifier(GlassCard(cornerRadius: 12, raised: true, fill: Palette.raisedSurface))
         .overlay {
             if selected { Self.shape.strokeBorder(Color.accentColor, lineWidth: 1.5).allowsHitTesting(false) }
         }
@@ -84,7 +84,7 @@ struct RecordingCard: View {
     }
 
     /// The `GlassCard` shape, for the selection.
-    private static let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+    private static let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
 
     /// The recording's title, else its state; a field while renamed in place, as `ConversationCard`'s title: Return
     /// saves, Esc and a click elsewhere cancel.
@@ -169,22 +169,20 @@ struct RecordingCard: View {
     }
 }
 
-/// The recording in the library page's detail: the header and the calendar suggestion if any, pinned on top on every
-/// tab, then by `settings.recordingLayout`: Tabs, the tab of `model.recordingTab` (the toolbar's tabs); side by side,
-/// the transcript beside a panel with its own Catch-up | Chat tabs. The transcript is the live one, or the wave and why
+/// The recording in the library page's detail: the header and the calendar suggestion if any, pinned on top, then the
+/// transcript beside a panel with its own Catch-up | Chat tabs. The transcript is the live one, or the wave and why
 /// there is none (the conditions of `AppModel.startRecordingTranscriber`, read from the settings), with the Settings
 /// page that changes it.
 struct RecordingDetailView: View {
     let model: AppModel
 
-    /// The Tabs layout's tabs, in order.
-    static let tabs: [AppModel.RecordingTab] = [.transcript, .catchUp, .chat]
-    /// The side by side panel's tabs, in order.
+    /// The right panel's tabs, in order.
     private static let panelTabs: [AppModel.RecordingTab] = [.catchUp, .chat]
+    /// The panel header's menus: as tall as the conversation chat's menu row.
+    private static let menuHeight: CGFloat = 28
 
-    static func tabTitle(_ tab: AppModel.RecordingTab) -> LocalizedStringKey {
+    private static func tabTitle(_ tab: AppModel.RecordingTab) -> LocalizedStringKey {
         switch tab {
-        case .transcript: "Transcript"
         case .catchUp: "Catch-up"
         case .chat: "Chat"
         }
@@ -194,42 +192,36 @@ struct RecordingDetailView: View {
         VStack(spacing: 12) {
             RecordingHeader(model: model)
             if let event = model.calendarSuggestion { suggestionRow(event) }
-            switch model.settings.recordingLayout {
-            case .tabs: tabContent
-            case .sideBySide:
-                HStack(spacing: 12) {
-                    transcript
-                    sidePanel
-                }
+            HStack(spacing: 12) {
+                transcript
+                sidePanel
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// Only the selected tab's view: a hidden chat would still take the keyboard focus.
-    @ViewBuilder private var tabContent: some View {
-        switch model.recordingTab {
-        case .transcript: transcript
-        case .catchUp: CatchUpPanel(model: model)
-        case .chat: LiveChatView(model: model)
-        }
-    }
-
-    /// One card with the Catch-up | Chat tabs over the selected one, whose own cards it replaces. `.transcript` (the
-    /// Tabs layout's) shows Catch-up, so the panel is never empty.
+    /// One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, and
+    /// the answer language) over the selected tab, whose own cards it replaces. Only the selected tab's view: a hidden
+    /// chat would still take the keyboard focus.
     private var sidePanel: some View {
         let selection = Binding<AppModel.RecordingTab>(
-            get: { model.recordingTab == .chat ? .chat : .catchUp },
+            get: { model.recordingTab },
             set: { model.recordingTab = $0 })
         return VStack(spacing: 10) {
-            CapsuleTabs(selection: selection, tabs: Self.panelTabs, title: { Text(Self.tabTitle($0)) },
-                        drawsTrack: true)
-                .fixedSize()
-            if selection.wrappedValue == .chat {
-                LiveChatView(model: model, framed: false)
-            } else {
-                CatchUpPanel(model: model, framed: false)
+            HStack(spacing: 8) {
+                // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
+                CapsuleTabs(selection: selection, tabs: Self.panelTabs, title: { Text(Self.tabTitle($0)) },
+                            drawsTrack: true, trackFill: Palette.inputSurface)
+                    .fixedSize()
+                Spacer(minLength: 8)
+                AIModelMenu(model: model, purpose: .catchUp, height: Self.menuHeight)
+                AILanguageMenu(model: model, height: Self.menuHeight)
+            }
+            .padding(.horizontal, 10)
+            switch selection.wrappedValue {
+            case .catchUp: CatchUpPanel(model: model, framed: false)
+            case .chat: LiveChatView(model: model, framed: false)
             }
         }
         .padding(.top, 10)

@@ -13,7 +13,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:EchoDiar.App">
 
-    <Grid Margin="0,2">
+    <!-- 4 px above and below: an 8 px gap between cards (macOS ConversationListView's spacing). -->
+    <Grid Margin="0,4">
         <Grid.ContextFlyout>
             <MenuFlyout x:Name="CardMenu">
                 <MenuFlyoutItem x:Name="RenameItem" Text="{local:T Text='Rename'}" />
