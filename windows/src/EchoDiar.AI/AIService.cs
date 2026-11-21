@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using EchoDiar.Core.Model;
 using EchoDiar.Core.Models;
+using EchoDiar.Core.Settings;
 
 namespace EchoDiar.AI;
 
@@ -144,19 +145,22 @@ public sealed class AIService(ModelLoadGate gate)
 
     /// <summary>
     /// Streams a new summary: one pass when the transcript fits, else map over the chunks and reduce the notes until one
-    /// group is left; only the last reduce is streamed. <paramref name="language"/> is the summary-language setting.
-    /// <paramref name="providerID"/> is saved with the summary.
+    /// group is left; only the last reduce is streamed. <paramref name="language"/> is the summary-language setting;
+    /// <paramref name="length"/> applies to the single pass and the last reduce. <paramref name="providerID"/> is saved
+    /// with the summary.
     /// </summary>
     public IAsyncEnumerable<AIUpdate> Summarize(
         Conversation conversation, Transcript transcript, ILLMProvider provider, string providerID, string model,
-        string language, CancellationToken cancellationToken = default, Guid? jobId = null) =>
+        string language, CancellationToken cancellationToken = default, Guid? jobId = null,
+        AnswerLength length = AnswerLength.Full) =>
         RunAsync(jobId, provider, model, async (backend, yield, job) =>
         {
             string summary;
             var cut = false;
             try
             {
-                summary = await SummaryAsync(conversation, transcript, provider, backend, model, language, yield, job.Token);
+                summary = await SummaryAsync(
+                    conversation, transcript, provider, backend, model, language, length, yield, job.Token);
             }
             catch (Interrupted interrupted) when (job.IsStopped && interrupted.Text.Length > 0)
             {
@@ -171,12 +175,13 @@ public sealed class AIService(ModelLoadGate gate)
     /// contexts), the saved <paramref name="summary"/> and the last <paramref name="historyLimit"/> messages of
     /// <paramref name="history"/> (0 or less = all of them); then appends the question and the answer to
     /// <c>chat.json</c>. <paramref name="providerID"/> is saved with the answer. <paramref name="language"/> is the
-    /// response-language setting (<c>"auto"</c> = the question's).
+    /// response-language setting (<c>"auto"</c> = the question's); <paramref name="length"/>, how long the answer is.
     /// </summary>
     public IAsyncEnumerable<AIUpdate> Ask(
         string question, Conversation conversation, Transcript transcript, string? summary,
         IReadOnlyList<ChatLog.Message> history, int historyLimit, ILLMProvider provider, string providerID, string model,
-        string language, CancellationToken cancellationToken = default, Guid? jobId = null)
+        string language, CancellationToken cancellationToken = default, Guid? jobId = null,
+        AnswerLength length = AnswerLength.Full)
     {
         var asked = DateTimeOffset.UtcNow;
         return RunAsync(jobId, provider, model, async (backend, yield, job) =>
@@ -185,9 +190,9 @@ public sealed class AIService(ModelLoadGate gate)
             var answerLanguage = OutputLanguage.Answer(language);
             var context = await provider.ContextWindowAsync(model, job.Token);
             var excerpts = TranscriptChunker.QuestionExcerpts(
-                conversation, transcript, question, summary, context, turns, answerLanguage);
+                conversation, transcript, question, summary, context, turns, answerLanguage, length);
             var messages = PromptBuilder.QuestionMessages(
-                conversation, transcript, excerpts, summary, question, turns, answerLanguage);
+                conversation, transcript, excerpts, summary, question, turns, answerLanguage, length);
             var answer = await StoppableAnswerAsync(messages, backend, model, context, yield, job);
             AppendChat(conversation.Folder, [
                 new ChatLog.Message { Role = ChatRole.User, Text = question, Timestamp = asked },
@@ -204,19 +209,21 @@ public sealed class AIService(ModelLoadGate gate)
     /// Streams the answer to a question across the library, sent with the numbered <paramref name="sources"/> and the
     /// last <paramref name="historyLimit"/> messages of <paramref name="history"/> (0 or less = all of them); then
     /// appends the question and the answer, with its <paramref name="references"/>, to <paramref name="folder"/>'s
-    /// <c>chat.json</c>. <paramref name="providerID"/> and <paramref name="language"/> as in <see cref="Ask"/>. The
+    /// <c>chat.json</c>. <paramref name="providerID"/>, <paramref name="language"/> and <paramref name="length"/> as in
+    /// <see cref="Ask"/>. The
     /// caller builds the sources and their references from the library index (Swift <c>librarySources</c>).
     /// </summary>
     public IAsyncEnumerable<AIUpdate> AskLibrary(
         string question, IReadOnlyList<PromptBuilder.LibrarySource> sources, IReadOnlyList<ChatLog.Reference> references,
         IReadOnlyList<ChatLog.Message> history, int historyLimit, ILLMProvider provider, string providerID, string model,
-        string language, string folder, CancellationToken cancellationToken = default, Guid? jobId = null)
+        string language, string folder, CancellationToken cancellationToken = default, Guid? jobId = null,
+        AnswerLength length = AnswerLength.Full)
     {
         var asked = DateTimeOffset.UtcNow;
         return RunAsync(jobId, provider, model, async (backend, yield, job) =>
         {
             var messages = PromptBuilder.LibraryQuestionMessages(
-                question, sources, Turns(history, historyLimit), OutputLanguage.Answer(language));
+                question, sources, Turns(history, historyLimit), OutputLanguage.Answer(language), length);
             var context = await provider.ContextWindowAsync(model, job.Token);
             var answer = await StoppableAnswerAsync(messages, backend, model, context, yield, job);
             // The global chat's folder does not exist before its first question.
@@ -265,8 +272,36 @@ public sealed class AIService(ModelLoadGate gate)
             AppendCatchUp(folder, new CatchUp
             {
                 Id = job.Id, CreatedAt = asked, Elapsed = elapsed, ThroughLineID = plan.ThroughLineID, ThroughTime = plan.ThroughTime,
-                FullPass = plan.FullPass, Text = text, Provider = providerID, Model = model, Stopped = cut,
+                FullPass = plan.FullPass && !plan.Omitted, Text = text, Provider = providerID, Model = model, Stopped = cut,
             });
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Streams the answer to a question asked while recording: <paramref name="messages"/>
+    /// (<see cref="PromptBuilder.LiveQuestionMessages"/>), then appends <paramref name="question"/> and the answer, both
+    /// marked <c>Live</c>, to <paramref name="folder"/>'s <c>chat.json</c>, also when stopped with some text.
+    /// <paramref name="providerID"/> is saved with the answer. Fails at once with an in-app model
+    /// (<see cref="ILocalLLMProvider"/>), as <see cref="CatchUpAsync"/> does.
+    /// </summary>
+    public IAsyncEnumerable<AIUpdate> AskLiveAsync(
+        string question, IReadOnlyList<LLMMessage> messages, ILLMProvider provider, string providerID, string model,
+        string folder, CancellationToken cancellationToken = default, Guid? jobId = null)
+    {
+        if (provider is ILocalLLMProvider) return Failing(LLMException.Provider("A catch-up needs a provider outside the app."));
+        var asked = DateTimeOffset.UtcNow;
+        return RunAsync(jobId, provider, model, async (backend, yield, job) =>
+        {
+            var context = await provider.ContextWindowAsync(model, job.Token);
+            var answer = await StoppableAnswerAsync(messages, backend, model, context, yield, job);
+            AppendChat(folder, [
+                new ChatLog.Message { Role = ChatRole.User, Text = question, Timestamp = asked, Live = true },
+                new ChatLog.Message
+                {
+                    Role = ChatRole.Assistant, Text = answer, Provider = providerID, Model = model,
+                    Timestamp = DateTimeOffset.UtcNow, Live = true,
+                },
+            ]);
         }, cancellationToken);
     }
 
@@ -305,15 +340,8 @@ public sealed class AIService(ModelLoadGate gate)
         return "";
     }
 
-    /// <summary>
-    /// The last <paramref name="limit"/> messages of <paramref name="history"/> (0 or less = all of them), starting with
-    /// a question: some APIs reject a conversation whose first turn is an answer.
-    /// </summary>
     private static List<LLMMessage> Turns(IReadOnlyList<ChatLog.Message> history, int limit) =>
-        (limit > 0 ? history.TakeLast(limit) : history)
-        .SkipWhile(m => m.Role != ChatRole.User)
-        .Select(m => new LLMMessage(m.Role == ChatRole.User ? LLMRole.User : LLMRole.Assistant, m.Text))
-        .ToList();
+        PromptBuilder.HistoryTurns(history, limit);
 
     /// <summary>Serialized so two answers finishing together cannot drop each other's messages.</summary>
     private void AppendChat(string folder, IEnumerable<ChatLog.Message> messages)
@@ -436,15 +464,15 @@ public sealed class AIService(ModelLoadGate gate)
 
     private static async Task<string> SummaryAsync(
         Conversation conversation, Transcript transcript, ILLMProvider provider, Backend backend, string model,
-        string setting, Action<AIUpdate> yield, CancellationToken cancellationToken)
+        string setting, AnswerLength length, Action<AIUpdate> yield, CancellationToken cancellationToken)
     {
         if (transcript.Segments.Count == 0) throw LLMException.Provider("The transcript is empty.");
         var language = OutputLanguage.Resolve(setting, transcript);
         var context = await provider.ContextWindowAsync(model, cancellationToken);
-        var plan = TranscriptChunker.PlanSummary(conversation, transcript, language, context);
+        var plan = TranscriptChunker.PlanSummary(conversation, transcript, language, context, length);
         if (plan is not SummaryPlan.MapReduce { Chunks: var chunks })
         {
-            var messages = PromptBuilder.SummaryMessages(conversation, transcript, language);
+            var messages = PromptBuilder.SummaryMessages(conversation, transcript, language, length);
             return await AnswerAsync(messages, backend, model, context, yield, cancellationToken);
         }
         var notes = new List<string>();
@@ -458,12 +486,12 @@ public sealed class AIService(ModelLoadGate gate)
         }
         while (true)
         {
-            var groups = TranscriptChunker.ReduceGroups(notes, conversation, transcript, language, context);
+            var groups = TranscriptChunker.ReduceGroups(notes, conversation, transcript, language, context, length);
             if (groups.Count <= 1)
             {
                 yield(AIUpdate.Status("Writing the summary…"));
                 var messages = PromptBuilder.ReduceMessages(
-                    conversation, transcript, groups.Count > 0 ? groups[0] : [], language);
+                    conversation, transcript, groups.Count > 0 ? groups[0] : [], language, length);
                 return await AnswerAsync(messages, backend, model, context, yield, cancellationToken);
             }
             var merged = new List<string>();

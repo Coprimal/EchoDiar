@@ -73,6 +73,12 @@ public sealed record AppSettings : IJsonOnDeserializing, IJsonOnDeserialized
     [JsonPropertyName("catchUpModel")] public string CatchUpModel { get; set; } = "";
     /// <summary>Each catch-up summarizes the recording from the start, instead of building on the previous one.</summary>
     [JsonPropertyName("catchUpFromStart")] public bool CatchUpFromStart { get; set; }
+    /// <summary>Length of summaries.</summary>
+    [JsonPropertyName("summaryLength")] public AnswerLength SummaryLength { get; set; } = AnswerLength.Full;
+    /// <summary>Length of answers in the Chat tab and Library chat.</summary>
+    [JsonPropertyName("chatLength")] public AnswerLength ChatLength { get; set; } = AnswerLength.Full;
+    /// <summary>Length of catch-ups and of answers in the Chat tab while recording.</summary>
+    [JsonPropertyName("catchUpLength")] public AnswerLength CatchUpLength { get; set; } = AnswerLength.Full;
     [JsonPropertyName("summaryLanguage")] public string SummaryLanguage { get; set; } = "auto";
     /// <summary>Earlier chat messages sent with each question; 0 = the whole chat.</summary>
     [JsonPropertyName("chatContextMessages")] public int ChatContextMessages { get; set; } = 10;
@@ -142,6 +148,8 @@ public sealed record AppSettings : IJsonOnDeserializing, IJsonOnDeserialized
     [JsonPropertyName("cloudLiveModelID")] public string? CloudLiveModelID { get; set; }
     /// <summary>With <see cref="CloudLiveSource.Realtime"/>, keep the realtime transcript as the final one instead of a cloud batch.</summary>
     [JsonPropertyName("realtimeAsFinal")] public bool RealtimeAsFinal { get; set; }
+    /// <summary>Library sidebar entries per page, one of <see cref="LibraryPaging.SizeOptions"/>.</summary>
+    [JsonPropertyName("libraryPageSize")] public int LibraryPageSize { get; set; } = 100;
 
     /// <summary>Keys not modeled here, written back as read.</summary>
     [JsonExtensionData] public Dictionary<string, JsonElement> Extra { get; set; } = [];
@@ -370,6 +378,15 @@ public sealed class CloudLiveSourceConverter() : TolerantEnumConverter<CloudLive
 public enum RetentionMode { AudioOnly, WholeConversation }
 
 public sealed class RetentionModeConverter() : TolerantEnumConverter<RetentionMode>(RetentionMode.AudioOnly);
+
+/// <summary>
+/// How long AI summaries, catch-ups and answers are: <see cref="Full"/> as before, <see cref="Concise"/> short. An
+/// unknown value reads as <see cref="Full"/>.
+/// </summary>
+[JsonConverter(typeof(AnswerLengthConverter))]
+public enum AnswerLength { Concise, Full }
+
+public sealed class AnswerLengthConverter() : TolerantEnumConverter<AnswerLength>(AnswerLength.Full);
 
 /// <summary>Size of the recording pill. An unknown value reads as <see cref="Medium"/>.</summary>
 [JsonConverter(typeof(PillSizeConverter))]

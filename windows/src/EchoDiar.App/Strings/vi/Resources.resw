@@ -178,6 +178,14 @@
     <value>Cho phép micrô</value>
     <comment>Allow Microphone</comment>
   </data>
+  <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
+    <value>Cũng trả lời trong tab Trò chuyện khi đang ghi âm.</value>
+    <comment>Also answers the Chat tab while recording.</comment>
+  </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>Cũng áp dụng cho câu trả lời trong tab Trò chuyện khi đang ghi âm. Ngắn gọn: vài gạch đầu dòng ngắn.</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Luôn ghi âm {0}</value>
     <comment>Always for %@</comment>
@@ -185,6 +193,10 @@
   <data name="AlwaysRecord" xml:space="preserve">
     <value>Luôn ghi âm</value>
     <comment>Always record</comment>
+  </data>
+  <data name="AnAnswerIsBeingWritten" xml:space="preserve">
+    <value>Đang viết câu trả lời.</value>
+    <comment>An answer is being written.</comment>
   </data>
   <data name="AnUpdateIsAvailableUpdateInTheToolbarInstallsIt" xml:space="preserve">
     <value>Có bản cập nhật: bấm Cập nhật trên thanh công cụ để cài đặt.</value>
@@ -205,6 +217,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>một cuộc hội thoại khác</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>Độ dài câu trả lời</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>Đang trả lời…</value>
@@ -281,6 +297,10 @@
   <data name="AskAQuestionAboutThisConversationBelow" xml:space="preserve">
     <value>Đặt câu hỏi về cuộc hội thoại này ở bên dưới.</value>
     <comment>Ask a question about this conversation below.</comment>
+  </data>
+  <data name="AskAboutTheMeetingSoFar" xml:space="preserve">
+    <value>Hỏi về cuộc họp đến lúc này.</value>
+    <comment>Ask about the meeting so far.</comment>
   </data>
   <data name="AskAboutThisConversation" xml:space="preserve">
     <value>Hỏi về cuộc hội thoại này</value>
@@ -490,6 +510,10 @@
     <value>Tóm tắt nhanh lúc {0}</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>Độ dài tóm tắt nhanh</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>Mô hình tóm tắt nhanh</value>
     <comment>Catch-up model</comment>
@@ -569,6 +593,10 @@
   <data name="ChooseWhatToRecordAndTheLanguage" xml:space="preserve">
     <value>Chọn nội dung cần ghi âm và ngôn ngữ</value>
     <comment>Choose what to record and the language</comment>
+  </data>
+  <data name="ClearSearch" xml:space="preserve">
+    <value>Xoá tìm kiếm</value>
+    <comment>Clear search</comment>
   </data>
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>Bấm để nhập phím tắt mới</value>
@@ -653,6 +681,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>Nén không thành công</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>Ngắn gọn</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>Ngắn gọn: một đến ba câu hoặc vài gạch đầu dòng ngắn.</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>Ngắn gọn: các ý chính, kèm mọi quyết định và việc cần làm.</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>Xác nhận…</value>
@@ -1182,6 +1222,10 @@
     <value>Nhập mô hình nhúng của {0} trong Cài đặt › RAG</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
   </data>
+  <data name="EntriesPerPage" xml:space="preserve">
+    <value>Số mục mỗi trang</value>
+    <comment>Entries per page</comment>
+  </data>
   <data name="EveryLicenseAboveInOneTextFile" xml:space="preserve">
     <value>Mọi giấy phép ở trên trong một tệp văn bản.</value>
     <comment>Every license above in one text file.</comment>
@@ -1246,6 +1290,10 @@
     <value>Tiếng Pháp</value>
     <comment>French</comment>
   </data>
+  <data name="Full" xml:space="preserve">
+    <value>Đầy đủ</value>
+    <comment>Full</comment>
+  </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
     <comment>%@ GB</comment>
@@ -1301,6 +1349,14 @@
   <data name="HideItWhileAnEchoDiarWindowIsInFront" xml:space="preserve">
     <value>Ẩn khi một cửa sổ EchoDiar ở phía trước</value>
     <comment>Hide it while an EchoDiar window is in front</comment>
+  </data>
+  <data name="HideSidebar" xml:space="preserve">
+    <value>Ẩn thanh bên</value>
+    <comment>Hide Sidebar</comment>
+  </data>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>Ẩn thanh bên (⌘B)</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>Lịch sử</value>
@@ -1522,6 +1578,14 @@
     <value>Cuộc hội thoại lớn nhất</value>
     <comment>Largest conversations</comment>
   </data>
+  <data name="Last30Days" xml:space="preserve">
+    <value>30 ngày gần nhất</value>
+    <comment>Last 30 days</comment>
+  </data>
+  <data name="Last7Days" xml:space="preserve">
+    <value>7 ngày gần nhất</value>
+    <comment>Last 7 days</comment>
+  </data>
   <data name="LastChecked" xml:space="preserve">
     <value>Kiểm tra lần cuối: {0}</value>
     <comment>Last checked %@</comment>
@@ -1561,6 +1625,10 @@
   <data name="Listening" xml:space="preserve">
     <value>Đang nghe…</value>
     <comment>Listening…</comment>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>Trực tiếp</value>
+    <comment>Live</comment>
   </data>
   <data name="LiveModel" xml:space="preserve">
     <value>Mô hình chép lời trực tiếp</value>
@@ -1621,6 +1689,10 @@
   <data name="LldLanguages" xml:space="preserve">
     <value>{0} ngôn ngữ</value>
     <comment>%lld languages</comment>
+  </data>
+  <data name="LldLldOfLld" xml:space="preserve">
+    <value>{0}–{1} trên {2}</value>
+    <comment>%lld–%lld of %lld</comment>
   </data>
   <data name="LldMB" xml:space="preserve">
     <value>{0} MB</value>
@@ -1790,6 +1862,10 @@
     <value>Mô hình</value>
     <comment>Model</comment>
   </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>Mô hình cho bản tóm tắt nhanh và trò chuyện trực tiếp</value>
+    <comment>Model for catch-ups and live chat</comment>
+  </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>Mô hình cho câu hỏi</value>
     <comment>Model for questions</comment>
@@ -1922,6 +1998,10 @@
     <value>Sự kiện mới…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>Trang sau</value>
+    <comment>Next page</comment>
+  </data>
   <data name="NextRunLldConversations" xml:space="preserve">
     <value>Lần chạy tới: {0} cuộc hội thoại</value>
     <comment>Next run: %lld conversations</comment>
@@ -1945,6 +2025,10 @@
   <data name="NoCalendarAccountCanHoldEchoDiarSCalendar" xml:space="preserve">
     <value>Không có tài khoản lịch nào có thể chứa lịch của EchoDiar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
+  </data>
+  <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
+    <value>Chưa có bản tóm tắt nhanh nào. Bấm Tóm tắt nhanh để tóm tắt cuộc họp đến lúc này.</value>
+    <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
   </data>
   <data name="NoConversationsMatch" xml:space="preserve">
     <value>Không có cuộc hội thoại nào khớp với "{0}"</value>
@@ -2090,6 +2174,10 @@
     <value>Không có gì mới kể từ bản tóm tắt nhanh trước</value>
     <comment>Nothing new since the last catch-up</comment>
   </data>
+  <data name="NothingToAskAboutYet" xml:space="preserve">
+    <value>Chưa có gì để hỏi.</value>
+    <comment>Nothing to ask about yet.</comment>
+  </data>
   <data name="NothingToCatchUpOnYet" xml:space="preserve">
     <value>Chưa có gì để tóm tắt.</value>
     <comment>Nothing to catch up on yet.</comment>
@@ -2129,6 +2217,10 @@
   <data name="OffersToRecordWhenAMeetingAppStartsUsingTheMicrophone" xml:space="preserve">
     <value>Đề nghị ghi âm khi một ứng dụng họp bắt đầu dùng micrô.</value>
     <comment>Offers to record when a meeting app starts using the microphone.</comment>
+  </data>
+  <data name="Older" xml:space="preserve">
+    <value>Cũ hơn</value>
+    <comment>Older</comment>
   </data>
   <data name="OlderThan" xml:space="preserve">
     <value>Cũ hơn</value>
@@ -2409,6 +2501,14 @@
   <data name="PressToStartRecordingFromAnywhere" xml:space="preserve">
     <value>Nhấn {0} để bắt đầu ghi âm từ bất kỳ đâu.</value>
     <comment>Press %@ to start recording from anywhere.</comment>
+  </data>
+  <data name="Previous3Days" xml:space="preserve">
+    <value>3 ngày gần nhất</value>
+    <comment>Previous 3 days</comment>
+  </data>
+  <data name="PreviousPage" xml:space="preserve">
+    <value>Trang trước</value>
+    <comment>Previous page</comment>
   </data>
   <data name="PricesAreApproximateListPricesPerAudioHourTheMicAndSystemCha" xml:space="preserve">
     <value>Giá là giá niêm yết ước tính cho mỗi giờ âm thanh; kênh micrô và kênh hệ thống được gửi và tính phí riêng.</value>
@@ -2834,6 +2934,14 @@
     <value>Xem lại phần giới thiệu ban đầu</value>
     <comment>Show onboarding again</comment>
   </data>
+  <data name="ShowSidebar" xml:space="preserve">
+    <value>Hiện thanh bên</value>
+    <comment>Show Sidebar</comment>
+  </data>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>Hiện thanh bên (⌘B)</value>
+    <comment>Show Sidebar (⌘B)</comment>
+  </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>Hiện những người nói khác</value>
     <comment>Show the other speakers</comment>
@@ -3074,6 +3182,10 @@
     <value>Tóm tắt cuộc họp đến lúc này, chủ yếu là 5 phút gần nhất</value>
     <comment>Summarize the meeting so far, mostly its last 5 minutes</comment>
   </data>
+  <data name="SummarizeWhatIsNewSinceTheLastCatchUp" xml:space="preserve">
+    <value>Tóm tắt những gì mới kể từ bản tóm tắt nhanh trước</value>
+    <comment>Summarize what is new since the last catch-up</comment>
+  </data>
   <data name="Summarizing" xml:space="preserve">
     <value>Đang tóm tắt</value>
     <comment>Summarizing</comment>
@@ -3093,6 +3205,10 @@
   <data name="Summary" xml:space="preserve">
     <value>Bản tóm tắt</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>Độ dài bản tóm tắt</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>Mô hình tóm tắt</value>

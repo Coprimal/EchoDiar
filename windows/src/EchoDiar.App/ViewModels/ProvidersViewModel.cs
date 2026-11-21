@@ -15,10 +15,10 @@ namespace EchoDiar.App.ViewModels;
 public enum AIProviderKind { InApp, LocalHost, Cloud, Cli }
 
 /// <summary>
-/// Which AI default a job or menu uses (macOS <c>AppModel.AIPurpose</c>): summaries (and catch-ups) or chat (questions,
-/// library chat, chat titles).
+/// Which AI default a job or menu uses (macOS <c>AppModel.AIPurpose</c>): summaries, chat (questions, library chat, chat
+/// titles), or the recording's catch-ups and live chat (the catch-up settings, never an in-app model).
 /// </summary>
-public enum AIPurpose { Summary, Chat }
+public enum AIPurpose { Summary, Chat, CatchUp }
 
 /// <summary>
 /// A provider the AI pickers offer (macOS <c>AppModel.AIProvider</c>): an in-app model (its catalog id) or a configured
@@ -608,6 +608,11 @@ public sealed partial class ProvidersViewModel : ObservableObject
                     var (providerID, picked) = AIDefault(purpose);
                     if (config.Id == providerID && picked is { Length: > 0 } && !models.Contains(picked)) models.Add(picked);
                 }
+                var catchUpPicked = Settings.CatchUpModel.Trim();
+                if (config.Id == Settings.CatchUpProviderID && catchUpPicked.Length > 0 && !models.Contains(catchUpPicked))
+                {
+                    models.Add(catchUpPicked);
+                }
                 providers.Add(new AIProviderInfo(
                     config.Id, config.DisplayName, kind, config.DefaultModel, models,
                     CliPreset: kind == AIProviderKind.Cli ? CLIPresets.FromSlug(config.Preset) : null,
@@ -617,19 +622,25 @@ public sealed partial class ProvidersViewModel : ObservableObject
         }
     }
 
-    /// <summary>The settings pair (provider id, model) holding <paramref name="purpose"/>'s default (macOS <c>aiDefault</c>).</summary>
+    /// <summary>
+    /// The settings pair (provider id, model) holding <paramref name="purpose"/>'s default (macOS <c>aiDefault</c>);
+    /// <see cref="AIPurpose.CatchUp"/> has its own (non-optional) settings, handled by each caller before this.
+    /// </summary>
     private (string? ProviderID, string? Model) AIDefault(AIPurpose purpose) => purpose switch
     {
+        AIPurpose.Summary => (Settings.SummaryAIProviderID, Settings.SummaryAIModel),
         AIPurpose.Chat => (Settings.ChatAIProviderID, Settings.ChatAIModel),
-        _ => (Settings.SummaryAIProviderID, Settings.SummaryAIModel),
+        _ => throw new ArgumentOutOfRangeException(nameof(purpose), "The catch-up settings are not an optional pair"),
     };
 
     /// <summary>
     /// <paramref name="purpose"/>'s default provider when it can run, else the first one that can and is not in
-    /// <see cref="AppSettings.AutoExcludedProviderIDs"/> (macOS <c>currentAIProvider(for:)</c>).
+    /// <see cref="AppSettings.AutoExcludedProviderIDs"/> (macOS <c>currentAIProvider(for:)</c>); for
+    /// <see cref="AIPurpose.CatchUp"/>, <see cref="AppViewModel.CatchUpProvider"/>.
     /// </summary>
     public AIProviderInfo? CurrentAIProvider(AIPurpose purpose)
     {
+        if (purpose == AIPurpose.CatchUp) return _app.CatchUpProvider;
         var usable = AIProviders.Where(p => p.UnavailableReason is null).ToList();
         var providerID = AIDefault(purpose).ProviderID;
         return usable.FirstOrDefault(p => p.Id == providerID)
@@ -638,17 +649,26 @@ public sealed partial class ProvidersViewModel : ObservableObject
 
     /// <summary>
     /// The saved model of <paramref name="purpose"/>'s default provider, else the provider's own (macOS
-    /// <c>aiModel(for:purpose:)</c>).
+    /// <c>aiModel(for:purpose:)</c>); for <see cref="AIPurpose.CatchUp"/>, <see cref="AppViewModel.CatchUpModel"/>.
     /// </summary>
     public string AIModelFor(AIProviderInfo provider, AIPurpose purpose)
     {
+        if (purpose == AIPurpose.CatchUp) return _app.CatchUpModel(provider);
         var (providerID, model) = AIDefault(purpose);
         return provider.Id == providerID && model is { Length: > 0 } ? model : provider.DefaultModel;
     }
 
-    /// <summary>The model picked for the next jobs of <paramref name="purpose"/> (macOS <c>setAIModel(_:of:purpose:)</c>).</summary>
+    /// <summary>
+    /// The model picked for the next jobs of <paramref name="purpose"/> (macOS <c>setAIModel(_:of:purpose:)</c>). A
+    /// catch-up pick saves the model as is: an empty "Catch-up model" runs the summary model.
+    /// </summary>
     public void SetAIModel(string model, AIProviderInfo provider, AIPurpose purpose)
     {
+        if (purpose == AIPurpose.CatchUp)
+        {
+            _app.ApplySettings(Settings with { CatchUpProviderID = provider.Id, CatchUpModel = model });
+            return;
+        }
         var saved = model == provider.DefaultModel ? null : model;
         _app.ApplySettings(purpose == AIPurpose.Chat
             ? Settings with { ChatAIProviderID = provider.Id, ChatAIModel = saved }
@@ -667,6 +687,27 @@ public sealed partial class ProvidersViewModel : ObservableObject
     {
         get => Settings.ChatContextMessages;
         set => _app.ApplySettings(Settings with { ChatContextMessages = value });
+    }
+
+    /// <summary>Length of answers in the Chat tab and Library chat.</summary>
+    public AnswerLength ChatLength
+    {
+        get => Settings.ChatLength;
+        set => _app.ApplySettings(Settings with { ChatLength = value });
+    }
+
+    /// <summary>Length of summaries.</summary>
+    public AnswerLength SummaryLength
+    {
+        get => Settings.SummaryLength;
+        set => _app.ApplySettings(Settings with { SummaryLength = value });
+    }
+
+    /// <summary>Length of catch-ups and of answers in the Chat tab while recording.</summary>
+    public AnswerLength CatchUpLength
+    {
+        get => Settings.CatchUpLength;
+        set => _app.ApplySettings(Settings with { CatchUpLength = value });
     }
 
     /// <summary>The "Catch-up provider" setting ("" = Automatic); picking one clears the model picked for the previous one.</summary>

@@ -157,6 +157,8 @@ struct CapsuleTabs<Tab: Hashable>: View {
     let title: (Tab) -> Text
     /// Draws its own track, for tabs outside the toolbar (whose capsule is the track on macOS 26).
     var drawsTrack = false
+    /// The fill of a drawn track; another one where the tabs sit on a `Palette.surface` card.
+    var trackFill = Palette.surface
     @Namespace private var namespace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -176,7 +178,7 @@ struct CapsuleTabs<Tab: Hashable>: View {
         }
         // Also animates a selection set from code (menu, shortcuts, card buttons).
         .animation(animation, value: selection)
-        .modifier(SurfaceTrack(always: drawsTrack))
+        .modifier(SurfaceTrack(always: drawsTrack, fill: trackFill))
     }
 
     private var animation: Animation? { reduceMotion ? nil : Motion.standard }
@@ -184,6 +186,7 @@ struct CapsuleTabs<Tab: Hashable>: View {
     /// Before macOS 26 the toolbar draws no capsule around its items; tabs outside the toolbar always need one.
     private struct SurfaceTrack: ViewModifier {
         let always: Bool
+        let fill: Color
 
         func body(content: Content) -> some View {
             if #available(macOS 26, *), !always {
@@ -191,7 +194,7 @@ struct CapsuleTabs<Tab: Hashable>: View {
             } else {
                 content
                     .padding(3)
-                    .background(Capsule().fill(Palette.surface))
+                    .background(Capsule().fill(fill))
                     .overlay(Capsule().strokeBorder(Palette.surfaceBorder, lineWidth: 1).allowsHitTesting(false))
             }
         }

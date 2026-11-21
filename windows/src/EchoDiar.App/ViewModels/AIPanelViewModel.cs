@@ -359,6 +359,8 @@ public sealed class AIPanelViewModel
     /// </summary>
     public string? CopyPrompt(string? question) =>
         Conversation is { } conversation && Transcript is { } transcript
-            ? PromptBuilder.CopyPrompt(conversation, transcript, question, _model.Settings.SummaryLanguage)
+            ? PromptBuilder.CopyPrompt(
+                conversation, transcript, question, _model.Settings.SummaryLanguage, _model.Settings.SummaryLength,
+                _model.Settings.ChatLength)
             : null;
 }

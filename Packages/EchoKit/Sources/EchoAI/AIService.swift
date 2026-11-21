@@ -78,11 +78,11 @@ public actor AIService {
     }
 
     /// Streams a new summary: one pass when the transcript fits, else map over the chunks and reduce the notes until
-    /// one group is left; only the last reduce is streamed. `language` is the summary-language setting.
-    /// `providerID` is saved with the summary.
+    /// one group is left; only the last reduce is streamed. `language` is the summary-language setting; `length`
+    /// applies to the single pass and the last reduce. `providerID` is saved with the summary.
     public nonisolated func summarize(
         conversation: Conversation, transcript: Transcript, provider: any LLMProvider, providerID: String,
-        model: String, language: String, jobID: UUID = UUID()
+        model: String, language: String, length: AnswerLength = .full, jobID: UUID = UUID()
     ) -> AsyncThrowingStream<Update, Error> {
         job(id: jobID, provider: provider, model: model) { backend, yield, isStopped in
             let summary: String
@@ -90,7 +90,7 @@ public actor AIService {
             do {
                 summary = try await Self.summary(
                     conversation: conversation, transcript: transcript, provider: provider, backend: backend,
-                    model: model, language: language, yield: yield)
+                    model: model, language: language, length: length, yield: yield)
             } catch let interrupted as Interrupted where isStopped() && !interrupted.text.isEmpty {
                 (summary, cut) = (interrupted.text, true)
             }
@@ -102,11 +102,11 @@ public actor AIService {
     /// Streams the answer to `question`, sent with the transcript (or its BM25 excerpts on small contexts), the saved
     /// `summary` and the last `historyLimit` messages of `history` (0 or less = all of them); then appends the
     /// question and the answer to `chat.json`. `providerID` is saved with the answer. `language` is the
-    /// response-language setting (`"auto"` = the question's).
+    /// response-language setting (`"auto"` = the question's); `length`, how long the answer is.
     public nonisolated func ask(
         question: String, conversation: Conversation, transcript: Transcript, summary: String?,
         history: [ChatLog.Message], historyLimit: Int, provider: any LLMProvider, providerID: String, model: String,
-        language: String, jobID: UUID = UUID()
+        language: String, length: AnswerLength = .full, jobID: UUID = UUID()
     ) -> AsyncThrowingStream<Update, Error> {
         let asked = Date()
         return job(id: jobID, provider: provider, model: model) { [self] backend, yield, isStopped in
@@ -115,10 +115,10 @@ public actor AIService {
             let context = await provider.contextWindow(model: model)
             let excerpts = TranscriptChunker.questionExcerpts(
                 conversation: conversation, transcript: transcript, question: question, summary: summary,
-                contextWindow: context, history: turns, language: language)
+                contextWindow: context, history: turns, language: language, length: length)
             let messages = PromptBuilder.questionMessages(
                 conversation: conversation, transcript: transcript, excerpts: excerpts, summary: summary,
-                question: question, history: turns, language: language)
+                question: question, history: turns, language: language, length: length)
             let answer: String
             do {
                 answer = try await Self.answer(messages, backend: backend, model: model, context: context, yield: yield)
@@ -135,17 +135,17 @@ public actor AIService {
 
     /// Streams the answer to a question across the library, sent with the numbered `sources` and the last
     /// `historyLimit` messages of `history` (0 or less = all of them); then appends the question and the answer, with
-    /// its `references`, to `folder`'s `chat.json`. `providerID` and `language` as in `ask`.
+    /// its `references`, to `folder`'s `chat.json`. `providerID`, `language` and `length` as in `ask`.
     public nonisolated func askLibrary(
         question: String, sources: [PromptBuilder.LibrarySource], references: [ChatLog.Reference],
         history: [ChatLog.Message], historyLimit: Int, provider: any LLMProvider, providerID: String, model: String,
-        language: String, folder: URL, jobID: UUID = UUID()
+        language: String, length: AnswerLength = .full, folder: URL, jobID: UUID = UUID()
     ) -> AsyncThrowingStream<Update, Error> {
         let asked = Date()
         return job(id: jobID, provider: provider, model: model) { [self] backend, yield, isStopped in
             let messages = PromptBuilder.libraryQuestionMessages(
                 question: question, sources: sources, history: Self.turns(history, limit: historyLimit),
-                language: Self.answerLanguage(setting: language, provider: provider))
+                language: Self.answerLanguage(setting: language, provider: provider), length: length)
             let context = await provider.contextWindow(model: model)
             let answer: String
             do {
@@ -191,18 +191,43 @@ public actor AIService {
             if Task.isCancelled && !isStopped() { throw CancellationError() }
             try await appendCatchUp(CatchUp(
                 id: jobID, createdAt: asked, elapsed: elapsed, throughLineID: plan.throughLineID,
-                throughTime: plan.throughTime, fullPass: plan.fullPass, text: text, provider: providerID, model: model,
-                stopped: cut), folder: folder)
+                throughTime: plan.throughTime, fullPass: plan.fullPass && !plan.omitted, text: text,
+                provider: providerID, model: model, stopped: cut), folder: folder)
         }
     }
 
-    /// The last `limit` messages of `history` (0 or less = all of them), starting with a question: some APIs reject a
-    /// conversation whose first turn is an answer.
-    private static func turns(_ history: [ChatLog.Message], limit: Int) -> [LLMMessage] {
-        let recent = limit > 0 ? history.suffix(limit) : history[...]
-        return recent.drop { $0.role != .user }.map {
-            LLMMessage(role: $0.role == .user ? .user : .assistant, content: $0.text)
+    /// Streams the answer to a question asked while recording: `messages` (`PromptBuilder.liveQuestionMessages`), then
+    /// appends `question` and the answer, both marked `live`, to `folder`'s `chat.json`, also when stopped with some
+    /// text. `providerID` is saved with the answer. Fails at once with an in-app model (`LocalLLMProvider`), as
+    /// `catchUp` does.
+    public nonisolated func askLive(
+        question: String, messages: [LLMMessage], provider: any LLMProvider, providerID: String, model: String,
+        folder: URL, jobID: UUID = UUID()
+    ) -> AsyncThrowingStream<Update, Error> {
+        guard !(provider is any LocalLLMProvider) else {
+            return AsyncThrowingStream {
+                $0.finish(throwing: LLMError.provider("A catch-up needs a provider outside the app."))
+            }
         }
+        let asked = Date()
+        return job(id: jobID, provider: provider, model: model) { [self] backend, yield, isStopped in
+            let context = await provider.contextWindow(model: model)
+            let answer: String
+            do {
+                answer = try await Self.answer(messages, backend: backend, model: model, context: context, yield: yield)
+            } catch let interrupted as Interrupted where isStopped() && !interrupted.text.isEmpty {
+                answer = interrupted.text
+            }
+            if Task.isCancelled && !isStopped() { throw CancellationError() }
+            try await appendChat([
+                ChatLog.Message(role: .user, text: question, timestamp: asked, live: true),
+                ChatLog.Message(role: .assistant, text: answer, provider: providerID, model: model, live: true),
+            ], folder: folder)
+        }
+    }
+
+    private static func turns(_ history: [ChatLog.Message], limit: Int) -> [LLMMessage] {
+        PromptBuilder.historyTurns(history, limit: limit)
     }
 
     /// The response-language `setting`, English when Foundation Models cannot write it.
@@ -301,7 +326,7 @@ public actor AIService {
 
     private static func summary(
         conversation: Conversation, transcript: Transcript, provider: any LLMProvider, backend: Backend, model: String,
-        language setting: String, yield: @escaping @Sendable (Update) -> Void
+        language setting: String, length: AnswerLength, yield: @escaping @Sendable (Update) -> Void
     ) async throws -> String {
         guard !transcript.segments.isEmpty else { throw LLMError.provider("The transcript is empty.") }
         var language = OutputLanguage.resolve(setting: setting, transcript: transcript)
@@ -311,9 +336,11 @@ public actor AIService {
         }
         let context = await provider.contextWindow(model: model)
         let plan = TranscriptChunker.summaryPlan(
-            conversation: conversation, transcript: transcript, language: language, contextWindow: context)
+            conversation: conversation, transcript: transcript, language: language, length: length,
+            contextWindow: context)
         guard case .mapReduce(let chunks) = plan else {
-            let messages = PromptBuilder.summaryMessages(conversation: conversation, transcript: transcript, language: language)
+            let messages = PromptBuilder.summaryMessages(
+                conversation: conversation, transcript: transcript, language: language, length: length)
             return try await answer(messages, backend: backend, model: model, context: context, yield: yield)
         }
         var notes: [String] = []
@@ -326,12 +353,13 @@ public actor AIService {
         }
         while true {
             let groups = TranscriptChunker.reduceGroups(
-                notes: notes, conversation: conversation, transcript: transcript, language: language,
+                notes: notes, conversation: conversation, transcript: transcript, language: language, length: length,
                 contextWindow: context)
             if groups.count <= 1 {
                 yield(.status("Writing the summary…"))
                 let messages = PromptBuilder.reduceMessages(
-                    conversation: conversation, transcript: transcript, notes: groups.first ?? [], language: language)
+                    conversation: conversation, transcript: transcript, notes: groups.first ?? [], language: language,
+                    length: length)
                 return try await answer(messages, backend: backend, model: model, context: context, yield: yield)
             }
             var merged: [String] = []

@@ -202,6 +202,14 @@
     <value>Allow Microphone</value>
     <comment>Allow Microphone</comment>
   </data>
+  <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
+    <value>Also answers the Chat tab while recording.</value>
+    <comment>Also answers the Chat tab while recording.</comment>
+  </data>
+  <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
+    <value>Also for answers in the Chat tab while recording. Concise: a few short bullets.</value>
+    <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Always for {0}</value>
     <comment>Always for %@</comment>
@@ -209,6 +217,10 @@
   <data name="AlwaysRecord" xml:space="preserve">
     <value>Always record</value>
     <comment>Always record</comment>
+  </data>
+  <data name="AnAnswerIsBeingWritten" xml:space="preserve">
+    <value>An answer is being written.</value>
+    <comment>An answer is being written.</comment>
   </data>
   <data name="AnUpdateIsAvailableUpdateInTheToolbarInstallsIt" xml:space="preserve">
     <value>An update is available: Update in the toolbar installs it.</value>
@@ -229,6 +241,10 @@
   <data name="AnotherConversation" xml:space="preserve">
     <value>another conversation</value>
     <comment>another conversation</comment>
+  </data>
+  <data name="AnswerLength" xml:space="preserve">
+    <value>Answer length</value>
+    <comment>Answer length</comment>
   </data>
   <data name="Answering" xml:space="preserve">
     <value>Answering…</value>
@@ -305,6 +321,10 @@
   <data name="AskAQuestionAboutThisConversationBelow" xml:space="preserve">
     <value>Ask a question about this conversation below.</value>
     <comment>Ask a question about this conversation below.</comment>
+  </data>
+  <data name="AskAboutTheMeetingSoFar" xml:space="preserve">
+    <value>Ask about the meeting so far.</value>
+    <comment>Ask about the meeting so far.</comment>
   </data>
   <data name="AskAboutThisConversation" xml:space="preserve">
     <value>Ask about this conversation</value>
@@ -514,6 +534,10 @@
     <value>Catch-up at {0}</value>
     <comment>Catch-up at %@</comment>
   </data>
+  <data name="CatchUpLength" xml:space="preserve">
+    <value>Catch-up length</value>
+    <comment>Catch-up length</comment>
+  </data>
   <data name="CatchUpModel" xml:space="preserve">
     <value>Catch-up model</value>
     <comment>Catch-up model</comment>
@@ -593,6 +617,10 @@
   <data name="ChooseWhatToRecordAndTheLanguage" xml:space="preserve">
     <value>Choose what to record and the language</value>
     <comment>Choose what to record and the language</comment>
+  </data>
+  <data name="ClearSearch" xml:space="preserve">
+    <value>Clear search</value>
+    <comment>Clear search</comment>
   </data>
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>Click to record a new shortcut</value>
@@ -677,6 +705,18 @@
   <data name="CompressionFailed" xml:space="preserve">
     <value>Compression failed</value>
     <comment>Compression failed</comment>
+  </data>
+  <data name="Concise" xml:space="preserve">
+    <value>Concise</value>
+    <comment>Concise</comment>
+  </data>
+  <data name="ConciseOneToThreeSentencesOrAFewShortBullets" xml:space="preserve">
+    <value>Concise: one to three sentences or a few short bullets.</value>
+    <comment>Concise: one to three sentences or a few short bullets.</comment>
+  </data>
+  <data name="ConciseTheMainPointsWithEveryDecisionAndActionItem" xml:space="preserve">
+    <value>Concise: the main points, with every decision and action item.</value>
+    <comment>Concise: the main points, with every decision and action item.</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
     <value>Confirm…</value>
@@ -1230,6 +1270,10 @@
     <value>Enter the embedding model of {0} in Settings › RAG</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
   </data>
+  <data name="EntriesPerPage" xml:space="preserve">
+    <value>Entries per page</value>
+    <comment>Entries per page</comment>
+  </data>
   <data name="EveryLicenseAboveInOneTextFile" xml:space="preserve">
     <value>Every license above in one text file.</value>
     <comment>Every license above in one text file.</comment>
@@ -1294,6 +1338,10 @@
     <value>French</value>
     <comment>French</comment>
   </data>
+  <data name="Full" xml:space="preserve">
+    <value>Full</value>
+    <comment>Full</comment>
+  </data>
   <data name="GB" xml:space="preserve">
     <value>{0} GB</value>
     <comment>%@ GB</comment>
@@ -1349,6 +1397,14 @@
   <data name="HideItWhileAnEchoDiarWindowIsInFront" xml:space="preserve">
     <value>Hide it while an EchoDiar window is in front</value>
     <comment>Hide it while an EchoDiar window is in front</comment>
+  </data>
+  <data name="HideSidebar" xml:space="preserve">
+    <value>Hide Sidebar</value>
+    <comment>Hide Sidebar</comment>
+  </data>
+  <data name="HideSidebarB" xml:space="preserve">
+    <value>Hide Sidebar (⌘B)</value>
+    <comment>Hide Sidebar (⌘B)</comment>
   </data>
   <data name="History" xml:space="preserve">
     <value>History</value>
@@ -1574,6 +1630,14 @@
     <value>Largest conversations</value>
     <comment>Largest conversations</comment>
   </data>
+  <data name="Last30Days" xml:space="preserve">
+    <value>Last 30 days</value>
+    <comment>Last 30 days</comment>
+  </data>
+  <data name="Last7Days" xml:space="preserve">
+    <value>Last 7 days</value>
+    <comment>Last 7 days</comment>
+  </data>
   <data name="LastChecked" xml:space="preserve">
     <value>Last checked {0}</value>
     <comment>Last checked %@</comment>
@@ -1613,6 +1677,10 @@
   <data name="Listening" xml:space="preserve">
     <value>Listening…</value>
     <comment>Listening…</comment>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>Live</value>
+    <comment>Live</comment>
   </data>
   <data name="LiveModel" xml:space="preserve">
     <value>Live model</value>
@@ -1697,6 +1765,10 @@
   <data name="LldLld" xml:space="preserve">
     <value>{0}–{1} {2}</value>
     <comment>%lld–%lld %@</comment>
+  </data>
+  <data name="LldLldOfLld" xml:space="preserve">
+    <value>{0}–{1} of {2}</value>
+    <comment>%lld–%lld of %lld</comment>
   </data>
   <data name="LldMB" xml:space="preserve">
     <value>{0} MB</value>
@@ -1886,6 +1958,10 @@
     <value>Model</value>
     <comment>Model</comment>
   </data>
+  <data name="ModelForCatchUpsAndLiveChat" xml:space="preserve">
+    <value>Model for catch-ups and live chat</value>
+    <comment>Model for catch-ups and live chat</comment>
+  </data>
   <data name="ModelForQuestions" xml:space="preserve">
     <value>Model for questions</value>
     <comment>Model for questions</comment>
@@ -2018,6 +2094,10 @@
     <value>New Event…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>Next page</value>
+    <comment>Next page</comment>
+  </data>
   <data name="NextRunLldConversations" xml:space="preserve">
     <value>Next run: {0} conversations</value>
     <comment>Next run: %lld conversations</comment>
@@ -2045,6 +2125,10 @@
   <data name="NoCalendarAccountCanHoldEchoDiarSCalendar" xml:space="preserve">
     <value>No calendar account can hold EchoDiar's calendar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
+  </data>
+  <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
+    <value>No catch-up yet. Press Catch up to summarize the meeting so far.</value>
+    <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
   </data>
   <data name="NoConversationsMatch" xml:space="preserve">
     <value>No conversations match "{0}"</value>
@@ -2190,6 +2274,10 @@
     <value>Nothing new since the last catch-up</value>
     <comment>Nothing new since the last catch-up</comment>
   </data>
+  <data name="NothingToAskAboutYet" xml:space="preserve">
+    <value>Nothing to ask about yet.</value>
+    <comment>Nothing to ask about yet.</comment>
+  </data>
   <data name="NothingToCatchUpOnYet" xml:space="preserve">
     <value>Nothing to catch up on yet.</value>
     <comment>Nothing to catch up on yet.</comment>
@@ -2229,6 +2317,10 @@
   <data name="OffersToRecordWhenAMeetingAppStartsUsingTheMicrophone" xml:space="preserve">
     <value>Offers to record when a meeting app starts using the microphone.</value>
     <comment>Offers to record when a meeting app starts using the microphone.</comment>
+  </data>
+  <data name="Older" xml:space="preserve">
+    <value>Older</value>
+    <comment>Older</comment>
   </data>
   <data name="OlderThan" xml:space="preserve">
     <value>Older than</value>
@@ -2509,6 +2601,14 @@
   <data name="PressToStartRecordingFromAnywhere" xml:space="preserve">
     <value>Press {0} to start recording from anywhere.</value>
     <comment>Press %@ to start recording from anywhere.</comment>
+  </data>
+  <data name="Previous3Days" xml:space="preserve">
+    <value>Previous 3 days</value>
+    <comment>Previous 3 days</comment>
+  </data>
+  <data name="PreviousPage" xml:space="preserve">
+    <value>Previous page</value>
+    <comment>Previous page</comment>
   </data>
   <data name="PricesAreApproximateListPricesPerAudioHourTheMicAndSystemCha" xml:space="preserve">
     <value>Prices are approximate list prices per audio hour; the mic and system channels are sent and billed separately.</value>
@@ -2946,6 +3046,14 @@
     <value>Show onboarding again</value>
     <comment>Show onboarding again</comment>
   </data>
+  <data name="ShowSidebar" xml:space="preserve">
+    <value>Show Sidebar</value>
+    <comment>Show Sidebar</comment>
+  </data>
+  <data name="ShowSidebarB" xml:space="preserve">
+    <value>Show Sidebar (⌘B)</value>
+    <comment>Show Sidebar (⌘B)</comment>
+  </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>Show the other speakers</value>
     <comment>Show the other speakers</comment>
@@ -3186,6 +3294,10 @@
     <value>Summarize the meeting so far, mostly its last 5 minutes</value>
     <comment>Summarize the meeting so far, mostly its last 5 minutes</comment>
   </data>
+  <data name="SummarizeWhatIsNewSinceTheLastCatchUp" xml:space="preserve">
+    <value>Summarize what is new since the last catch-up</value>
+    <comment>Summarize what is new since the last catch-up</comment>
+  </data>
   <data name="Summarizing" xml:space="preserve">
     <value>Summarizing</value>
     <comment>Summarizing</comment>
@@ -3205,6 +3317,10 @@
   <data name="Summary" xml:space="preserve">
     <value>Summary</value>
     <comment>Summary</comment>
+  </data>
+  <data name="SummaryLength" xml:space="preserve">
+    <value>Summary length</value>
+    <comment>Summary length</comment>
   </data>
   <data name="SummaryModel" xml:space="preserve">
     <value>Summary model</value>

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
-    title, the state, the elapsed time, the mic and system meters, "Catch up" and the language, the calendar suggestion,
-    the capture warnings, the catch-ups, then the live transcript, or the wave and why there is none.
+    title, the state, the elapsed time, the mic and system meters, "Catch up" and the language, the calendar suggestion
+    and the capture warnings, pinned on top; under them the live transcript (or the wave and why there is none) on the
+    left and, on the right, the catch-ups or the live chat under their tabs, the catch-up model and the answer language.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.RecordingView"
@@ -21,11 +22,17 @@
         <Style x:Key="PausedWaveBarStyle" TargetType="Rectangle">
             <Setter Property="Fill" Value="{ThemeResource TextFillColorDisabledBrush}" />
         </Style>
+        <!-- A card: the right panel. -->
+        <Style x:Key="PaneStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource OverlayCornerRadius}" />
+        </Style>
     </UserControl.Resources>
 
     <Grid Padding="12" RowSpacing="8">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -209,50 +216,140 @@
             Severity="Warning"
             Title="{local:T Text='No system audio'}" />
 
-        <!-- The catch-ups (CatchUpCard, set in code), newest first; at most 280 px tall, scrolled past it; hidden while none. -->
-        <Border
-            x:Name="CatchUpPanel"
-            Grid.Row="4"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource OverlayCornerRadius}"
-            Visibility="Collapsed">
-            <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="CatchUpCards" Padding="8" Spacing="6" />
-            </ScrollViewer>
-        </Border>
+        <!-- The transcript on the left; on the right, the panel with its Catch-up | Chat tabs (AppViewModel.RecordingTab). -->
+        <Grid Grid.Row="4" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <!-- LiveTranscriptView, set in code; shown while the recording has a live transcriber. -->
-        <Border x:Name="LiveHost" Grid.Row="5" Visibility="Collapsed" />
+            <!-- The live transcript, or the wave and why there is none. -->
+            <Grid x:Name="TranscriptPane">
+                <!-- LiveTranscriptView, set in code; shown while the recording has a live transcriber. -->
+                <Border x:Name="LiveHost" Visibility="Collapsed" />
 
-        <StackPanel
-            x:Name="NoLivePanel"
-            Grid.Row="5"
-            MaxWidth="560"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Spacing="16">
-            <!-- RecordingWave: 24 bars, built in code. -->
-            <StackPanel
-                x:Name="Wave"
-                Height="64"
-                HorizontalAlignment="Center"
-                AutomationProperties.AccessibilityView="Raw"
-                Orientation="Horizontal"
-                Spacing="4" />
-            <TextBlock
-                x:Name="ReasonText"
-                HorizontalAlignment="Center"
-                Style="{StaticResource BodyTextBlockStyle}"
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                TextAlignment="Center"
-                TextWrapping="Wrap" />
-            <!-- Opens the Settings page the reason names. -->
-            <HyperlinkButton
-                x:Name="OpenSettingsLink"
-                HorizontalAlignment="Center"
-                Content="{local:T Text='Open Settings'}" />
-        </StackPanel>
+                <StackPanel
+                    x:Name="NoLivePanel"
+                    MaxWidth="560"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="16">
+                    <!-- RecordingWave: 24 bars, built in code. -->
+                    <StackPanel
+                        x:Name="Wave"
+                        Height="64"
+                        HorizontalAlignment="Center"
+                        AutomationProperties.AccessibilityView="Raw"
+                        Orientation="Horizontal"
+                        Spacing="4" />
+                    <TextBlock
+                        x:Name="ReasonText"
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                    <!-- Opens the Settings page the reason names. -->
+                    <HyperlinkButton
+                        x:Name="OpenSettingsLink"
+                        HorizontalAlignment="Center"
+                        Content="{local:T Text='Open Settings'}" />
+                </StackPanel>
+            </Grid>
+
+            <!--
+                One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, and
+                the answer language) over the catch-ups or the chat.
+            -->
+            <Border
+                x:Name="SidePanel"
+                Grid.Column="1"
+                Style="{StaticResource PaneStyle}">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Margin="10,10,10,0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
+                        <Border
+                            Padding="2"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource OverlayCornerRadius}">
+                            <SelectorBar x:Name="PanelTabsBar" Padding="0">
+                                <SelectorBarItem x:Name="CatchUpPanelTab" Text="{local:T Text='Catch-up'}" />
+                                <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
+                            </SelectorBar>
+                        </Border>
+                        <!-- The catch-up provider and model (AIMenus, AIPurpose.CatchUp); never an in-app model. -->
+                        <DropDownButton
+                            x:Name="PanelModelButton"
+                            Grid.Column="1"
+                            MaxWidth="180"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="{local:T Text='Model for catch-ups and live chat'}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
+                                <TextBlock
+                                    x:Name="PanelModelText"
+                                    MaxLines="1"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                            </StackPanel>
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="PanelModelMenu" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <!-- The language of summaries and answers, as the conversation's AI panel. -->
+                        <DropDownButton
+                            x:Name="PanelLanguageButton"
+                            Grid.Column="2"
+                            VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
+                                <TextBlock x:Name="PanelLanguageText" />
+                            </StackPanel>
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="PanelLanguageMenu" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                    </Grid>
+
+                    <!--
+                        The catch-ups (CatchUpCard, set in code), oldest first, the one being written last; while there are
+                        none, a hint to press Catch up.
+                    -->
+                    <Border x:Name="CatchUpPanel" Grid.Row="1">
+                        <Grid>
+                            <TextBlock
+                                x:Name="CatchUpEmptyText"
+                                Margin="20"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource BodyTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap"
+                                Text="{local:T Text='No catch-up yet. Press Catch up to summarize the meeting so far.'}" />
+                            <ScrollViewer x:Name="CatchUpScroller" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                                <StackPanel x:Name="CatchUpCards" Padding="8" Spacing="6" />
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- LiveChatView, made in code while the Chat tab is shown. -->
+                    <Border x:Name="ChatHost" Grid.Row="1" />
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
