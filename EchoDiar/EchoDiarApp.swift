@@ -49,6 +49,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         #else
         let measuring = false
         #endif
+        // A login-item launch (or a scripted `--background` start) stays in the menu bar.
+        let event = NSAppleEventManager.shared().currentAppleEvent
+        let loginLaunch = event?.eventID == AEEventID(kAEOpenApplication)
+            && event?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
+        let background = loginLaunch || ProcessInfo.processInfo.arguments.contains("--background")
+        // One EchoDiar at a time, any build (they share the library and settings, and each would show its own pill
+        // prompts), as on Windows; a DEBUG harness launch still runs beside an open app. Only an older one counts, so
+        // of two launched at once one stays. Before recovery, which would take the running one's session.
+        let launched = NSRunningApplication.current.launchDate ?? .distantFuture
+        if !ProcessInfo.processInfo.arguments.contains(where: AppModel.harnessArguments.contains),
+           let running = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+               .first(where: {
+                   $0.processIdentifier != getpid() && !$0.isTerminated && ($0.launchDate ?? .distantPast) < launched
+               }) {
+            quit(handingOffTo: running, showWindow: !background)
+            return
+        }
         if !measuring { recovery = Task.detached(priority: .background) { SessionRecovery.recover() } }
         // Dark only.
         NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -67,17 +84,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         source.setEventHandler { MainActor.assumeIsolated { NSApp.terminate(nil) } }
         source.resume()
         sigtermSource = source
-        // A login-item launch (or a scripted `--background` start) stays in the menu bar.
-        let event = NSAppleEventManager.shared().currentAppleEvent
-        let loginLaunch = event?.eventID == AEEventID(kAEOpenApplication)
-            && event?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
-        if !loginLaunch && !ProcessInfo.processInfo.arguments.contains("--background") {
-            showMainWindow()
-        }
+        if !background { showMainWindow() }
         // Before `start`: the end prompt's notification buttons reach the model through it.
         model.endPromptNotifier.install(model: model)
         model.start()
         if !measuring { updater.start() }
+    }
+
+    /// Another EchoDiar runs: opens it again, which shows its main window (`applicationShouldHandleReopen`) unless this
+    /// launch was in the background, then exits before anything here started.
+    private func quit(handingOffTo running: NSRunningApplication, showWindow: Bool) {
+        NSLog("EchoDiar: already running (pid \(running.processIdentifier)), quitting")
+        guard showWindow, let url = running.bundleURL else { exit(0) }
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+            if let error { NSLog("EchoDiar: could not bring the running instance forward: \(error)") }
+            exit(0)
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
