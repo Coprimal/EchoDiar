@@ -591,7 +591,8 @@ struct TranscriptView: View {
 
     /// Reads the transcript, builds its text and resolves the audio file off the main thread; runs again when the
     /// conversation changes (e.g. a re-transcription finished). No playback while the audio is being recorded or
-    /// compressed, or once it was deleted (which stops it).
+    /// compressed, or once it was deleted (which stops it). A file gone without the app (deleted in Finder) lists the
+    /// conversation again, without audio.
     private func load() async {
         let folder = conversation.folder
         let wantsTranscript = conversation.hasTranscript
@@ -602,11 +603,12 @@ struct TranscriptView: View {
             let audio = playable
                 ? (try? RecordingSession.read(from: folder)).flatMap {
                     ConversationFiles.audioURL(in: folder, fileName: $0.audioFileName)
-                }
+                }.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
                 : nil
-            return (versions, audio, versions.last.map { TranscriptText($0.transcript) })
+            return (versions, audio, versions.last.map { TranscriptText($0.transcript, playable: audio != nil) })
         }.value
         guard !Task.isCancelled else { return }
+        if playable, audio == nil { model.audioMissing(conversation.id) }
         versions = loaded
         transcript = loaded.last?.transcript
         shownVersion = nil
@@ -638,7 +640,9 @@ struct TranscriptView: View {
             shownText = nil
             return
         }
-        if shownText?.transcript != shown { shownText = TranscriptText(shown) }
+        if shownText?.transcript != shown || shownText?.playable != (audioURL != nil) {
+            shownText = TranscriptText(shown, playable: audioURL != nil)
+        }
     }
 
     /// Takes the time of a clicked AI citation (`AppModel.pendingTranscriptTime`) once the transcript is loaded:

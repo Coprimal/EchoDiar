@@ -288,6 +288,12 @@ public sealed partial class AppViewModel
         return ReloadAsync(id);
     }
 
+    /// <summary>
+    /// macOS <c>audioMissing</c>: the open conversation's audio file is gone (deleted outside the app); re-lists it so
+    /// it shows without audio (no player, no play links, no re-transcribing).
+    /// </summary>
+    public Task AudioMissingAsync(Guid id) => ReloadAsync(id);
+
     /// <summary>Opens File Explorer with the conversation's folder selected.</summary>
     public static void RevealInExplorer(Conversation conversation)
     {

@@ -1753,6 +1753,12 @@ final class AppModel {
         }
     }
 
+    /// The open conversation's audio file is gone (deleted outside the app): lists it again, so it shows without audio
+    /// (no transport, no play links, no re-transcribing).
+    func audioMissing(_ id: UUID) {
+        Task { await library.reload(id: id) }
+    }
+
     /// Moves the conversation's audio to the Trash; its transcript, summary and chat stay.
     func deleteAudio(of id: UUID) async {
         do {

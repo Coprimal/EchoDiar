@@ -243,7 +243,8 @@ public sealed partial class ConversationView : UserControl
 
     /// <summary>
     /// Finds the audio off the UI thread and opens it: not while it is being recorded or compressed (macOS
-    /// TranscriptView <c>load</c>), and not once it was deleted.
+    /// TranscriptView <c>load</c>), and not once it was deleted. A file gone without the app (deleted in File Explorer)
+    /// lists the conversation again, without audio.
     /// </summary>
     private async Task FindAudioAsync(Conversation conversation)
     {
@@ -253,6 +254,7 @@ public sealed partial class ConversationView : UserControl
             && conversation.Status is not (ConversationStatus.Recording or ConversationStatus.Compressing);
         var audio = playable ? await Task.Run(() => AudioPath(folder)) : null;
         if (generation != _loadGeneration || _model.IsClosing) return;
+        if (playable && audio is null) _ = _model.AudioMissingAsync(conversation.Id);
         _audioPath = audio;
         StartupTrace.Write($"conversation {_id}: begin audio open");
         LoadPlayback();

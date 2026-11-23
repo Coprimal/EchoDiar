@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
+using Span = Microsoft.UI.Xaml.Documents.Span;
 using VirtualKey = Windows.System.VirtualKey;
 
 namespace EchoDiar.App.Views;
@@ -67,6 +68,12 @@ public sealed partial class TranscriptView : UserControl
     private int _buildGeneration;
 
     /// <summary>
+    /// <see cref="Playable"/> when the text was last built: its starts and names are links only then, so the text is
+    /// built again when it changes (the audio deleted, or found missing).
+    /// </summary>
+    private bool _playable;
+
+    /// <summary>
     /// The text follows the play head: set by Play and by a click on a start or a name, cleared when the user scrolls
     /// or a citation shows (macOS TranscriptTextView <c>following</c>).
     /// </summary>
@@ -99,7 +106,7 @@ public sealed partial class TranscriptView : UserControl
 
     /// <summary>One segment's paragraph and the inlines that change: names on a rename, colors on a theme change.</summary>
     private sealed record SegmentBlock(
-        Paragraph Paragraph, Hyperlink TimeLink, Run Time, Run Spacer, Hyperlink NameLink, Run Dot, Run Name, Run Body,
+        Paragraph Paragraph, Span TimeLink, Run Time, Run Spacer, Span NameLink, Run Dot, Run Name, Run Body,
         int ColorIndex);
 
     public TranscriptView()
@@ -239,6 +246,10 @@ public sealed partial class TranscriptView : UserControl
     /// <summary>The shown version has segments: Copy and Summarize show for it, the card shows the text (or a ring while it is built).</summary>
     private bool HasSegments => _document is { Entries.Count: > 0 };
 
+    /// <summary>The conversation has audio to play: not deleted, not being recorded or compressed (macOS TranscriptView <c>load</c>).</summary>
+    private bool Playable => _transcript?.Conversation is
+        { HasAudio: true, Status: not (ConversationStatus.Recording or ConversationStatus.Compressing) };
+
     /// <summary>
     /// The shown version's text (macOS TranscriptTextView <c>apply</c>). The same segments with other names (a speaker
     /// renamed) change the names in place, so the text keeps its scroll position; other segments (another version, a
@@ -250,7 +261,8 @@ public sealed partial class TranscriptView : UserControl
         var shown = _transcript.ShownTranscript;
         IReadOnlyList<Transcript.Segment> segments = shown?.Segments ?? [];
         var document = shown is { } transcript ? new TranscriptDocument(segments, s => transcript.DisplayName(s.Speaker)) : null;
-        if (document is not null && _document is { } old && _blocks.Count == old.Entries.Count && OnlyNamesDiffer(old, _segments, document, segments))
+        if (document is not null && _document is { } old && _blocks.Count == old.Entries.Count && _playable == Playable
+            && OnlyNamesDiffer(old, _segments, document, segments))
         {
             Rename(old, document, segments);
         }
@@ -306,6 +318,7 @@ public sealed partial class TranscriptView : UserControl
         SpeakingIcon.Visibility = Visibility.Collapsed;
         SegmentText.Blocks.Clear();
         _blocks.Clear();
+        _playable = Playable;
         _document = document;
         _segments = segments;
         _indexById = new();
@@ -335,8 +348,8 @@ public sealed partial class TranscriptView : UserControl
 
     /// <summary>
     /// The segment's paragraph: its start (secondary, tabular digits) and its dot and name (semibold, in the speaker's
-    /// color), both links that play from the segment's start (<paramref name="tip"/> on the start), then the text on
-    /// the next line.
+    /// color), both links that play from the segment's start (<paramref name="tip"/> on the start) when there is audio,
+    /// then the text on the next line.
     /// </summary>
     private SegmentBlock NewBlock(TranscriptDocument document, int index, string tip)
     {
@@ -346,7 +359,7 @@ public sealed partial class TranscriptView : UserControl
         Typography.SetNumeralAlignment(time, FontNumeralAlignment.Tabular);
         var timeLink = PlayLink(index, SecondarySwatch.Foreground);
         timeLink.Inlines.Add(time);
-        ToolTipService.SetToolTip(timeLink, tip);
+        if (_playable) ToolTipService.SetToolTip(timeLink, tip);
         var spacer = new Run { Text = SpacerText, FontSize = CaptionFontSize };
         var dot = new Run { Text = DotText };
         var name = new Run { Text = entry.Name };
@@ -366,10 +379,11 @@ public sealed partial class TranscriptView : UserControl
 
     /// <summary>
     /// A caption-size link without underline that plays from segment <paramref name="index"/>; not a tab stop, so Tab
-    /// leaves the text at once instead of visiting two links per segment.
+    /// leaves the text at once instead of visiting two links per segment. Plain text without audio to play.
     /// </summary>
-    private Hyperlink PlayLink(int index, Brush foreground)
+    private Span PlayLink(int index, Brush foreground)
     {
+        if (!_playable) return new Span { Foreground = foreground, FontSize = CaptionFontSize };
         var link = new Hyperlink
         {
             Foreground = foreground,
@@ -576,7 +590,7 @@ public sealed partial class TranscriptView : UserControl
                 ? document.SegmentAt(PlainOffset(start))?.Index
                 : null;
         _textMenu.Items.Clear();
-        if (segment is { } index)
+        if (segment is { } index && _playable)
         {
             var play = new MenuFlyoutItem { Text = Loc.T("Play from here"), IsEnabled = _playback is { IsReady: true } };
             play.Click += (_, _) => Play(index);
@@ -695,6 +709,7 @@ public sealed partial class TranscriptView : UserControl
     private void Update()
     {
         if (_transcript is null) return;
+        if (_document is { } document && _playable != Playable) Rebuild(document, _segments);
         VersionButton.Visibility = Shown(_transcript.ShowsVersionMenu);
         VersionText.Text = _transcript.VersionLabel;
         AutomationProperties.SetName(VersionButton, _transcript.VersionLabel);

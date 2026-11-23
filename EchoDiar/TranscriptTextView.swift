@@ -17,10 +17,13 @@ struct TranscriptText: @unchecked Sendable {
     let timeWidths: [CGFloat]
     /// Entry index of each segment id.
     let indexByID: [UUID: Int]
+    /// There is audio to play: the timestamps and names are links and the context menu has "Play from here".
+    let playable: Bool
 
     /// Per segment: the timestamp (secondary, plays from the segment start), the speaker dot in the speaker's color
     /// and the name (semibold, also plays), then the text below them, indented past the timestamp like the old rows.
-    nonisolated init(_ transcript: Transcript) {
+    /// Without audio (`playable` false), the timestamp and name are plain text.
+    nonisolated init(_ transcript: Transcript, playable: Bool) {
         let style = TranscriptTextStyle.self
         let document = TranscriptDocument(segments: transcript.segments) {
             TranscriptView.displayName(for: $0.speaker, in: transcript)
@@ -42,13 +45,14 @@ struct TranscriptText: @unchecked Sendable {
         for (entry, segment) in zip(document.entries, transcript.segments) {
             let color = speakerColors[segment.speaker] ?? NSColor(TranscriptView.color(for: segment.speaker))
             speakerColors[segment.speaker] = color
-            let link = URL(string: "\(style.linkScheme)://\(entry.index)") as Any
+            let link: [NSAttributedString.Key: Any] = playable
+                ? [.link: URL(string: "\(style.linkScheme)://\(entry.index)") as Any, .toolTip: playHelp]
+                : [:]
             // The header and its line separator in the caption font, so the header line stays caption-high.
             string.addAttribute(.font, value: style.captionFont, range: NSRange(
                 location: entry.headerRange.location, length: entry.bodyRange.location - entry.headerRange.location))
-            string.addAttributes([
-                .font: style.timeFont, .foregroundColor: NSColor.secondaryLabelColor, .link: link, .toolTip: playHelp,
-            ], range: entry.timeRange)
+            string.addAttributes([.font: style.timeFont, .foregroundColor: NSColor.secondaryLabelColor]
+                .merging(link) { $1 }, range: entry.timeRange)
             // "  ● ": the first space widens so the dot starts where the text below starts.
             let timeWidth = style.width(entry.time, font: style.timeFont)
             let gapStart = NSMaxRange(entry.timeRange)
@@ -56,7 +60,7 @@ struct TranscriptText: @unchecked Sendable {
             string.addAttribute(.kern, value: max(0, style.gutter - timeWidth - spaces),
                                 range: NSRange(location: gapStart, length: 1))
             string.addAttribute(.foregroundColor, value: color, range: NSRange(location: gapStart + 2, length: 1))
-            string.addAttributes([.font: style.nameFont, .link: link, .toolTip: playHelp], range: entry.nameRange)
+            string.addAttributes([.font: style.nameFont].merging(link) { $1 }, range: entry.nameRange)
             string.addAttribute(.transcriptSegment, value: entry.index, range: NSRange(
                 location: entry.headerRange.location,
                 length: NSMaxRange(entry.bodyRange) - entry.headerRange.location))
@@ -70,6 +74,7 @@ struct TranscriptText: @unchecked Sendable {
         self.colors = colors
         self.timeWidths = timeWidths
         self.indexByID = indexByID
+        self.playable = playable
     }
 }
 
@@ -286,9 +291,9 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
             storage.setAttributedString(new.string)
             return true
         }
-        if old.document == new.document { return false }
+        if old.document == new.document, old.playable == new.playable { return false }
         let origin = scrollView?.contentView.bounds.origin
-        if Self.onlyNamesDiffer(old.document, new.document) {
+        if old.playable == new.playable, Self.onlyNamesDiffer(old.document, new.document) {
             let selection = textView.selectedRange()
             storage.beginEditing()
             for (before, after) in zip(old.document.entries, new.document.entries).reversed()
@@ -497,9 +502,10 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
         return true
     }
 
-    /// The standard menu (Copy, Look Up…) with "Play from here" first, for the segment under the click.
+    /// The standard menu (Copy, Look Up…) with "Play from here" first, for the segment under the click; without it
+    /// when there is no audio to play.
     func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
-        guard let entry = text?.document.segment(at: charIndex) else { return menu }
+        guard let text, text.playable, let entry = text.document.segment(at: charIndex) else { return menu }
         // A copy: the proposed menu may be shared between clicks.
         let menu = menu.copy() as? NSMenu ?? menu
         let item = NSMenuItem(title: String(localized: "Play from here"), action: #selector(playFromMenu(_:)),
