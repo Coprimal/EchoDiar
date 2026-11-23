@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-23
+
+### Added
+
+- Catch-up: the newest catch-up is on top, and a search field filters the catch-ups and highlights the matches.
+- Catch-up: the text of a catch-up card can be selected and copied (macOS).
+
+### Fixed
+
+- A transcript shows no play links when its audio is missing, and the app notices audio deleted outside the app.
+- macOS: only one EchoDiar can run at a time, so prompts (such as permission requests) are no longer shown twice.
+
 ## [1.6.0] - 2026-11-21
 
 ### Added
