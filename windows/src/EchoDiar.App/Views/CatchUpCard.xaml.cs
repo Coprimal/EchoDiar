@@ -60,8 +60,10 @@ public sealed partial class CatchUpCard : UserControl
     private readonly DispatcherQueueTimer _copiedTimer;
     private CatchUpCardState? _state;
 
-    /// <summary>The text in <see cref="MarkdownText"/>; null when none was rendered yet.</summary>
-    private string? _renderedText;
+    /// <summary>The text and search term in <see cref="MarkdownText"/>; null when none was rendered yet.</summary>
+    private (string Text, string Highlight)? _rendered;
+
+    private string _highlight = "";
 
     private bool _open;
 
@@ -99,6 +101,17 @@ public sealed partial class CatchUpCard : UserControl
 
     /// <summary>Stop was clicked, while it is being written.</summary>
     public event Action? StopRequested;
+
+    /// <summary>The catch-up search's term, highlighted in the text; none when empty.</summary>
+    public string Highlight
+    {
+        get => _highlight;
+        set
+        {
+            _highlight = value;
+            RenderText();
+        }
+    }
 
     public bool IsOpen
     {
@@ -143,12 +156,12 @@ public sealed partial class CatchUpCard : UserControl
         RenderText();
     }
 
-    /// <summary>The Markdown again when the text changed since its last render; a closed card waits until it opens.</summary>
+    /// <summary>The Markdown again when the text or term changed since its last render; a closed card waits until it opens.</summary>
     private void RenderText()
     {
-        if (!_open || _state is not { } state || state.Text == _renderedText) return;
-        _renderedText = state.Text;
-        MarkdownView.Render(MarkdownText, state.Text, _links);
+        if (!_open || _state is not { } state || _rendered == (state.Text, _highlight)) return;
+        _rendered = (state.Text, _highlight);
+        MarkdownView.Render(MarkdownText, state.Text, _links, _highlight);
     }
 
     /// <summary>The placeholder at once, its ring only after <see cref="SpinnerDelay"/>, so a fast answer does not flash it.</summary>

@@ -13290,6 +13290,34 @@
         }
       }
     },
+    "No catch-up contains \"%@\"." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna puesta al día contiene \"%@\"."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun récapitulatif ne contient \"%@\"."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có bản tóm tắt nhanh nào chứa \"%@\"."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有包含“%@”的回顾。"
+          }
+        }
+      }
+    },
     "No catch-up yet. Press Catch up to summarize the meeting so far." : {
       "localizations" : {
         "es" : {
@@ -18300,6 +18328,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索 PATH"
+          }
+        }
+      }
+    },
+    "Search catch-ups" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar en las puestas al día"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher dans les récapitulatifs"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tìm trong các bản tóm tắt nhanh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索回顾"
           }
         }
       }

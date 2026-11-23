@@ -258,8 +258,8 @@
             </Grid>
 
             <!--
-                One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, and
-                the answer language) over the catch-ups or the chat.
+                One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, the
+                answer language and, on the Catch-up tab, Search) over the catch-ups or the chat.
             -->
             <Border
                 x:Name="SidePanel"
@@ -274,6 +274,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
@@ -322,25 +323,53 @@
                                 <MenuFlyout x:Name="PanelLanguageMenu" Placement="BottomEdgeAlignedRight" />
                             </DropDownButton.Flyout>
                         </DropDownButton>
+                        <!-- Shows or hides the catch-up search field; on the Catch-up tab only. -->
+                        <ToggleButton
+                            x:Name="CatchUpSearchButton"
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{local:T Text='Search catch-ups'}"
+                            ToolTipService.ToolTip="{local:T Text='Search catch-ups'}">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
+                        </ToggleButton>
                     </Grid>
 
                     <!--
-                        The catch-ups (CatchUpCard, set in code), oldest first, the one being written last; while there are
-                        none, a hint to press Catch up.
+                        The search field, then the catch-ups (CatchUpCard, set in code), newest first, the one being
+                        written at the top; while there are none, a hint to press Catch up (or that none was found).
                     -->
                     <Border x:Name="CatchUpPanel" Grid.Row="1">
                         <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <!--
+                                Filters the catch-ups as typed and highlights the term in them (macOS catchUpSearchField):
+                                slides in under the header; Esc clears it, then hides it.
+                            -->
+                            <AutoSuggestBox
+                                x:Name="CatchUpSearchBox"
+                                Margin="10,0,10,0"
+                                AutomationProperties.Name="{local:T Text='Search catch-ups'}"
+                                PlaceholderText="{local:T Text='Search catch-ups'}"
+                                QueryIcon="Find"
+                                Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="CatchUpEmptyText"
+                                Grid.Row="1"
                                 Margin="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Style="{StaticResource BodyTextBlockStyle}"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 TextAlignment="Center"
-                                TextWrapping="Wrap"
-                                Text="{local:T Text='No catch-up yet. Press Catch up to summarize the meeting so far.'}" />
-                            <ScrollViewer x:Name="CatchUpScroller" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                                TextWrapping="Wrap" />
+                            <ScrollViewer
+                                x:Name="CatchUpScroller"
+                                Grid.Row="1"
+                                VerticalScrollBarVisibility="Auto"
+                                Visibility="Collapsed">
                                 <StackPanel x:Name="CatchUpCards" Padding="8" Spacing="6" />
                             </ScrollViewer>
                         </Grid>

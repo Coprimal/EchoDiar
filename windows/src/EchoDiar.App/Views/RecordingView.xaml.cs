@@ -1,14 +1,18 @@
 using System.ComponentModel;
+using System.Numerics;
 using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
+using EchoDiar.Core;
 using EchoDiar.Core.Audio;
 using EchoDiar.Core.Settings;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI.ViewManagement;
+using VirtualKey = Windows.System.VirtualKey;
 
 namespace EchoDiar.App.Views;
 
@@ -54,11 +58,14 @@ public sealed partial class RecordingView : UserControl
     /// <summary>The open state the user gave cards with a click; the others: the newest open, the older ones collapsed.</summary>
     private readonly Dictionary<Guid, bool> _catchUpOpenStates = [];
 
+    /// <summary>The clicks during a search, which win over the open state it gives; cleared when the query changes.</summary>
+    private readonly Dictionary<Guid, bool> _catchUpSearchOpenStates = [];
+
     /// <summary>The card of <see cref="AppViewModel.CatchUpRun"/>: the only one <see cref="AppViewModel.CatchUpTextChanged"/> updates.</summary>
     private CatchUpCard? _runCard;
 
     /// <summary>
-    /// What the catch-ups were last scrolled to the end for: their count, the run's id and whether it failed; another
+    /// What the catch-ups were last scrolled to the top for: their count, the run's id and whether it failed; another
     /// one scrolls again.
     /// </summary>
     private (int Count, Guid? Run, bool Failed)? _scrolledCatchUps;
@@ -98,6 +105,14 @@ public sealed partial class RecordingView : UserControl
             _model.RecordingTab = RecordingTab.CatchUp;
         };
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
+        CatchUpSearchButton.Click += (_, _) => SetCatchUpSearch(CatchUpSearchButton.IsChecked == true);
+        CatchUpSearchBox.TextChanged += (_, _) =>
+        {
+            _catchUpSearchOpenStates.Clear();
+            UpdateCatchUps();
+            ScrollCatchUpsToTop();
+        };
+        CatchUpSearchBox.AddHandler(KeyDownEvent, new KeyEventHandler(OnCatchUpSearchKeyDown), handledEventsToo: true);
         ToolTipService.SetToolTip(PanelLanguageButton,
             Loc.T("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)"));
         PanelModelMenu.Opening += (_, _) => AIMenus.FillModelMenu(PanelModelMenu, _model.ProvidersModel, AIPurpose.CatchUp,
@@ -118,7 +133,6 @@ public sealed partial class RecordingView : UserControl
             UpdateCatchUpButton();
             UpdateContent();
             UpdatePanelMenus();
-            ScrollCatchUpsToEnd();
         };
         Unloaded += (_, _) =>
         {
@@ -233,10 +247,11 @@ public sealed partial class RecordingView : UserControl
         var chat = _model.RecordingTab == RecordingTab.Chat;
         var catchUpsShown = CatchUpPanel.Visibility == Visibility.Visible;
         CatchUpPanel.Visibility = Shown(!chat);
+        CatchUpSearchButton.Visibility = Shown(!chat);
         if (!chat)
         {
             ChatHost.Child = null;
-            if (!catchUpsShown) ScrollCatchUpsToEnd();
+            if (!catchUpsShown) ScrollCatchUpsToTop();
         }
         else if (ChatHost.Child is null)
         {
@@ -303,25 +318,28 @@ public sealed partial class RecordingView : UserControl
     }
 
     /// <summary>
-    /// The cards, oldest first: the saved catch-ups, then the run at the bottom; each kept by id (the run's card becomes
+    /// The cards, newest first: the run at the top, then the saved catch-ups; each kept by id (the run's card becomes
     /// its saved catch-up's), the newest open unless clicked otherwise. A new card, or the run's failure, scrolls to the
-    /// end. A hint to press Catch up while there are none.
+    /// top. A hint to press Catch up while there are none. With a search term, only the catch-ups whose text contains it
+    /// (and the run, so its Stop stays), the term highlighted; one or two found open, more keep their open state.
     /// </summary>
     private void UpdateCatchUps()
     {
         List<CatchUpCardState> states = [];
         var run = _model.CatchUpRun;
         var saved = _model.RecordingCatchUps;
+        if (run is not null) states.Add(CatchUpCardState.From(run));
         if (saved.Count > 0)
         {
             var providers = _model.ProvidersModel.AIProviders;
             // The run's catch-up is listed once saved, a moment before the run is cleared: its card shows it once.
-            foreach (var catchUp in saved)
+            foreach (var catchUp in saved.Reverse())
             {
                 if (catchUp.Id != run?.JobId) states.Add(CatchUpCardState.From(catchUp, providers));
             }
         }
-        if (run is not null) states.Add(CatchUpCardState.From(run));
+        var term = CatchUpSearchTerm;
+        var matches = states.Where(s => term.Length > 0 && SearchText.Contains(s.Text, term)).Select(s => s.Id).ToHashSet();
         List<CatchUpCard> cards = [];
         for (var i = 0; i < states.Count; i++)
         {
@@ -334,9 +352,13 @@ public sealed partial class RecordingView : UserControl
                 card.StopRequested += _model.StopCatchUp;
                 _catchUpCards[id] = card;
             }
-            card.IsOpen = _catchUpOpenStates.TryGetValue(state.Id, out var open) ? open : i == states.Count - 1;
+            var normal = _catchUpOpenStates.TryGetValue(state.Id, out var open) ? open : i == 0;
+            card.IsOpen = term.Length == 0 ? normal
+                : _catchUpSearchOpenStates.TryGetValue(state.Id, out var searchOpen) ? searchOpen
+                : (matches.Count <= 2 && matches.Contains(state.Id)) || normal;
+            card.Highlight = term;
             card.Show(state);
-            cards.Add(card);
+            if (term.Length == 0 || matches.Contains(state.Id) || state.Running) cards.Add(card);
         }
         foreach (var gone in _catchUpCards.Keys.Where(key => !states.Any(s => s.Id == key)).ToList())
         {
@@ -351,41 +373,80 @@ public sealed partial class RecordingView : UserControl
         }
         CatchUpScroller.Visibility = Shown(cards.Count > 0);
         CatchUpEmptyText.Visibility = Shown(cards.Count == 0);
+        RecordingCard.SetText(CatchUpEmptyText, states.Count == 0
+            ? Loc.T("No catch-up yet. Press Catch up to summarize the meeting so far.")
+            : Loc.Format("No catch-up contains \"%@\".", term));
         var shown = (saved.Count, run?.JobId, run is { IsRunning: false });
         if (shown != _scrolledCatchUps)
         {
             _scrolledCatchUps = shown;
-            ScrollCatchUpsToEnd();
+            ScrollCatchUpsToTop();
         }
     }
 
-    /// <summary>
-    /// The run's text or status changed (at most every 120 ms): only its card, whose Markdown is rendered again, kept in
-    /// view as it grows while the list is at or near its bottom, so an older catch-up being read stays put.
-    /// </summary>
+    /// <summary>The run's text or status changed (at most every 120 ms): only its card, whose Markdown is rendered again.</summary>
     private void OnCatchUpTextChanged()
     {
         if (_model.CatchUpRun is not { } run || _runCard is not { } card) return;
-        // Before the card grows: the offsets are still those of the last layout.
-        var atBottom = CatchUpScroller.VerticalOffset >= CatchUpScroller.ScrollableHeight - CatchUpFollowThreshold;
         card.Show(CatchUpCardState.From(run));
-        if (atBottom) ScrollCatchUpsToEnd();
     }
 
-    /// <summary>How near the bottom, in pixels, still counts as at it for <see cref="OnCatchUpTextChanged"/>.</summary>
-    private const double CatchUpFollowThreshold = 48;
-
-    /// <summary>The newest catch-up at the bottom into view, once laid out, so the new height is known.</summary>
-    private void ScrollCatchUpsToEnd() => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+    /// <summary>The newest catch-up, at the top, into view once laid out.</summary>
+    private void ScrollCatchUpsToTop() => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
     {
-        if (!_model.IsClosing) CatchUpScroller.ChangeView(null, CatchUpScroller.ScrollableHeight, null, disableAnimation: true);
+        if (!_model.IsClosing) CatchUpScroller.ChangeView(null, 0, null, disableAnimation: true);
     });
 
     private void ToggleCatchUp(Guid id)
     {
         if (!_catchUpCards.TryGetValue(id, out var card)) return;
         card.IsOpen = !card.IsOpen;
-        _catchUpOpenStates[id] = card.IsOpen;
+        (CatchUpSearchTerm.Length > 0 ? _catchUpSearchOpenStates : _catchUpOpenStates)[id] = card.IsOpen;
+    }
+
+    /// <summary>The catch-up search's term, trimmed; empty while the field is hidden.</summary>
+    private string CatchUpSearchTerm =>
+        CatchUpSearchBox.Visibility == Visibility.Visible ? CatchUpSearchBox.Text.Trim() : "";
+
+    /// <summary>
+    /// Shows the search field, sliding in under the header and focused, or hides it and clears the query (macOS
+    /// <c>setCatchUpSearch</c>); without the slide when Windows animations are off.
+    /// </summary>
+    private void SetCatchUpSearch(bool shown)
+    {
+        CatchUpSearchButton.IsChecked = shown;
+        if (!shown)
+        {
+            CatchUpSearchBox.Visibility = Visibility.Collapsed;
+            CatchUpSearchBox.Text = "";
+            UpdateCatchUps();
+            return;
+        }
+        CatchUpSearchBox.TranslationTransition = null;
+        CatchUpSearchBox.OpacityTransition = null;
+        if (UISettings.AnimationsEnabled)
+        {
+            CatchUpSearchBox.Translation = new Vector3(0, -8, 0);
+            CatchUpSearchBox.Opacity = 0;
+        }
+        CatchUpSearchBox.Visibility = Visibility.Visible;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            CatchUpSearchBox.TranslationTransition = new Vector3Transition();
+            CatchUpSearchBox.OpacityTransition = new ScalarTransition();
+            CatchUpSearchBox.Translation = Vector3.Zero;
+            CatchUpSearchBox.Opacity = 1;
+            CatchUpSearchBox.Focus(FocusState.Programmatic);
+        });
+    }
+
+    /// <summary>Esc clears the search, then hides it (as macOS).</summary>
+    private void OnCatchUpSearchKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Escape) return;
+        e.Handled = true;
+        if (CatchUpSearchBox.Text.Length > 0) CatchUpSearchBox.Text = "";
+        else SetCatchUpSearch(false);
     }
 
     /// <summary>

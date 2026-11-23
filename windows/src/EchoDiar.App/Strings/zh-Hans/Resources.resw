@@ -2026,6 +2026,10 @@
     <value>没有日历账户可以存放 EchoDiar 的日历。</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
   </data>
+  <data name="NoCatchUpContains" xml:space="preserve">
+    <value>没有包含“{0}”的回顾。</value>
+    <comment>No catch-up contains "%@".</comment>
+  </data>
   <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
     <value>还没有回顾。点按“快速回顾”即可总结会议至今的内容。</value>
     <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
@@ -2849,6 +2853,10 @@
   <data name="Search" xml:space="preserve">
     <value>搜索</value>
     <comment>Search</comment>
+  </data>
+  <data name="SearchCatchUps" xml:space="preserve">
+    <value>搜索回顾</value>
+    <comment>Search catch-ups</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>搜索对话</value>

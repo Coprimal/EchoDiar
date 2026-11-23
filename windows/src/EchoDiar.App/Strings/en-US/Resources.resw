@@ -2126,6 +2126,10 @@
     <value>No calendar account can hold EchoDiar's calendar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
   </data>
+  <data name="NoCatchUpContains" xml:space="preserve">
+    <value>No catch-up contains "{0}".</value>
+    <comment>No catch-up contains "%@".</comment>
+  </data>
   <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
     <value>No catch-up yet. Press Catch up to summarize the meeting so far.</value>
     <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
@@ -2961,6 +2965,10 @@
   <data name="Search" xml:space="preserve">
     <value>Search</value>
     <comment>Search</comment>
+  </data>
+  <data name="SearchCatchUps" xml:space="preserve">
+    <value>Search catch-ups</value>
+    <comment>Search catch-ups</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Search conversations</value>

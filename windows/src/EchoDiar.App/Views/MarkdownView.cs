@@ -1,5 +1,7 @@
 using EchoDiar.AI;
+using EchoDiar.Core;
 using EchoDiar.Core.Model;
+using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -34,13 +36,39 @@ public static class MarkdownView
 
     private static readonly FontFamily CodeFont = new("Cascadia Mono, Consolas");
 
-    public static void Render(RichTextBlock target, string markdown, MarkdownLinks links)
+    /// <summary>
+    /// Renders <paramref name="markdown"/>, the occurrences of <paramref name="highlight"/> (the catch-up search's term;
+    /// none when empty) highlighted in each run of the rendered text.
+    /// </summary>
+    public static void Render(RichTextBlock target, string markdown, MarkdownLinks links, string highlight = "")
     {
         target.IsTextSelectionEnabled = true;
+        target.TextHighlighters.Clear();
         target.Blocks.Clear();
         foreach (var block in MarkdownParser.Parse(markdown, links.References))
             target.Blocks.Add(ToParagraph(block, links));
+        if (highlight.Length == 0) return;
+        var highlighter = new TextHighlighter
+        {
+            Background = new SolidColorBrush(Colors.Yellow),
+            Foreground = new SolidColorBrush(Colors.Black),
+        };
+        foreach (var run in target.Blocks.OfType<Paragraph>().SelectMany(p => Runs(p.Inlines)))
+        {
+            foreach (var (start, length) in SearchText.Ranges(run.Text, highlight))
+                highlighter.Ranges.Add(new TextRange { StartIndex = run.ContentStart.Offset + start, Length = length });
+        }
+        if (highlighter.Ranges.Count > 0) target.TextHighlighters.Add(highlighter);
     }
+
+    /// <summary>The runs of <paramref name="inlines"/>, also those inside a hyperlink.</summary>
+    private static IEnumerable<Run> Runs(IEnumerable<Inline> inlines) =>
+        inlines.SelectMany(inline => inline switch
+        {
+            Run run => [run],
+            Span span => Runs(span.Inlines),
+            _ => Enumerable.Empty<Run>(),
+        });
 
     private static Paragraph ToParagraph(MarkdownBlock block, MarkdownLinks links)
     {

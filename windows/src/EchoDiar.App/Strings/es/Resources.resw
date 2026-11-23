@@ -2118,6 +2118,10 @@
     <value>Ninguna cuenta de calendario puede alojar el calendario de EchoDiar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
   </data>
+  <data name="NoCatchUpContains" xml:space="preserve">
+    <value>Ninguna puesta al día contiene "{0}".</value>
+    <comment>No catch-up contains "%@".</comment>
+  </data>
   <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
     <value>Aún no hay ninguna puesta al día. Pulsa Ponerse al día para resumir la reunión hasta ahora.</value>
     <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
@@ -2941,6 +2945,10 @@
   <data name="Search" xml:space="preserve">
     <value>Buscar</value>
     <comment>Search</comment>
+  </data>
+  <data name="SearchCatchUps" xml:space="preserve">
+    <value>Buscar en las puestas al día</value>
+    <comment>Search catch-ups</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Buscar conversaciones</value>

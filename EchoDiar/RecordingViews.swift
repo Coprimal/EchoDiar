@@ -175,6 +175,11 @@ struct RecordingCard: View {
 /// page that changes it.
 struct RecordingDetailView: View {
     let model: AppModel
+    /// The Catch-up tab's search field is shown (the header's magnifying glass); closing it clears the query.
+    @State private var searchingCatchUps = false
+    @State private var catchUpQuery = ""
+    @State private var catchUpSearchFocus = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The right panel's tabs, in order.
     private static let panelTabs: [AppModel.RecordingTab] = [.catchUp, .chat]
@@ -201,9 +206,10 @@ struct RecordingDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, and
-    /// the answer language) over the selected tab, whose own cards it replaces. Only the selected tab's view: a hidden
-    /// chat would still take the keyboard focus.
+    /// One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, the
+    /// answer language and, on the Catch-up tab, Search) over the selected tab, whose own cards it replaces; the
+    /// catch-up search field slides in under the header. Only the selected tab's view: a hidden chat would still take
+    /// the keyboard focus.
     private var sidePanel: some View {
         let selection = Binding<AppModel.RecordingTab>(
             get: { model.recordingTab },
@@ -217,16 +223,69 @@ struct RecordingDetailView: View {
                 Spacer(minLength: 8)
                 AIModelMenu(model: model, purpose: .catchUp, height: Self.menuHeight)
                 AILanguageMenu(model: model, height: Self.menuHeight)
+                if selection.wrappedValue == .catchUp {
+                    Button { setCatchUpSearch(!searchingCatchUps) } label: {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(searchingCatchUps ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+                    }
+                    .buttonStyle(BottomBarButtonStyle(height: Self.menuHeight, horizontalPadding: 0))
+                    .help("Search catch-ups")
+                    .accessibilityLabel("Search catch-ups")
+                }
             }
             .padding(.horizontal, 10)
+            if selection.wrappedValue == .catchUp && searchingCatchUps {
+                catchUpSearchField
+                    .padding(.horizontal, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
             switch selection.wrappedValue {
-            case .catchUp: CatchUpPanel(model: model, framed: false)
+            case .catchUp: CatchUpPanel(model: model, framed: false, query: searchingCatchUps ? catchUpQuery : "")
             case .chat: LiveChatView(model: model, framed: false)
             }
         }
         .padding(.top, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .modifier(GlassCard(cornerRadius: 14))
+    }
+
+    /// Filters the catch-ups as typed (as the sidebar's search field); Esc clears the query, then closes the field.
+    private var catchUpSearchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            SearchTextField(text: $catchUpQuery, focusRequest: $catchUpSearchFocus,
+                            accessibilityLabel: String(localized: "Search catch-ups")) {
+                if catchUpQuery.isEmpty {
+                    setCatchUpSearch(false)
+                } else {
+                    catchUpQuery = ""
+                }
+            }
+            if !catchUpQuery.isEmpty {
+                Button {
+                    catchUpQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: Self.menuHeight)
+        .modifier(InputCapsule())
+    }
+
+    /// Shows the search field, focused, or hides it and clears the query.
+    private func setCatchUpSearch(_ shown: Bool) {
+        withAnimation(reduceMotion ? nil : Motion.standard) { searchingCatchUps = shown }
+        if shown {
+            catchUpSearchFocus = true
+        } else {
+            catchUpQuery = ""
+        }
     }
 
     /// The live transcript, or the wave and why there is none.

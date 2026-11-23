@@ -2026,6 +2026,10 @@
     <value>Không có tài khoản lịch nào có thể chứa lịch của EchoDiar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
   </data>
+  <data name="NoCatchUpContains" xml:space="preserve">
+    <value>Không có bản tóm tắt nhanh nào chứa "{0}".</value>
+    <comment>No catch-up contains "%@".</comment>
+  </data>
   <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
     <value>Chưa có bản tóm tắt nhanh nào. Bấm Tóm tắt nhanh để tóm tắt cuộc họp đến lúc này.</value>
     <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
@@ -2849,6 +2853,10 @@
   <data name="Search" xml:space="preserve">
     <value>Tìm kiếm</value>
     <comment>Search</comment>
+  </data>
+  <data name="SearchCatchUps" xml:space="preserve">
+    <value>Tìm trong các bản tóm tắt nhanh</value>
+    <comment>Search catch-ups</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Tìm cuộc hội thoại</value>

@@ -2118,6 +2118,10 @@
     <value>Aucun compte de calendrier ne peut accueillir le calendrier d’EchoDiar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
   </data>
+  <data name="NoCatchUpContains" xml:space="preserve">
+    <value>Aucun récapitulatif ne contient "{0}".</value>
+    <comment>No catch-up contains "%@".</comment>
+  </data>
   <data name="NoCatchUpYetPressCatchUpToSummarizeTheMeetingSoFar" xml:space="preserve">
     <value>Aucun récapitulatif pour l’instant. Appuyez sur Récapituler pour résumer la réunion jusqu’ici.</value>
     <comment>No catch-up yet. Press Catch up to summarize the meeting so far.</comment>
@@ -2941,6 +2945,10 @@
   <data name="Search" xml:space="preserve">
     <value>Rechercher</value>
     <comment>Search</comment>
+  </data>
+  <data name="SearchCatchUps" xml:space="preserve">
+    <value>Rechercher dans les récapitulatifs</value>
+    <comment>Search catch-ups</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Rechercher dans les conversations</value>

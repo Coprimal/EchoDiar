@@ -1121,6 +1121,8 @@ struct MarkdownText: View {
     let text: String
     /// The sources of a library-chat answer; nil for an answer about one conversation.
     var references: [ChatLog.Reference]? = nil
+    /// A search term whose occurrences in the rendered text are highlighted (the catch-up search); none when empty.
+    var highlight = ""
 
     static let citationScheme = "echodiar-time"
 
@@ -1129,15 +1131,16 @@ struct MarkdownText: View {
             ForEach(Array(Self.lines(text).enumerated()), id: \.offset) { _, line in
                 switch line.kind {
                 case .heading:
-                    Text(Self.inline(line.text, references: references)).font(.headline).padding(.top, 4)
+                    Text(Self.inline(line.text, references: references, highlight: highlight))
+                        .font(.headline).padding(.top, 4)
                 case .bullet:
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("•")
-                        Text(Self.inline(line.text, references: references))
+                        Text(Self.inline(line.text, references: references, highlight: highlight))
                     }
                     .padding(.leading, CGFloat(line.indent) * 14)
                 case .paragraph:
-                    Text(Self.inline(line.text, references: references))
+                    Text(Self.inline(line.text, references: references, highlight: highlight))
                 }
             }
         }
@@ -1162,10 +1165,21 @@ struct MarkdownText: View {
         }
     }
 
-    static func inline(_ text: String, references: [ChatLog.Reference]? = nil) -> AttributedString {
+    static func inline(_ text: String, references: [ChatLog.Reference]? = nil, highlight: String = "") -> AttributedString {
         let linked = references.map { LibraryCitation.linked(text, references: $0) }
             ?? TranscriptCitation.linked(text, scheme: citationScheme)
-        return (try? AttributedString(
+        var result = (try? AttributedString(
             markdown: linked, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
+        guard !highlight.isEmpty else { return result }
+        // Found in the rendered characters, so Markdown marks never split a match; mapped back by character offset.
+        let plain = String(result.characters)
+        for range in SearchText.ranges(of: highlight, in: plain) {
+            let lower = result.characters.index(
+                result.startIndex, offsetBy: plain.distance(from: plain.startIndex, to: range.lowerBound))
+            let upper = result.characters.index(lower, offsetBy: plain.distance(from: range.lowerBound, to: range.upperBound))
+            result[lower..<upper].backgroundColor = .yellow
+            result[lower..<upper].foregroundColor = .black
+        }
+        return result
     }
 }
