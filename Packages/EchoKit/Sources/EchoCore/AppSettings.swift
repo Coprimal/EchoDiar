@@ -156,6 +156,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var screenTranscribes: Bool
     /// The display (and area) last picked for a screen recording; nil = none picked yet.
     public var screenSource: RememberedScreenSource?
+    /// Where the transcript shows a conversation's video.
+    public var transcriptVideoLayout: TranscriptVideoLayout
 
     public static let defaultEmbeddingModelID = "mlx-qwen3-embedding-0.6b"
 
@@ -232,7 +234,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenShowsCursor: Bool = true,
         screenShowsClicks: Bool = false,
         screenTranscribes: Bool = true,
-        screenSource: RememberedScreenSource? = nil
+        screenSource: RememberedScreenSource? = nil,
+        transcriptVideoLayout: TranscriptVideoLayout = .sideBySide
     ) {
         self.launchAtLogin = launchAtLogin
         self.defaultLanguage = defaultLanguage
@@ -307,6 +310,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.screenShowsClicks = screenShowsClicks
         self.screenTranscribes = screenTranscribes
         self.screenSource = screenSource
+        self.transcriptVideoLayout = transcriptVideoLayout
     }
 
     public static let autoDeleteDaysRange = 1...3650
@@ -339,6 +343,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case cloudLiveSource, cloudLiveModelID, realtimeAsFinal
         case libraryPageSize
         case screenFPS, screenQuality, screenShowsCursor, screenShowsClicks, screenTranscribes, screenSource
+        case transcriptVideoLayout
     }
 
     public init(from decoder: Decoder) throws {
@@ -433,6 +438,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenShowsClicks = try container.decodeIfPresent(Bool.self, forKey: .screenShowsClicks) ?? false
         screenTranscribes = try container.decodeIfPresent(Bool.self, forKey: .screenTranscribes) ?? true
         screenSource = try container.decodeIfPresent(RememberedScreenSource.self, forKey: .screenSource)
+        transcriptVideoLayout =
+            try container.decodeIfPresent(TranscriptVideoLayout.self, forKey: .transcriptVideoLayout) ?? .sideBySide
     }
 
     /// One-time move to "key saved = available" for cloud providers (settings only, no Keychain read). Every cloud
@@ -609,6 +616,21 @@ public enum PillSize: String, Codable, Sendable {
     /// An unrecognized raw value (written by another build) falls back to `medium`.
     public init(from decoder: Decoder) throws {
         self = PillSize(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .medium
+    }
+}
+
+/// Where the transcript shows a conversation's video.
+public enum TranscriptVideoLayout: String, Codable, Sendable, CaseIterable {
+    /// The video on the left, the transcript on the right.
+    case sideBySide
+    /// The video above the transcript.
+    case stacked
+    /// No video.
+    case hidden
+
+    /// An unrecognized raw value (written by another build) falls back to `sideBySide`, the default.
+    public init(from decoder: Decoder) throws {
+        self = TranscriptVideoLayout(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .sideBySide
     }
 }
 

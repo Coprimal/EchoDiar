@@ -39,6 +39,7 @@ struct SettingsStoreTests {
             #expect(!store.load().screenShowsClicks)
             #expect(store.load().screenTranscribes)
             #expect(store.load().screenSource == nil)
+            #expect(store.load().transcriptVideoLayout == .sideBySide)
             #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         }
     }
@@ -177,6 +178,18 @@ struct SettingsStoreTests {
             try Data(#"{"autoDeleteMode":"videoOnly"}"#.utf8).write(to: store.fileURL)
             #expect(store.load().autoDeleteMode.rawValue == "videoOnly")
         }
+    }
+
+    /// The transcript shows the video beside the text unless the user picked another layout.
+    @Test func transcriptVideoLayoutUnknownValueIsSideBySide() throws {
+        let json = #"{"transcriptVideoLayout":"diagonal"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.transcriptVideoLayout == .sideBySide)
+    }
+
+    @Test func transcriptVideoLayoutStackedRoundTrips() throws {
+        let data = try JSONEncoder().encode(AppSettings(transcriptVideoLayout: .stacked))
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data).transcriptVideoLayout == .stacked)
     }
 
     @Test func pillSizeLargeRoundTrips() throws {

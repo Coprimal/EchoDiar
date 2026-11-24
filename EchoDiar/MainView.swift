@@ -421,7 +421,7 @@ struct MainView: View {
                     Label("Delete", systemImage: "trash")
                 }
                 .disabled(!DeleteMenuItems.canDelete(conversation, model))
-                .help("Delete the audio or the whole conversation")
+                .help("Delete the audio, the video or the whole conversation")
             }
             fixedSpacer
         }

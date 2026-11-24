@@ -1878,6 +1878,12 @@ final class AppModel {
         Task { await library.reload(id: id) }
     }
 
+    /// The open conversation's video file is gone (deleted outside the app): lists it again, so it shows without video
+    /// (no video pane, no layout switch).
+    func videoMissing(_ id: UUID) {
+        Task { await library.reload(id: id) }
+    }
+
     /// Moves the conversation's audio to the Trash; its transcript, summary and chat stay.
     func deleteAudio(of id: UUID) async {
         do {
@@ -2121,6 +2127,9 @@ final class AppModel {
 
     /// Shows the conversation on `tab`.
     func open(_ id: UUID, tab: DetailTab = .transcript) {
+        #if DEBUG
+        DetailTiming.open(id)
+        #endif
         detailTab = tab
         route = .conversation(id)
     }

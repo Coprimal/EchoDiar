@@ -57,6 +57,14 @@ extension AppModel {
 /// `--measure-screen preflight --out <dir> --stage <page> --clip <mp4>` checks the grants and the instruments and
 /// deletes everything it recorded (see `preflight()`).
 ///
+/// `--measure-screen playback <conversation folder> --seconds N --out <dir>` plays that folder's audio and video in a
+/// `PlaybackController`, muted, until `seconds` or the end of the media, and reports the largest picture/sound drift
+/// and the final play head (see `playback()`). It opens no window and records nothing.
+///
+/// `--measure-screen export <conversation folder> --audio both|mic|system|none --out <dir> --file <mp4>` writes that
+/// folder's video with the chosen audio to `--file` through `VideoExporter` (the audio found as the Export video sheet
+/// finds it) and reports what it wrote (see `export()`). It opens no window and records nothing.
+///
 /// Exit codes (`Code`): 0 ok, 1 usage or pipeline error, 2 another EchoDiar runs, 3 no built-in 2x display (or the
 /// stage is not on it), 4 the display/area stage does not cover the display, 5 a video run wrote no frame, 6 too few
 /// frames on moving content, 7 the clip does not play, 8 `--out` missing or unusable (before any store is built).
@@ -152,6 +160,12 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     private let anyDisplay: Bool
     private let viaModel: Bool
     private let noTranscribe: Bool
+    /// `playback`: the conversation folder to play.
+    private var playbackFolder: URL?
+    /// `export`: the conversation folder, the audio to take and the file to write.
+    private var exportFolder: URL?
+    private var exportChannels: VideoExporter.Channels = .both
+    private var exportFile: URL?
 
     // MARK: Run state
 
@@ -187,11 +201,13 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             + "--seconds N --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps N] [--quality Q] "
             + "[--pause-at S] [--resume-at S] [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] "
             + "[--any-display] [--via-model] [--no-transcribe] [--resize-at S] | --measure-screen preflight --out <dir> "
-            + "--stage <page> --clip <mp4>"
+            + "--stage <page> --clip <mp4> | --measure-screen playback <folder> --seconds N --out <dir> "
+            + "| --measure-screen export <folder> --audio both|mic|system|none --out <dir> --file <mp4>"
         // `isolatedDirectory` already exited 8 unless `--out` is a usable folder.
         guard let out = Self.isolatedDirectory() else { Self.die(Code.badOut, "error: --out is missing") }
         self.out = out
-        guard let command = Self.value(after: Self.argument), command == "preflight" || Self.scenarios.contains(command)
+        guard let command = Self.value(after: Self.argument),
+              command == "preflight" || command == "playback" || command == "export" || Self.scenarios.contains(command)
         else { Self.die(Code.failed, usage) }
         self.command = command
         stagePage = Self.value(after: "--stage").map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
@@ -224,6 +240,31 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             target = .window
             targetName = "window"
             seconds = 3
+        } else if command == "playback" {
+            target = .window
+            targetName = "none"
+            guard let path = Self.value(after: "playback"), !path.isEmpty, !path.hasPrefix("--") else {
+                Self.die(Code.failed, usage)
+            }
+            guard let runSeconds = number("--seconds"), runSeconds > 0 else {
+                Self.die(Code.failed, "error: --seconds N is required")
+            }
+            seconds = runSeconds
+            playbackFolder = URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
+        } else if command == "export" {
+            target = .window
+            targetName = "none"
+            seconds = 0
+            guard let path = Self.value(after: "export"), !path.isEmpty, !path.hasPrefix("--"),
+                  let file = Self.value(after: "--file"), !file.isEmpty, !file.hasPrefix("--") else {
+                Self.die(Code.failed, usage)
+            }
+            guard let channels = Self.value(after: "--audio").flatMap(VideoExporter.Channels.init(rawValue:)) else {
+                Self.die(Code.failed, "error: --audio must be both, mic, system or none")
+            }
+            exportFolder = URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
+            exportChannels = channels
+            exportFile = URL(fileURLWithPath: (file as NSString).expandingTildeInPath)
         } else {
             guard let name = Self.value(after: "--target") else { Self.die(Code.failed, usage) }
             targetName = name
@@ -256,6 +297,20 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             }
         }
         super.init()
+        if let playbackFolder {
+            fields = [
+                "harness": "measure-screen", "pid": Int(getpid()), "scenario": command, "folder": playbackFolder.path,
+                "seconds": seconds, "settingsDirectory": settingsDirectory.path,
+            ]
+            return
+        }
+        if let exportFolder, let exportFile {
+            fields = [
+                "harness": "measure-screen", "pid": Int(getpid()), "scenario": command, "folder": exportFolder.path,
+                "audio": exportChannels.rawValue, "file": exportFile.path, "settingsDirectory": settingsDirectory.path,
+            ]
+            return
+        }
         fields = [
             "harness": "measure-screen", "pid": Int(getpid()), "scenario": command, "target": targetName,
             "fps": fps, "quality": quality, "seconds": seconds, "pauseAt": pauseAt ?? NSNull(),
@@ -275,6 +330,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         if let other = Self.otherInstances().first {
             await finish(Code.otherInstance, "error: another EchoDiar is running (pid \(other)); quit it first")
         }
+        if command == "playback" { await playback() }
+        if command == "export" { await export() }
         guard let screen = stageScreen() else {
             await finish(Code.noDisplay, anyDisplay ? "error: no display" : "error: no built-in display at 2x")
         }
@@ -619,6 +676,145 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         if let message { Self.warn(message) }
         Self.say(result.path)
         exit(code)
+    }
+
+    // MARK: - Playback
+
+    /// Plays the folder's audio (the session's `audioFileName`, as the Transcript tab finds it) and video
+    /// (`LibraryStore.videoFiles`, `ScreenSource.videoFileName` first) in a `PlaybackController` with the sound muted.
+    /// Every 100 ms while playing it reads the exact play head and the video player's time at once; `maxDrift` is the
+    /// largest |video - play head| after the first second of playback, while the play head is inside the video
+    /// (`maxDriftTicked` the same against the 4 Hz `currentTime` refreshed by that read). `finalTime` is the last play
+    /// head read while playing: the controller rewinds to 0 at the end of the media.
+    private func playback() async -> Never {
+        var isFolder: ObjCBool = false
+        guard let folder = playbackFolder, FileManager.default.fileExists(atPath: folder.path, isDirectory: &isFolder),
+              isFolder.boolValue else {
+            await finish(Code.failed, "error: \(playbackFolder?.path ?? "the folder") is not a folder")
+        }
+        let audio = (try? RecordingSession.read(from: folder))
+            .flatMap { ConversationFiles.audioURL(in: folder, fileName: $0.audioFileName) }
+            .flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        let videos = LibraryStore.videoFiles(in: folder)
+        let video = videos.first { $0.lastPathComponent == ScreenSource.videoFileName } ?? videos.first
+        let audioDuration = audio.flatMap { try? AVAudioFile(forReading: $0) }
+            .map { Double($0.length) / $0.fileFormat.sampleRate }
+        fields["audioFile"] = audio?.lastPathComponent ?? NSNull()
+        fields["videoFile"] = video?.lastPathComponent ?? NSNull()
+        fields["audioDuration"] = audioDuration ?? NSNull()
+        // An audio file that exists and opens.
+        fields["hadAudio"] = audioDuration != nil
+        guard audio != nil || video != nil else { await finish(Code.failed, "error: \(folder.path) has no audio or video") }
+
+        let controller = PlaybackController()
+        controller.mutesSound = true
+        controller.load(url: audio, video: video, segments: [], channels: .mixed)
+        let opened = await Self.wait(seconds: 15) {
+            controller.isReady && controller.duration > 0 && (video == nil
+                || (controller.videoDuration > 0 && controller.videoPlayer?.currentItem?.status == .readyToPlay))
+        }
+        fields["hadVideo"] = video != nil && controller.videoDuration > 0
+        fields["duration"] = controller.duration
+        fields["videoDuration"] = video == nil ? NSNull() : controller.videoDuration
+        guard opened else { await finish(Code.failed, "error: the media did not open in 15 s") }
+        controller.play()
+        guard controller.isPlaying else { await finish(Code.failed, "error: playback did not start") }
+
+        let start = ContinuousClock.now
+        var maxDrift = 0.0
+        var maxDriftTicked = 0.0
+        var driftSamples = 0
+        var finalTime = 0.0
+        var ended = false
+        while true {
+            try? await Task.sleep(for: .milliseconds(100))
+            guard controller.isPlaying else {
+                ended = true
+                break
+            }
+            let elapsed = (ContinuousClock.now - start) / .seconds(1)
+            let time = controller.exactTime()
+            let ticked = controller.currentTime
+            finalTime = time
+            if elapsed >= 1, let player = controller.videoPlayer, time < controller.videoDuration {
+                let videoTime = player.currentTime().seconds
+                maxDrift = max(maxDrift, abs(videoTime - time))
+                maxDriftTicked = max(maxDriftTicked, abs(videoTime - ticked))
+                driftSamples += 1
+            }
+            if elapsed >= seconds { break }
+        }
+        let played = (ContinuousClock.now - start) / .seconds(1)
+        controller.close()
+        fields["maxDrift"] = maxDrift
+        fields["maxDriftTicked"] = maxDriftTicked
+        fields["driftSamples"] = driftSamples
+        fields["finalTime"] = finalTime
+        fields["endedAtEnd"] = ended
+        fields["playedSeconds"] = played
+        await finish(Code.ok, nil)
+    }
+
+    // MARK: - Export
+
+    /// Exports the folder's video (`VideoClip.file`) with the `--audio` channels of its audio
+    /// (`VideoExporter.Audio.find`, as the Export video sheet) to `--file`. Reports the audio layout found, what the
+    /// exporter wrote, the first frame's time in the source (the end of its leading empty edit) and the output's tracks
+    /// as AVFoundation reads them.
+    private func export() async -> Never {
+        var isFolder: ObjCBool = false
+        guard let folder = exportFolder, let file = exportFile,
+              FileManager.default.fileExists(atPath: folder.path, isDirectory: &isFolder), isFolder.boolValue else {
+            await finish(Code.failed, "error: \(exportFolder?.path ?? "the folder") is not a folder")
+        }
+        guard let video = VideoClip.file(in: folder) else {
+            await finish(Code.failed, "error: \(folder.path) has no video")
+        }
+        let audio = VideoExporter.Audio.find(in: folder)
+        fields["videoFile"] = video.lastPathComponent
+        fields["audioLayout"] = switch (audio?.mic, audio?.system) {
+        case (nil, nil): "none"
+        case let (mic?, system?): mic.url == system.url ? "stereo" : "pair"
+        case (_?, nil): "mic"
+        case (nil, _?): "mono"
+        }
+        fields["audioFiles"] = Set([audio?.mic?.url, audio?.system?.url].compactMap { $0?.lastPathComponent }).sorted()
+        fields["audioOffers"] = VideoExporter.Channels.allCases
+            .filter { $0 == .none || audio?.sources(for: $0) != nil }.map(\.rawValue)
+        fields["sourceFirstFrameTime"] = await VideoClip.load(video)?.shown.lowerBound ?? NSNull()
+        let start = ContinuousClock.now
+        do {
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let summary = try await VideoExporter.export(video: video, audio: audio, channels: exportChannels, to: file)
+            fields["videoSamples"] = summary.videoSamples
+            fields["firstVideoTime"] = summary.firstVideoTime ?? NSNull()
+            fields["audioSeconds"] = summary.audioSeconds
+        } catch {
+            await finish(Code.failed, "error: the export failed: \(error)")
+        }
+        fields["exportSeconds"] = (ContinuousClock.now - start) / .seconds(1)
+        fields["bytes"] = Self.size(of: file)
+        let asset = AVURLAsset(url: file)
+        fields["duration"] = (try? await asset.load(.duration).seconds) ?? NSNull()
+        var tracks: [[String: Any]] = []
+        for track in (try? await asset.load(.tracks)) ?? [] {
+            let range = try? await track.load(.timeRange)
+            let format = try? await track.load(.formatDescriptions).first
+            tracks.append([
+                "type": track.mediaType.rawValue,
+                "codec": format.map { Self.fourCC(CMFormatDescriptionGetMediaSubType($0)) } ?? NSNull(),
+                "channels": format.flatMap { CMAudioFormatDescriptionGetStreamBasicDescription($0) }
+                    .map { Int($0.pointee.mChannelsPerFrame) } ?? NSNull(),
+                "start": range?.start.seconds ?? NSNull(), "duration": range?.duration.seconds ?? NSNull(),
+            ])
+        }
+        fields["tracks"] = tracks
+        await finish(Code.ok, nil)
+    }
+
+    private static func fourCC(_ code: FourCharCode) -> String {
+        String(bytes: [24, 16, 8, 0].map { UInt8((code >> $0) & 0xFF) }, encoding: .ascii) ?? "\(code)"
     }
 
     // MARK: - Preflight

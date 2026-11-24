@@ -569,7 +569,7 @@ private struct LargestConversationRow: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
             .disabled(conversation.map { !DeleteMenuItems.canDelete($0, model) } ?? true)
-            .help("Delete the audio or the whole conversation")
+            .help("Delete the audio, the video or the whole conversation")
             .accessibilityLabel("Delete \(usage.title)")
         }
     }
