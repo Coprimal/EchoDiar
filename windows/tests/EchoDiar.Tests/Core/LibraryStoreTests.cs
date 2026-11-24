@@ -147,6 +147,44 @@ public sealed class LibraryStoreTests : IDisposable
         Assert.True(Assert.Single(store.Conversations).HasTranscript);
     }
 
+    // A screen recording's video can outlive its audio ("Delete audio"): deleting the transcripts afterwards must keep
+    // the folder and the video, and usage counts the video in its own bucket. Port of macOS LibraryStoreVideoTests.
+    [Fact]
+    public async Task VideoOutlivesAudioAndTranscriptsAndIsCountedApart()
+    {
+        var folder = Path.Combine(_dir, "conversation");
+        Directory.CreateDirectory(folder);
+        var conversation = new Conversation
+        {
+            Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow, Status = ConversationStatus.Transcribed,
+            HasTranscript = true, Folder = folder,
+        };
+        conversation.Write();
+        File.WriteAllBytes(Path.Combine(folder, "audio.m4a"), new byte[10_000]);
+        var video = Path.Combine(folder, "video.mp4");
+        File.WriteAllBytes(video, new byte[50_000]);
+        File.WriteAllText(Path.Combine(folder, Transcript.FileName), "{}");
+        var store = new LibraryStore(_dir, new DeletingTrash());
+        await store.RefreshAsync();
+
+        var usage = await store.UsageAsync(() => 7);
+        Assert.Equal(50_000, usage.Video);
+        Assert.Equal(LibraryStore.SizeOnDisk(folder) - 10_000 - 50_000, usage.TranscriptsAndAI);
+        Assert.Equal(LibraryStore.SizeOnDisk(folder) + 7, usage.Total);
+        Assert.Equal(50_000, Assert.Single(usage.Conversations).Video);
+
+        await store.DeleteAudioAsync(conversation.Id);
+        Assert.True(Assert.Single(store.Conversations).HasVideo);
+        await store.DeleteTranscriptsAndAIAsync(conversation.Id);
+        Assert.True(File.Exists(video));
+        Assert.True(Assert.Single(store.Conversations).HasVideo);
+
+        await store.DeleteVideoAsync(conversation.Id);
+        Assert.False(File.Exists(video));
+        Assert.True(File.Exists(Path.Combine(folder, Conversation.FileName)));
+        Assert.False(Assert.Single(store.Conversations).HasVideo);
+    }
+
     private sealed class DeletingTrash : IFileTrash
     {
         public void MoveToTrash(string path)

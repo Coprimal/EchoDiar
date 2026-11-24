@@ -373,9 +373,26 @@ public enum CloudLiveSource
 
 public sealed class CloudLiveSourceConverter() : TolerantEnumConverter<CloudLiveSource>(CloudLiveSource.Off);
 
-/// <summary>What auto-delete moves to the trash. An unknown value reads as the less destructive <see cref="AudioOnly"/>.</summary>
+/// <summary>
+/// What auto-delete moves to the trash: <see cref="AudioOnly"/> ("Audio and video", the JSON name predates video) its
+/// audio and video files, <see cref="WholeConversation"/> the folder, <see cref="VideoOnly"/> its video files. Appended
+/// last, as the Storage page casts its combo index to the mode; compare with <see cref="RetentionModeExtensions.Rank"/>.
+/// An unknown value reads as the less destructive <see cref="AudioOnly"/>, which keeps the transcript.
+/// </summary>
 [JsonConverter(typeof(RetentionModeConverter))]
-public enum RetentionMode { AudioOnly, WholeConversation }
+public enum RetentionMode { AudioOnly, WholeConversation, VideoOnly }
+
+public static class RetentionModeExtensions
+{
+    /// <summary>How much the mode deletes: <see cref="RetentionMode.VideoOnly"/> &lt; <see cref="RetentionMode.AudioOnly"/> &lt; <see cref="RetentionMode.WholeConversation"/>.</summary>
+    public static int Rank(this RetentionMode mode) => mode switch
+    {
+        RetentionMode.VideoOnly => 0,
+        RetentionMode.AudioOnly => 1,
+        RetentionMode.WholeConversation => 2,
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
+    };
+}
 
 public sealed class RetentionModeConverter() : TolerantEnumConverter<RetentionMode>(RetentionMode.AudioOnly);
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using EchoDiar.Core.Json;
 
@@ -62,11 +63,15 @@ public sealed record Conversation
     [JsonPropertyName("hasSummary")] public bool HasSummary { get; set; }
     /// <summary>Size on disk of the whole folder when last measured.</summary>
     [JsonPropertyName("sizeBytes")] public long SizeBytes { get; set; }
+    /// <summary>"Screen only" (macOS): never transcribed automatically there. Kept on rewrite; no behaviour on Windows.</summary>
+    [JsonPropertyName("skipsTranscription")] public bool SkipsTranscription { get; set; }
 
     /// <summary>The recording folder; not stored in the file.</summary>
     [JsonIgnore] public string Folder { get; set; } = "";
     /// <summary>The folder still has audio files; not stored in the file, set by the library.</summary>
     [JsonIgnore] public bool HasAudio { get; set; } = true;
+    /// <summary>The folder has video files (a screen recording); not stored in the file, set by the library.</summary>
+    [JsonIgnore] public bool HasVideo { get; set; }
 
     /// <summary>
     /// Metadata for a folder that has no <c>conversation.json</c> yet. <paramref name="duration"/> is the audio length.
@@ -91,6 +96,9 @@ public sealed record Conversation
                 _ => ConversationStatus.Unknown,
             },
             Folder = folder,
+            // macOS writes the "screen only" mark; Windows keeps it in the session's unknown keys.
+            SkipsTranscription = session.Extra?.TryGetValue("skipsTranscription", out var skips) == true
+                && skips.ValueKind == JsonValueKind.True,
         };
         if (session.Title is { } title)
         {
