@@ -45,6 +45,8 @@ final class ScreenRecordingController {
     /// The screen toggle found no source to start: the recording header's screen control opens the source popover and
     /// clears it.
     var sourcePickerRequested = false
+    /// The current video's source, from `start` until the video ends or is finished; nil without a video.
+    private(set) var videoSource: ScreenSource?
 
     @ObservationIgnored private let engine: RecordingEngine
     /// The current recording's video, from `start` until `finish(at:)` or until it ends early (`end(_:)`).
@@ -65,6 +67,14 @@ final class ScreenRecordingController {
     /// The video that ended early in the current recording, until the recording ends: its first frame may still be
     /// announced to `session.json`.
     @ObservationIgnored private var endedRecorder: ScreenRecorder?
+    /// The current video's camera bubble and key stroke options (from the settings at its start, or changed in the
+    /// source popover while it runs).
+    @ObservationIgnored private var showsCamera = false
+    @ObservationIgnored private var showsKeyStrokes = false
+    @ObservationIgnored private var showsAllKeys = false
+    /// Made on first use, so nothing is created while both options are off.
+    @ObservationIgnored private var cameraBubble: CameraBubbleController?
+    @ObservationIgnored private var keyStrokes: KeyStrokeHUDController?
 
     init(engine: RecordingEngine) {
         self.engine = engine
@@ -167,6 +177,8 @@ final class ScreenRecordingController {
         notice = nil
         state = .starting
         self.skipsTranscription = skipsTranscription
+        videoSource = source
+        setOverlays(settings)
         let engine = engine
         if case .area(let display, let rect) = source { outline = AreaOutlineWindow(display: display, rect: rect) }
         let ownWindowIDs = [outline?.windowID].compactMap { $0 } + (areaSelection?.windowIDs ?? [])
@@ -197,6 +209,7 @@ final class ScreenRecordingController {
             }
             guard let self, self.recorder === recorder, state == .starting else { return }
             state = paused ? .paused : .recording
+            syncOverlays()
             await announce(video, source: source, of: recorder)
         }
     }
@@ -206,6 +219,7 @@ final class ScreenRecordingController {
         guard let recorder, state == .starting || state == .recording else { return }
         paused = true
         if state == .recording { state = .paused }
+        syncOverlays()
         await recorder.pause()
     }
 
@@ -215,6 +229,7 @@ final class ScreenRecordingController {
         paused = false
         guard state == .starting || state == .paused else { return }
         if state == .paused { state = .recording }
+        syncOverlays()
         do {
             try await recorder.resume()
         } catch {
@@ -234,6 +249,8 @@ final class ScreenRecordingController {
         endReason = nil
         notice = nil
         state = .off
+        videoSource = nil
+        syncOverlays()
         guard let recorder else {
             let stopping = stopping
             self.stopping = nil
@@ -248,7 +265,48 @@ final class ScreenRecordingController {
         return Self.close(recorder, url: url, at: fileTime, reason: reason)
     }
 
+    /// The camera bubble and key presses options changed in the source popover: applies them to the running video.
+    func setOverlays(_ settings: AppSettings) {
+        showsCamera = settings.screenCamera
+        showsKeyStrokes = settings.screenKeyStrokes
+        showsAllKeys = settings.screenAllKeys
+        syncOverlays()
+    }
+
+    /// Hides the camera bubble and the key stroke HUD (removes the event tap, releases the camera). Called when the app
+    /// quits.
+    func hideOverlays() {
+        cameraBubble?.hide()
+        keyStrokes?.hide()
+    }
+
     // MARK: - Private
+
+    /// Shows the camera bubble and the key stroke HUD whose option is on while a display or area video records (not
+    /// paused), inside the recorded display or area so they are in the picture (they are not in the capture filter's
+    /// excluded windows); hides them in every other state. Their `show` does nothing without their permission.
+    private func syncOverlays() {
+        var place: (display: CGDirectDisplayID, area: CGRect?)?
+        if state == .recording {
+            switch videoSource {
+            case .display(let id): place = (id, nil)
+            case .area(let id, let rect): place = (id, rect)
+            case .window, nil: place = nil
+            }
+        }
+        if let place, showsCamera {
+            if cameraBubble == nil { cameraBubble = CameraBubbleController() }
+            cameraBubble?.show(on: place.display, within: place.area)
+        } else {
+            cameraBubble?.hide()
+        }
+        if let place, showsKeyStrokes {
+            if keyStrokes == nil { keyStrokes = KeyStrokeHUDController() }
+            keyStrokes?.show(on: place.display, within: place.area, allKeys: showsAllKeys)
+        } else {
+            keyStrokes?.hide()
+        }
+    }
 
     private func ended(_ event: ScreenRecorder.EndEvent, of recorder: ScreenRecorder) {
         guard self.recorder === recorder else { return }
@@ -266,6 +324,8 @@ final class ScreenRecordingController {
         endReason = reason
         state = .ended(reason)
         notice = Self.notice(for: reason, skipsTranscription: skipsTranscription)
+        videoSource = nil
+        syncOverlays()
         removeOutline()
         let url = videoURL
         self.recorder = nil

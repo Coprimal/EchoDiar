@@ -1,3 +1,4 @@
+import AVFoundation
 import AppKit
 import EchoCore
 import EchoScreen
@@ -56,6 +57,9 @@ struct ScreenSourceButton: View {
 struct ScreenSourcePopover: View {
     let model: AppModel
     @State private var phase = Phase.loading
+    /// Read on open and after a request; neither read prompts.
+    @State private var cameraStatus = CameraBubbleController.authorizationStatus
+    @State private var keyAccess = KeyStrokeHUDController.hasAccess
     @Environment(\.dismiss) private var dismiss
 
     private enum Phase {
@@ -84,6 +88,8 @@ struct ScreenSourcePopover: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             content
+            Divider()
+            overlayToggles
             if model.screenRecording.armedSource != nil && !model.isRecording {
                 Divider()
                 transcribeToggle
@@ -92,6 +98,12 @@ struct ScreenSourcePopover: View {
         .padding(12)
         .frame(width: 340)
         .task { await load() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // Back from System Settings: a permission granted during a running video brings its overlay up.
+            cameraStatus = CameraBubbleController.authorizationStatus
+            keyAccess = KeyStrokeHUDController.hasAccess
+            model.screenRecording.setOverlays(model.settings)
+        }
     }
 
     @ViewBuilder private var content: some View {
@@ -224,6 +236,104 @@ struct ScreenSourcePopover: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    // MARK: - Overlays
+
+    /// Camera and Key presses: on in display and area recordings only (a window recording would not show them).
+    /// Switching one on asks for its permission when not determined; a denied permission shows a note.
+    private var overlayToggles: some View {
+        let screen = model.screenRecording
+        let window = [screen.armedSource, screen.isOn ? screen.videoSource : nil].contains { source in
+            if case .window = source { true } else { false }
+        }
+        return VStack(alignment: .leading, spacing: 6) {
+            overlaySwitch(String(localized: "Camera"), isOn: Binding(
+                get: { model.settings.screenCamera },
+                set: { on in setCamera(on) }
+            ), disabled: window)
+            if !window, model.settings.screenCamera, cameraStatus == .denied || cameraStatus == .restricted {
+                deniedNote(String(localized: "EchoDiar needs Camera access to show the camera bubble.")) {
+                    PrivacySettings.openCamera()
+                }
+            }
+            if !window, model.settings.screenCamera, cameraStatus == .notDetermined {
+                deniedNote(
+                    String(localized: "EchoDiar needs Camera access to show the camera bubble."),
+                    button: String(localized: "Allow Camera"), action: requestCamera)
+            }
+            overlaySwitch(String(localized: "Key presses"), isOn: Binding(
+                get: { model.settings.screenKeyStrokes },
+                set: { on in setKeyStrokes(on) }
+            ), disabled: window)
+            if !window, model.settings.screenKeyStrokes, !keyAccess {
+                deniedNote(String(localized: "EchoDiar needs Input Monitoring access to show key presses.")) {
+                    PrivacySettings.openInputMonitoring()
+                }
+            }
+            if !window, model.settings.screenKeyStrokes, model.settings.screenAllKeys {
+                Text("All keys are shown")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if window {
+                Text("Available when recording a display or an area")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func overlaySwitch(_ title: String, isOn: Binding<Bool>, disabled: Bool) -> some View {
+        HStack {
+            Text(title)
+                .accessibilityHidden(true)
+            Spacer(minLength: 8)
+            Toggle(isOn: isOn) { Text(title) }
+                .toggleStyle(CompactSwitch())
+        }
+        .disabled(disabled)
+        .allowsHitTesting(!disabled)
+        .opacity(disabled ? 0.5 : 1)
+    }
+
+    private func deniedNote(
+        _ text: String, button: String = String(localized: "Open System Settings"), action: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(button, action: action)
+                .buttonStyle(.link)
+                .font(.caption)
+        }
+    }
+
+    private func setCamera(_ on: Bool) {
+        model.updateSettings { $0.screenCamera = on }
+        model.screenRecording.setOverlays(model.settings)
+        cameraStatus = CameraBubbleController.authorizationStatus
+        guard on, cameraStatus == .notDetermined else { return }
+        requestCamera()
+    }
+
+    /// Asks for Camera access, then refreshes the note; a grant during a running video shows the bubble at once.
+    private func requestCamera() {
+        Task {
+            _ = await CameraBubbleController.requestAccess()
+            cameraStatus = CameraBubbleController.authorizationStatus
+            model.screenRecording.setOverlays(model.settings)
+        }
+    }
+
+    private func setKeyStrokes(_ on: Bool) {
+        model.updateSettings { $0.screenKeyStrokes = on }
+        if on, !KeyStrokeHUDController.hasAccess { KeyStrokeHUDController.requestAccess() }
+        keyAccess = KeyStrokeHUDController.hasAccess
+        model.screenRecording.setOverlays(model.settings)
     }
 
     // MARK: - Actions

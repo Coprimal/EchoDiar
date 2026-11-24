@@ -61,6 +61,8 @@ enum PrivacySettings {
     static func openAccessibility() { open(anchor: "Privacy_Accessibility") }
     static func openCalendars() { open(anchor: "Privacy_Calendars") }
     static func openScreenRecording() { open(anchor: "Privacy_ScreenCapture") }
+    static func openInputMonitoring() { open(anchor: "Privacy_ListenEvent") }
+    static func openCamera() { open(anchor: "Privacy_Camera") }
 
     /// System Settings › Notifications (not a Privacy & Security pane).
     static func openNotifications() {

@@ -476,8 +476,10 @@ final class AppModel {
         observeSnapshots()
         terminateObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: nil
-        ) { [engine] _ in
+        ) { [engine, screenRecording] _ in
             engine.stop(reason: .user)
+            // Posted on the main thread: removes the key tap and releases the camera explicitly.
+            MainActor.assumeIsolated { screenRecording.hideOverlays() }
         }
         StatusItemController.controls = RecordingMenuControls(
             elapsed: { [weak self] in self?.engine.currentSnapshot().elapsed ?? 0 },

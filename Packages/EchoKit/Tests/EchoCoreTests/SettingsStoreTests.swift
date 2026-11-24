@@ -40,6 +40,9 @@ struct SettingsStoreTests {
             #expect(store.load().screenTranscribes)
             #expect(store.load().screenSource == nil)
             #expect(store.load().transcriptVideoLayout == .sideBySide)
+            #expect(!store.load().screenCamera)
+            #expect(!store.load().screenKeyStrokes)
+            #expect(!store.load().screenAllKeys)
             #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         }
     }

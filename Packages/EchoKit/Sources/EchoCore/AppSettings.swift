@@ -158,6 +158,12 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var screenSource: RememberedScreenSource?
     /// Where the transcript shows a conversation's video.
     public var transcriptVideoLayout: TranscriptVideoLayout
+    /// Show the camera bubble in screen recordings.
+    public var screenCamera: Bool
+    /// Show modifier shortcuts in a floating HUD during display/area screen recordings.
+    public var screenKeyStrokes: Bool
+    /// Show every key in the keystroke HUD, including plain typing; off by default for privacy.
+    public var screenAllKeys: Bool
 
     public static let defaultEmbeddingModelID = "mlx-qwen3-embedding-0.6b"
 
@@ -235,7 +241,10 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenShowsClicks: Bool = false,
         screenTranscribes: Bool = true,
         screenSource: RememberedScreenSource? = nil,
-        transcriptVideoLayout: TranscriptVideoLayout = .sideBySide
+        transcriptVideoLayout: TranscriptVideoLayout = .sideBySide,
+        screenCamera: Bool = false,
+        screenKeyStrokes: Bool = false,
+        screenAllKeys: Bool = false
     ) {
         self.launchAtLogin = launchAtLogin
         self.defaultLanguage = defaultLanguage
@@ -311,6 +320,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.screenTranscribes = screenTranscribes
         self.screenSource = screenSource
         self.transcriptVideoLayout = transcriptVideoLayout
+        self.screenCamera = screenCamera
+        self.screenKeyStrokes = screenKeyStrokes
+        self.screenAllKeys = screenAllKeys
     }
 
     public static let autoDeleteDaysRange = 1...3650
@@ -344,6 +356,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case libraryPageSize
         case screenFPS, screenQuality, screenShowsCursor, screenShowsClicks, screenTranscribes, screenSource
         case transcriptVideoLayout
+        case screenCamera, screenKeyStrokes, screenAllKeys
     }
 
     public init(from decoder: Decoder) throws {
@@ -440,6 +453,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenSource = try container.decodeIfPresent(RememberedScreenSource.self, forKey: .screenSource)
         transcriptVideoLayout =
             try container.decodeIfPresent(TranscriptVideoLayout.self, forKey: .transcriptVideoLayout) ?? .sideBySide
+        screenCamera = try container.decodeIfPresent(Bool.self, forKey: .screenCamera) ?? false
+        screenKeyStrokes = try container.decodeIfPresent(Bool.self, forKey: .screenKeyStrokes) ?? false
+        screenAllKeys = try container.decodeIfPresent(Bool.self, forKey: .screenAllKeys) ?? false
     }
 
     /// One-time move to "key saved = available" for cloud providers (settings only, no Keychain read). Every cloud
