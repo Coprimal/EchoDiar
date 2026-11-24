@@ -144,6 +144,14 @@ struct SettingsStoreTests {
         #expect([settings.summaryLength, settings.chatLength, settings.catchUpLength] == [.concise, .full, .concise])
     }
 
+    /// "Video only" auto-delete is stored as `videoOnly`, not read back as the `audioOnly` fallback.
+    @Test func autoDeleteModeVideoOnlyLoadsBack() throws {
+        try withTemporaryStore { store in
+            try Data(#"{"autoDeleteMode":"videoOnly"}"#.utf8).write(to: store.fileURL)
+            #expect(store.load().autoDeleteMode.rawValue == "videoOnly")
+        }
+    }
+
     @Test func pillSizeLargeRoundTrips() throws {
         let data = try JSONEncoder().encode(AppSettings(pillSize: .large))
         #expect(try JSONDecoder().decode(AppSettings.self, from: data).pillSize == .large)

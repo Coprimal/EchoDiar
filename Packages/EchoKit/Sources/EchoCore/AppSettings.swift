@@ -509,12 +509,23 @@ public enum CloudLiveSource: String, Codable, Sendable {
 
 /// What auto-delete moves to the Trash.
 public enum RetentionMode: String, Codable, Sendable {
-    /// The audio files only; transcript, summary and chat stay.
+    /// The video files only; audio, transcript, summary and chat stay.
+    case videoOnly
+    /// "Audio and video": the audio and video files; transcript, summary and chat stay. The raw value predates video.
     case audioOnly
     /// The whole conversation folder.
     case wholeConversation
 
-    /// An unrecognized raw value (written by another build) falls back to the less destructive `audioOnly`.
+    /// How much the mode deletes: `videoOnly` < `audioOnly` < `wholeConversation`.
+    public var rank: Int {
+        switch self {
+        case .videoOnly: 0
+        case .audioOnly: 1
+        case .wholeConversation: 2
+        }
+    }
+
+    /// An unrecognized raw value (written by another build) falls back to `audioOnly`, which keeps the transcript.
     public init(from decoder: Decoder) throws {
         self = RetentionMode(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .audioOnly
     }

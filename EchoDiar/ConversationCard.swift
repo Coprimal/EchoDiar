@@ -262,11 +262,12 @@ struct TranscriptionStatus: View {
     }
 
     /// Still in the Stop sequence (`finishRecording`) with no job yet, and an automatic transcription about to run:
-    /// not compressing (the badge says so), nor a failed recording (never transcribed), nor transcribed already.
+    /// not compressing (the badge says so), nor a failed recording (never transcribed), nor transcribed already, nor
+    /// marked "screen only" (`skipsTranscription`).
     static func isAboutToTranscribe(_ conversation: Conversation, _ model: AppModel) -> Bool {
         model.transcriptionProgress[conversation.id] == nil && model.isTranscribing(conversation.id)
             && model.settings.autoTranscribe && conversation.status != .compressing && conversation.status != .failed
-            && !conversation.hasTranscript
+            && !conversation.hasTranscript && !conversation.skipsTranscription
     }
 
     /// Progress first: a queued job's conversation is still `ready`. A `transcribing` status without a job was

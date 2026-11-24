@@ -71,6 +71,7 @@ public actor LibraryStore {
         try conversation.write()
         conversation.sizeBytes = current.sizeBytes
         conversation.hasAudio = current.hasAudio
+        conversation.hasVideo = current.hasVideo
         conversations[index] = conversation
         emit()
     }
@@ -93,6 +94,7 @@ public actor LibraryStore {
         var conversation = (try? Conversation.read(from: current.folder)) ?? current
         conversation.sizeBytes = Self.sizeOnDisk(of: current.folder)
         conversation.hasAudio = false
+        conversation.hasVideo = current.hasVideo
         if FileManager.default.fileExists(atPath: current.folder.appendingPathComponent(Conversation.fileName).path) {
             try conversation.write()
         }
@@ -100,13 +102,24 @@ public actor LibraryStore {
         emit()
     }
 
+    /// Moves the conversation's video files to the Trash and reloads it; audio, transcript, summary and chat stay.
+    public func deleteVideo(id: UUID) throws {
+        guard let index = conversations.firstIndex(where: { $0.id == id }) else { throw LibraryError.notFound(id) }
+        defer { reload(id: id) }
+        for url in Self.videoFiles(in: conversations[index].folder) {
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+        }
+    }
+
     /// Moves the transcript and its kept versions, summary, chat, archived chats and catch-ups to the Trash; the
-    /// conversation is ready to transcribe again. Without audio nothing would be left, so the whole conversation goes to
-    /// the Trash instead.
+    /// conversation is ready to transcribe again. When the disk has neither audio nor video files nothing would be
+    /// left, so the whole conversation goes to the Trash instead.
     public func deleteTranscriptsAndAI(id: UUID) throws {
         guard let index = conversations.firstIndex(where: { $0.id == id }) else { throw LibraryError.notFound(id) }
         let current = conversations[index]
-        guard current.hasAudio else { return try delete(id: id) }
+        guard !Self.audioFiles(in: current.folder).isEmpty || !Self.videoFiles(in: current.folder).isEmpty else {
+            return try delete(id: id)
+        }
         let fm = FileManager.default
         for name in [Transcript.fileName, Transcript.versionsFolderName, Conversation.summaryFileName,
                      Conversation.summariesFolderName, ChatLog.fileName, ChatArchive.folderName, CatchUpLog.fileName] {
@@ -121,6 +134,7 @@ public actor LibraryStore {
         }
         conversation.sizeBytes = Self.sizeOnDisk(of: current.folder)
         conversation.hasAudio = current.hasAudio
+        conversation.hasVideo = current.hasVideo
         if fm.fileExists(atPath: current.folder.appendingPathComponent(Conversation.fileName).path) {
             try conversation.write()
         }
@@ -150,7 +164,10 @@ public actor LibraryStore {
             do {
                 switch deletion.mode {
                 case .wholeConversation: try delete(id: deletion.conversationID)
-                case .audioOnly: try deleteAudio(id: deletion.conversationID)
+                case .audioOnly:
+                    try deleteAudio(id: deletion.conversationID)
+                    try deleteVideo(id: deletion.conversationID)
+                case .videoOnly: try deleteVideo(id: deletion.conversationID)
                 }
                 done.append(deletion)
             } catch {
@@ -188,32 +205,39 @@ public actor LibraryStore {
     /// Bytes on disk by kind. `models` comes from the caller (`ModelStore`), which EchoCore does not import.
     public struct Usage: Equatable, Sendable {
         public var audio: Int64
+        public var video: Int64
         /// Transcripts, summaries, chats and metadata.
         public var transcriptsAndAI: Int64
         public var models: Int64
         /// Largest first.
         public var conversations: [ConversationUsage]
 
-        public var total: Int64 { audio + transcriptsAndAI + models }
+        public var total: Int64 { audio + video + transcriptsAndAI + models }
     }
 
     public struct ConversationUsage: Equatable, Identifiable, Sendable {
         public var id: UUID
         public var title: String
         public var audio: Int64
+        public var video: Int64
         public var total: Int64
     }
 
     /// Measures every conversation folder of the last `refresh` now (on the actor, off the main thread).
     public func usage(modelBytes: @Sendable () -> Int64) -> Usage {
         let sizes = conversations.map { conversation in
-            let (audio, total) = Self.audioAndTotalSize(of: conversation.folder)
-            return ConversationUsage(id: conversation.id, title: conversation.title, audio: audio, total: total)
+            ConversationUsage(
+                id: conversation.id, title: conversation.title,
+                audio: Self.allocatedSize(of: Self.audioFiles(in: conversation.folder)),
+                video: Self.allocatedSize(of: Self.videoFiles(in: conversation.folder)),
+                total: Self.sizeOnDisk(of: conversation.folder))
         }
         let audio = sizes.reduce(0) { $0 + $1.audio }
+        let video = sizes.reduce(0) { $0 + $1.video }
         return Usage(
             audio: audio,
-            transcriptsAndAI: sizes.reduce(0) { $0 + $1.total } - audio,
+            video: video,
+            transcriptsAndAI: sizes.reduce(0) { $0 + $1.total } - audio - video,
             models: modelBytes(),
             conversations: sizes.sorted { $0.total > $1.total })
     }
@@ -221,25 +245,35 @@ public actor LibraryStore {
     /// Audio files of a conversation folder: regular files (not symlinks) with an audio extension, as written by
     /// the recorder (CAF) and the compressor (m4a).
     public static func audioFiles(in folder: URL) -> [URL] {
+        files(in: folder, extensions: audioExtensions)
+    }
+
+    /// Video files of a conversation folder: regular files (not symlinks) with a video extension (mp4, mov), as
+    /// written by the screen recorder.
+    public static func videoFiles(in folder: URL) -> [URL] {
+        files(in: folder, extensions: videoExtensions)
+    }
+
+    private static let audioExtensions: Set<String> = ["caf", "m4a"]
+    private static let videoExtensions: Set<String> = ["mp4", "mov"]
+
+    private static func files(in folder: URL, extensions: Set<String>) -> [URL] {
         let keys: [URLResourceKey] = [.isRegularFileKey, .isSymbolicLinkKey]
         let files = (try? FileManager.default.contentsOfDirectory(
             at: folder, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles])) ?? []
         return files.filter { url in
-            guard audioExtensions.contains(url.pathExtension.lowercased()),
+            guard extensions.contains(url.pathExtension.lowercased()),
                   let values = try? url.resourceValues(forKeys: Set(keys)) else { return false }
             return values.isRegularFile == true && values.isSymbolicLink != true
         }.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
-    private static let audioExtensions: Set<String> = ["caf", "m4a"]
-
-    /// Allocated bytes of the folder's audio files, and of every file in it.
-    private static func audioAndTotalSize(of folder: URL) -> (audio: Int64, total: Int64) {
-        let audio = audioFiles(in: folder).reduce(Int64(0)) { sum, url in
+    /// Allocated bytes of `files`.
+    private static func allocatedSize(of files: [URL]) -> Int64 {
+        files.reduce(Int64(0)) { sum, url in
             let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .fileSizeKey])
             return sum + Int64(values?.totalFileAllocatedSize ?? values?.fileSize ?? 0)
         }
-        return (audio, sizeOnDisk(of: folder))
     }
 
     /// Allocated bytes of every file in `folder`.
@@ -272,6 +306,7 @@ public actor LibraryStore {
         }
         conversation.sizeBytes = sizeOnDisk(of: folder)
         conversation.hasAudio = !audioFiles(in: folder).isEmpty
+        conversation.hasVideo = !videoFiles(in: folder).isEmpty
         return conversation
     }
 

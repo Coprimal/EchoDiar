@@ -299,8 +299,10 @@ struct RecordingDetailView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                Button("Open Settings") { openReasonSettings() }
-                    .buttonStyle(.link)
+                if !model.currentRecordingSkipsTranscription {
+                    Button("Open Settings") { openReasonSettings() }
+                        .buttonStyle(.link)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -329,8 +331,12 @@ struct RecordingDetailView: View {
     }
 
     /// Why the recording has no live transcript, with the cloud live options when the default engine is a cloud
-    /// one: the live source is off, or `AppModel.cloudLiveBlock` says what is in the way.
+    /// one: the recording is marked "screen only", the live source is off, or `AppModel.cloudLiveBlock` says what
+    /// is in the way.
     static func noCaptionsReason(model: AppModel) -> String {
+        if model.currentRecordingSkipsTranscription {
+            return String(localized: "Transcription is off for this recording.")
+        }
         let settings = model.settings
         guard settings.autoTranscribe, settings.transcribeWhileRecording, let config = model.defaultCloudConfig else {
             return noCaptionsReason(settings: settings)
@@ -364,7 +370,9 @@ struct RecordingDetailView: View {
     }
 
     private func openReasonSettings() {
-        if !model.settings.autoTranscribe {
+        if model.currentRecordingSkipsTranscription {
+            return
+        } else if !model.settings.autoTranscribe {
             model.openSettings(tab: .recording, subTab: "afterRecording")
         } else if !model.settings.transcribeWhileRecording {
             model.openSettings(tab: .transcription)

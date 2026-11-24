@@ -106,6 +106,9 @@ final class AppModel {
     /// Captions of the current recording's transcriber (see `startRecordingTranscriber`), kept until its Stop
     /// sequence ends; nil when no transcriber runs.
     private(set) var recordingCaptions: RecordingTranscriber.Snapshot?
+    /// The current recording is marked "screen only" (`RecordingSession.skipsTranscription`): no live transcript, no
+    /// transcription after Stop. Set by `startRecording` before the engine creates the session, cleared at its end.
+    private(set) var currentRecordingSkipsTranscription = false
     /// Apple Speech locales reserved by EchoDiar (BCP-47), read with the installed models.
     private(set) var appleSpeechReservedLocales: [String] = []
     /// The running summaries and questions, at most one per conversation id; the library chat (LibraryChatModel.swift)
@@ -544,11 +547,15 @@ final class AppModel {
     /// The recording page shows at once ("Starting…" until it runs). A start from EchoDiar's own windows, shortcuts or
     /// menus brings the main window forward on it; without `bringForward` (the pill's Record and Join, automatic
     /// starts) it is only selected in an open window, so the meeting app keeps the focus.
-    func startRecording(target: CaptureTarget, event: CalendarEvent? = nil, bringForward: Bool = true) {
+    /// `skipsTranscription` marks the recording "screen only": never transcribed automatically.
+    func startRecording(
+        target: CaptureTarget, event: CalendarEvent? = nil, bringForward: Bool = true, skipsTranscription: Bool = false
+    ) {
         guard !isRecording, !isStarting else { return }
         isStarting = true
         // Before the engine starts, so the recording page and card show it from their first frame.
         recordingTitle = Self.trimmedTitle(event?.title)
+        currentRecordingSkipsTranscription = skipsTranscription
         // A catch-up still writing for the previous recording finishes and saves in its folder, out of sight.
         catchUpRun = nil
         recordingCatchUps = []
@@ -571,7 +578,8 @@ final class AppModel {
             // Before the engine starts: it reads the sink once at start, and the model loads meanwhile. Same
             // `language` as the engine's first marker, so the prior's engine is the one the Stop job resolves to.
             // A previous recording's captions, kept while its Stop sequence runs, are not this one's.
-            if let (transcriber, placeholder) = startRecordingTranscriber(language: language) {
+            if let (transcriber, placeholder) = startRecordingTranscriber(
+                language: language, skipsTranscription: skipsTranscription) {
                 attach(transcriber, placeholder: placeholder)
             } else {
                 recordingCaptions = nil
@@ -581,7 +589,9 @@ final class AppModel {
                     [engine, uid = settings.micDeviceUID, title = event?.title] in
                     let resolved = Self.resolved(target)
                     return (
-                        try engine.start(target: resolved, language: language, micDeviceUID: uid, title: title),
+                        try engine.start(
+                            target: resolved, language: language, micDeviceUID: uid, title: title,
+                            skipsTranscription: skipsTranscription),
                         resolved)
                 }.value
                 activeFolder = folder
@@ -598,6 +608,7 @@ final class AppModel {
                 autoStartedAppName = nil
                 recordingEvent = nil
                 recordingTitle = nil
+                currentRecordingSkipsTranscription = false
                 recordingError = Self.captureFailureMessage(error, action: .start)
                 // The recording page opened before the start; nothing to show there now.
                 if route == .recording { route = .list }
@@ -639,8 +650,8 @@ final class AppModel {
     }
 
     /// A started transcriber for a recording in `language` ("auto" or a code; the language markers once the engine
-    /// runs), its model loading meanwhile, and the snapshot to show until its first one; nil unless auto-transcribe
-    /// and "Transcribe while recording" are on and either
+    /// runs), its model loading meanwhile, and the snapshot to show until its first one; nil for a recording marked
+    /// `skipsTranscription`, else nil unless auto-transcribe and "Transcribe while recording" are on and either
     /// - the default engines are local and the engine the Stop job resolves to (as `submitTranscription` does) is an
     ///   installed WhisperKit or Parakeet entry, or Apple Speech on macOS 26+ (its folder is the models root, unused);
     /// - or the default ASR is a cloud engine (confirmed or not: nothing leaves the Mac) with the live source "local
@@ -652,9 +663,10 @@ final class AppModel {
     /// The caller sets `engine.liveSink` to its `append` before `engine.start` (the writer reads the sink once), calls
     /// `flush()` after a pause and `finish()` after the `.idle` snapshot.
     func startRecordingTranscriber(
-        language: String
+        language: String, skipsTranscription: Bool = false
     ) -> (transcriber: RecordingTranscriber, placeholder: RecordingTranscriber.Snapshot)? {
-        guard settings.autoTranscribe, settings.transcribeWhileRecording else { return nil }
+        guard RecordingSession.autoTranscribes(skips: skipsTranscription, settings: settings),
+              settings.transcribeWhileRecording else { return nil }
         let isUsable = { [modelStore] (entry: ModelEntry) in TranscriptionPipeline.isUsable(entry, in: modelStore) }
         let found: ModelEntry?
         let displayOnly: Bool
@@ -749,10 +761,11 @@ final class AppModel {
 
     /// Why the next (or current) recording has no cloud live transcript although the default ASR is a cloud engine,
     /// auto-transcribe and "Transcribe while recording" are on, and a live source is picked; nil when it runs, when
-    /// the source is "off", or when the default engines are local. The same checks as `startRecordingTranscriber`,
-    /// with the current settings.
+    /// the source is "off", when the default engines are local, or when the current recording is marked
+    /// `skipsTranscription`. The same checks as `startRecordingTranscriber`, with the current settings.
     var cloudLiveBlock: CloudLiveBlock? {
-        guard settings.autoTranscribe, settings.transcribeWhileRecording, let config = defaultCloudConfig else {
+        guard RecordingSession.autoTranscribes(skips: currentRecordingSkipsTranscription, settings: settings),
+              settings.transcribeWhileRecording, let config = defaultCloudConfig else {
             return nil
         }
         switch settings.cloudLiveSource {
@@ -1007,6 +1020,7 @@ final class AppModel {
                     activeFolder = nil
                     recordingEvent = nil
                     recordingTitle = nil
+                    currentRecordingSkipsTranscription = false
                     calendarSuggestion = nil
                     dismissedSuggestionIDs = []
                     // Bookkeeping only: the writer copied the sink at start and flushed its last frames before `.idle`.
@@ -1194,13 +1208,14 @@ final class AppModel {
         return result
     }
 
-    /// Whether `finishRecording` transcribes the CAF before compressing it: auto-transcribe is on, the recording is
-    /// usable and not transcribed (or failed) yet, its CAF has frames, the Mac is not constrained while "wait" is on
-    /// (unless `prior` needs no model: the transcript watched during the recording is saved before compression),
+    /// Whether `finishRecording` transcribes the CAF before compressing it: the recording is transcribed
+    /// automatically (`autoTranscribes(with:)`), usable and not transcribed (or failed) yet, its CAF has frames, the
+    /// Mac is not constrained while "wait" is on (unless `prior` needs no model: the transcript watched during the
+    /// recording is saved before compression),
     /// and no cloud confirmation is pending (an alert can hold the run for long; the CAF should not wait for it).
     private func transcribesFirst(_ folder: URL, prior: PriorTranscription?) -> Bool {
-        guard settings.autoTranscribe,
-              let session = try? RecordingSession.read(from: folder), !session.probe, session.state != .failed
+        guard let session = try? RecordingSession.read(from: folder), session.autoTranscribes(with: settings),
+              !session.probe, session.state != .failed
         else { return false }
         let conversation = try? Conversation.read(from: folder)
         guard conversation?.hasTranscript != true, conversation?.status != .transcriptionFailed,
@@ -1263,14 +1278,16 @@ final class AppModel {
 
     // MARK: - Transcription
 
-    /// Queues the folder once compression is done, when "auto-transcribe after stop" is on; a failed compression
-    /// leaves the CAF, which is used instead.
+    /// Queues the folder once compression is done, when "auto-transcribe after stop" is on and the recording is not
+    /// marked `skipsTranscription` (`autoTranscribes(with:)`); a failed compression leaves the CAF, which is used
+    /// instead.
     /// Skipped when the folder has no usable audio or session, already has a transcript, or its last transcription
     /// failed (a compression that keeps failing is retried at every launch; the card's "Failed — Retry" retries).
     /// Returns the submitted job, nil when none was.
     @discardableResult
     private func transcribe(after result: CompressionResult, prior: PriorTranscription? = nil) -> Task<Bool, Never>? {
-        guard settings.autoTranscribe else { return nil }
+        guard let session = try? RecordingSession.read(from: result.folder), session.autoTranscribes(with: settings)
+        else { return nil }
         switch result.failure {
         case .sessionUnreadable?, .stillRecording?, .unsafeAudioFileName?, .sourceUnreadable?: return nil
         default: break
@@ -1784,10 +1801,19 @@ final class AppModel {
         }
     }
 
+    /// Moves the conversation's video to the Trash; its audio, transcript, summary and chat stay.
+    func deleteVideo(of id: UUID) async {
+        do {
+            try await library.deleteVideo(id: id)
+        } catch {
+            NSLog("EchoDiar: could not delete the video of conversation \(id): \(error)")
+        }
+    }
+
     // MARK: - Auto-delete
 
     /// Conversations auto-delete would move to the Trash now with `settings` (Storage tab preview), from the cached
-    /// library (no rescan); off the main thread, since audio only lists each candidate's folder.
+    /// library (no rescan); off the main thread, since "Video only" and "Audio and video" list each candidate's folder.
     func retentionPreview(settings: AppSettings) async -> [RetentionPolicy.Deletion] {
         let busy = busyConversationIDs
         let candidates = conversations.filter { !busy.contains($0.id) }
@@ -1841,11 +1867,16 @@ final class AppModel {
         for id in ids where !isBusy(id) { await deleteAudio(of: id) }
     }
 
+    /// Storage tab: moves the video of these conversations to the Trash, skipping any that got a job meanwhile.
+    func deleteVideo(of ids: [UUID]) async {
+        for id in ids where !isBusy(id) { await deleteVideo(of: id) }
+    }
+
     /// Storage tab: moves the transcripts, summaries and chats of these conversations to the Trash (the whole
-    /// conversation when its audio is gone), skipping any that got a job meanwhile.
+    /// conversation when its audio and video are gone), skipping any that got a job meanwhile.
     func deleteTranscriptsAndAI(of ids: [UUID]) async {
         for id in ids where !isBusy(id) {
-            let whole = conversations.first { $0.id == id }?.hasAudio == false
+            let whole = conversations.first { $0.id == id }.map { !$0.hasAudio && !$0.hasVideo } ?? false
             if whole, route == .conversation(id) { route = .list }
             do {
                 try await library.deleteTranscriptsAndAI(id: id)

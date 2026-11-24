@@ -182,15 +182,17 @@ public final class RecordingEngine: @unchecked Sendable {
     /// `micDeviceUID` nil (or a device that is gone) records the default input.
     /// `probe` marks the session as recorded by the DEBUG `--capture-probe` harness. `title` (e.g. the calendar
     /// event's) goes into the first `session.json`, trimmed; blank or nil leaves the default title.
+    /// `skipsTranscription` marks the recording "screen only" in the first `session.json`.
     @discardableResult
     public func start(
         target: CaptureTarget, language: String, micDeviceUID: String? = nil,
-        root: URL = RecordingSession.conversationsRoot, probe: Bool = false, title: String? = nil
+        root: URL = RecordingSession.conversationsRoot, probe: Bool = false, title: String? = nil,
+        skipsTranscription: Bool = false
     ) throws -> URL {
         try onQueue {
             try startLocked(
                 target: target, language: language, micDeviceUID: micDeviceUID, root: root, probe: probe,
-                title: Self.normalizedTitle(title))
+                title: Self.normalizedTitle(title), skipsTranscription: skipsTranscription)
         }
     }
 
@@ -239,6 +241,15 @@ public final class RecordingEngine: @unchecked Sendable {
         }
     }
 
+    /// Sets the recording's screen video in `session.json`. No-op when idle.
+    public func setVideo(_ video: RecordingSession.Video?) {
+        queue.async { [self] in
+            guard state != .idle, var session else { return }
+            session.video = video
+            save(session)
+        }
+    }
+
     private static func normalizedTitle(_ title: String?) -> String? {
         guard let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
         return trimmed
@@ -278,7 +289,8 @@ public final class RecordingEngine: @unchecked Sendable {
     }
 
     private func startLocked(
-        target: CaptureTarget, language: String, micDeviceUID: String?, root: URL, probe: Bool, title: String?
+        target: CaptureTarget, language: String, micDeviceUID: String?, root: URL, probe: Bool, title: String?,
+        skipsTranscription: Bool
     ) throws -> URL {
         guard state == .idle else { throw RecordingEngineError.alreadyRecording }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -301,7 +313,8 @@ public final class RecordingEngine: @unchecked Sendable {
             outputDeviceName: Self.defaultDeviceName(kAudioHardwarePropertyDefaultOutputDevice),
             languageMarkers: [.init(fileTime: 0, language: language)],
             probe: probe,
-            title: title
+            title: title,
+            skipsTranscription: skipsTranscription
         )
         let folder = session.folder(in: root)
         try session.write(to: folder)

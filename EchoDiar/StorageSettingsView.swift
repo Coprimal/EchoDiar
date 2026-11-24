@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The Storage tab, one inner tab per section: disk usage by kind (each deleted at once after a confirmation) and the
 /// largest conversations (their audio or the whole) with the data folder, deleting the audio of transcribed
-/// conversations and compression, and auto-delete with a preview.
+/// conversations or all video and compression, and auto-delete with a preview.
 struct StorageSettingsView: View {
     let model: AppModel
     @State private var usage: LibraryStore.Usage?
@@ -19,7 +19,7 @@ struct StorageSettingsView: View {
     @State private var bulkDeletion: BulkDeletion?
 
     private enum BulkDeletion {
-        case audio, transcriptsAndAI, models
+        case audio, video, transcriptsAndAI, models
     }
 
     /// Ids in `SettingsTab.storage.subTabs`; picked in the toolbar.
@@ -106,6 +106,7 @@ struct StorageSettingsView: View {
             if let usage {
                 UsageBar(usage: usage)
                 usageRow("Audio", usage.audio, color: .blue, delete: .audio, disabled: audioCandidates.isEmpty)
+                usageRow("Video", usage.video, color: .purple, delete: .video, disabled: videoCandidates.isEmpty)
                 usageRow("Transcripts and AI", usage.transcriptsAndAI, color: .green, delete: .transcriptsAndAI,
                          disabled: transcriptCandidates.isEmpty)
                 usageRow("Models", usage.models, color: .orange, delete: .models,
@@ -204,6 +205,13 @@ struct StorageSettingsView: View {
                 Text("Free space")
                 Text("Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.")
             }
+            LabeledContent {
+                Button("Delete all video…") { bulkDeletion = .video }
+                    .disabled(videoCandidates.isEmpty || deleting)
+            } label: {
+                Text("Screen recordings")
+                Text("Audio, transcripts, summaries and chats stay.")
+            }
             Toggle(isOn: model.setting(\.deleteAudioAfterTranscription)) {
                 Text("Delete audio after transcription")
                 Text("Moves the audio to the Trash once a transcription succeeds.")
@@ -235,16 +243,23 @@ struct StorageSettingsView: View {
         model.conversations.filter { $0.hasAudio && DeleteMenuItems.canDelete($0, model) }
     }
 
-    /// Conversations with a transcript, summary or chat to delete, or without audio (deleted whole).
+    /// Conversations with video that can lose it now (not recorded, compressed or transcribed).
+    private var videoCandidates: [Conversation] {
+        model.conversations.filter { $0.hasVideo && DeleteMenuItems.canDelete($0, model) }
+    }
+
+    /// Conversations with a transcript, summary or chat to delete, or without audio and video (deleted whole).
     private var transcriptCandidates: [Conversation] {
         model.conversations.filter {
-            DeleteMenuItems.canDelete($0, model) && ($0.hasTranscript || $0.hasSummary || !$0.hasAudio)
+            DeleteMenuItems.canDelete($0, model)
+                && ($0.hasTranscript || $0.hasSummary || (!$0.hasAudio && !$0.hasVideo))
         }
     }
 
     private static func deleteHelp(_ deletion: BulkDeletion) -> LocalizedStringKey {
         switch deletion {
         case .audio: "Delete the audio of every conversation"
+        case .video: "Delete the video of every conversation"
         case .transcriptsAndAI: "Delete every transcript, summary and chat"
         case .models: "Delete every downloaded model"
         }
@@ -253,6 +268,7 @@ struct StorageSettingsView: View {
     private var bulkTitle: LocalizedStringKey {
         switch bulkDeletion {
         case .audio?: "Delete the audio of \(audioCandidates.count) conversations?"
+        case .video?: "Delete the video of \(videoCandidates.count) conversations?"
         case .transcriptsAndAI?: "Delete the transcripts, summaries and chats of \(transcriptCandidates.count) conversations?"
         case .models?: "Delete \(model.deletableModelIDs.count) downloaded models?"
         case nil: ""
@@ -266,11 +282,16 @@ struct StorageSettingsView: View {
             let note = untranscribed == 0 ? ""
                 : "\n\n" + String(localized: "\(untranscribed) of them have no transcript yet: nothing of it will be left to read.")
             return String(localized: "The audio files are moved to the Trash. Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.") + note
+        case .video:
+            return String(localized: "The video files are moved to the Trash. Audio, transcripts, summaries and chats stay.")
         case .transcriptsAndAI:
-            let withoutAudio = transcriptCandidates.filter { !$0.hasAudio }.count
-            let note = withoutAudio == 0 ? ""
-                : "\n\n" + String(localized: "\(withoutAudio) conversations without audio would be left empty: they are moved to the Trash entirely.")
-            return String(localized: "They are moved to the Trash. The audio stays, so the conversations can be transcribed again.") + note
+            let withoutMedia = transcriptCandidates.filter { !$0.hasAudio && !$0.hasVideo }.count
+            let note = withoutMedia == 0 ? ""
+                : "\n\n" + String(localized: "\(withoutMedia) conversations without audio or video would be left empty: they are moved to the Trash entirely.")
+            let videoOnly = transcriptCandidates.filter { !$0.hasAudio && $0.hasVideo }.count
+            let videoNote = videoOnly == 0 ? ""
+                : "\n\n" + String(localized: "\(videoOnly) conversations have video but no audio: their video stays, but they cannot be transcribed again.")
+            return String(localized: "They are moved to the Trash. The audio stays, so the conversations can be transcribed again.") + note + videoNote
         case .models:
             return String(localized: "The transcription, speaker and AI models are removed from this Mac (not moved to the Trash). Download them again in Settings › AI Providers › Local AI.")
         }
@@ -283,6 +304,13 @@ struct StorageSettingsView: View {
             deleting = true
             Task {
                 await model.deleteAudio(of: ids)
+                deleting = false
+            }
+        case .video:
+            let ids = videoCandidates.map(\.id)
+            deleting = true
+            Task {
+                await model.deleteVideo(of: ids)
                 deleting = false
             }
         case .transcriptsAndAI:
@@ -326,9 +354,13 @@ struct StorageSettingsView: View {
                 title: "Older than", unit: String(localized: "days"), value: autoDeleteDays,
                 range: AppSettings.autoDeleteDaysRange)
             Picker("Delete", selection: autoDeleteMode) {
-                Text("Audio only (keep transcript, summary and chat)").tag(RetentionMode.audioOnly)
+                Text("Video only (keep audio, transcript, summary and chat)").tag(RetentionMode.videoOnly)
+                Text("Audio and video (keep transcript, summary and chat)").tag(RetentionMode.audioOnly)
                 Text("Whole conversation").tag(RetentionMode.wholeConversation)
             }
+            Text("Recordings without a transcript are never deleted automatically.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if preview.isEmpty {
                 Text("Nothing matches now.")
                     .font(.caption)
@@ -377,7 +409,7 @@ struct StorageSettingsView: View {
     }
 
     /// Off: saved at once. On: saved at once unless the next run would then delete more than now (another
-    /// conversation, or whole folders instead of audio), which asks first with the new list; Cancel keeps the value.
+    /// conversation, or one under a mode that deletes more), which asks first with the new list; Cancel keeps the value.
     private func changeAutoDelete(_ change: @escaping (inout AppSettings) -> Void) {
         guard model.settings.autoDeleteEnabled else {
             model.updateSettings(change)
@@ -399,12 +431,13 @@ struct StorageSettingsView: View {
         }
     }
 
-    /// `new` has a conversation `current` has not, or deletes the whole folder of one whose audio only it deletes.
+    /// `new` has a conversation `current` has not, or deletes one under a mode of higher `RetentionMode.rank` (video
+    /// only < audio and video < whole conversation).
     private static func deletesMore(_ new: [RetentionPolicy.Deletion], than current: [RetentionPolicy.Deletion]) -> Bool {
         let currentModes = Dictionary(current.map { ($0.conversationID, $0.mode) }, uniquingKeysWith: { first, _ in first })
         return new.contains { deletion in
             guard let mode = currentModes[deletion.conversationID] else { return true }
-            return mode == .audioOnly && deletion.mode == .wholeConversation
+            return deletion.mode.rank > mode.rank
         }
     }
 
@@ -415,25 +448,39 @@ struct StorageSettingsView: View {
     }
 
     private var autoDeleteMessage: String {
-        let audioOnly = model.settings.autoDeleteMode == .audioOnly
         let days = model.settings.autoDeleteAfterDays
         guard !preview.isEmpty else {
-            return audioOnly
-                ? String(localized: "The audio of transcribed conversations older than \(days) days will be moved to the Trash once a day. Nothing matches now.")
-                : String(localized: "All files of transcribed conversations older than \(days) days will be moved to the Trash once a day. Nothing matches now.")
+            switch model.settings.autoDeleteMode {
+            case .videoOnly:
+                return String(localized: "The video of transcribed conversations older than \(days) days will be moved to the Trash once a day. Nothing matches now.")
+            case .audioOnly:
+                return String(localized: "The audio and video of transcribed conversations older than \(days) days will be moved to the Trash once a day. Nothing matches now.")
+            case .wholeConversation:
+                return String(localized: "All files of transcribed conversations older than \(days) days will be moved to the Trash once a day. Nothing matches now.")
+            }
         }
         let count = preview.count
-        let sentence = audioOnly
-            ? String(localized: "The audio of \(count) conversations will be moved to the Trash now, then daily for older ones:")
-            : String(localized: "All files of \(count) conversations will be moved to the Trash now, then daily for older ones:")
+        let sentence = switch model.settings.autoDeleteMode {
+        case .videoOnly:
+            String(localized: "The video of \(count) conversations will be moved to the Trash now, then daily for older ones:")
+        case .audioOnly:
+            String(localized: "The audio and video of \(count) conversations will be moved to the Trash now, then daily for older ones:")
+        case .wholeConversation:
+            String(localized: "All files of \(count) conversations will be moved to the Trash now, then daily for older ones:")
+        }
         return "\(sentence)\n\n\(titleList(preview))"
     }
 
     private func changeMessage(_ change: PendingChange) -> String {
         let count = change.preview.count
-        let sentence = change.mode == .audioOnly
-            ? String(localized: "The audio of \(count) conversations will be moved to the Trash at the next run (at launch or within a day):")
-            : String(localized: "All files of \(count) conversations will be moved to the Trash at the next run (at launch or within a day):")
+        let sentence = switch change.mode {
+        case .videoOnly:
+            String(localized: "The video of \(count) conversations will be moved to the Trash at the next run (at launch or within a day):")
+        case .audioOnly:
+            String(localized: "The audio and video of \(count) conversations will be moved to the Trash at the next run (at launch or within a day):")
+        case .wholeConversation:
+            String(localized: "All files of \(count) conversations will be moved to the Trash at the next run (at launch or within a day):")
+        }
         return "\(sentence)\n\n\(titleList(change.preview))"
     }
 
@@ -453,7 +500,7 @@ struct StorageSettingsView: View {
     private var libraryKey: [LibraryEntry] {
         model.conversations.map {
             LibraryEntry(id: $0.id, status: $0.status, hasTranscript: $0.hasTranscript, hasAudio: $0.hasAudio,
-                         size: $0.status == .transcribed ? $0.sizeBytes : nil)
+                         hasVideo: $0.hasVideo, size: $0.status == .transcribed ? $0.sizeBytes : nil)
         }
     }
 
@@ -462,6 +509,7 @@ struct StorageSettingsView: View {
         let status: Conversation.Status
         let hasTranscript: Bool
         let hasAudio: Bool
+        let hasVideo: Bool
         let size: Int64?
     }
 
@@ -479,8 +527,8 @@ struct StorageSettingsView: View {
     }
 }
 
-/// One of the largest conversations: its title and size over a bar as long as its share of the largest one, audio
-/// and the rest in the usage bar's colors, with a Delete menu (its audio or the whole conversation).
+/// One of the largest conversations: its title and size over a bar as long as its share of the largest one, audio,
+/// video and the rest in the usage bar's colors, with a Delete menu (its audio or the whole conversation).
 private struct LargestConversationRow: View {
     let usage: LibraryStore.ConversationUsage
     let largest: Int64
@@ -501,9 +549,11 @@ private struct LargestConversationRow: View {
                 GeometryReader { proxy in
                     let width = largest > 0 ? proxy.size.width * CGFloat(usage.total) / CGFloat(largest) : 0
                     let audio = usage.total > 0 ? width * CGFloat(usage.audio) / CGFloat(usage.total) : 0
+                    let video = usage.total > 0 ? width * CGFloat(usage.video) / CGFloat(usage.total) : 0
                     HStack(spacing: 0) {
                         Rectangle().fill(.blue).frame(width: audio)
-                        Rectangle().fill(.green).frame(width: max(0, width - audio))
+                        Rectangle().fill(.purple).frame(width: video)
+                        Rectangle().fill(.green).frame(width: max(0, width - audio - video))
                     }
                     .clipShape(Capsule())
                 }
@@ -525,7 +575,7 @@ private struct LargestConversationRow: View {
     }
 }
 
-/// Audio, transcripts and models as parts of one bar.
+/// Audio, video, transcripts and models as parts of one bar.
 private struct UsageBar: View {
     let usage: LibraryStore.Usage
 
@@ -533,6 +583,7 @@ private struct UsageBar: View {
         GeometryReader { proxy in
             HStack(spacing: 0) {
                 part(usage.audio, .blue, proxy.size.width)
+                part(usage.video, .purple, proxy.size.width)
                 part(usage.transcriptsAndAI, .green, proxy.size.width)
                 part(usage.models, .orange, proxy.size.width)
                 Spacer(minLength: 0)
