@@ -264,6 +264,12 @@ public final class RecordingEngine: @unchecked Sendable {
         return live
     }
 
+    /// The writer's `fileTime(atHostTime:)`: seconds of the audio file (paused spans removed) at `hostTime` in
+    /// `mach_absolute_time()` ticks; nil when idle or paused. Lock-only.
+    public func fileTime(atHostTime hostTime: UInt64) -> Double? {
+        shared.withLock { $0.writer }?.fileTime(atHostTime: hostTime)
+    }
+
     // MARK: - Engine queue
 
     private func onQueue<T>(_ body: () throws -> T) rethrows -> T {

@@ -33,7 +33,7 @@ final class AppModel {
 
     /// DEBUG harness launch args handled here; they skip onboarding and auto-queued work.
     static let harnessArguments: Set<String> = [
-        "--transcribe", "--download-model", "--delete-model", "--measure",
+        "--transcribe", "--download-model", "--delete-model", "--measure", "--measure-screen",
     ]
 
     private(set) var settings = AppSettings()
@@ -349,7 +349,7 @@ final class AppModel {
     /// Its `currentLevels()` has a single consumer: `levels`.
     @ObservationIgnored let engine: RecordingEngine
     @ObservationIgnored let levels: LevelFeed
-    @ObservationIgnored let library = LibraryStore()
+    @ObservationIgnored let library: LibraryStore
     /// Created with the model so FluidAudio's offline mode is set before any model load.
     @ObservationIgnored let modelStore: ModelStore
     /// The single "one heavy model at a time" lock, shared by the pipeline and the recording transcriber.
@@ -357,8 +357,7 @@ final class AppModel {
     @ObservationIgnored let pipeline: TranscriptionPipeline
     @ObservationIgnored let aiService: AIService
     /// The RAG index, in a folder of its own beside the conversations: it deletes the other folders inside it.
-    @ObservationIgnored let libraryIndex = LibraryIndex(
-        root: RecordingSession.conversationsRoot.deletingLastPathComponent().appendingPathComponent("RAG", isDirectory: true))
+    @ObservationIgnored let libraryIndex: LibraryIndex
     /// The running `syncLibraryIndex()` pass; another pass asked for meanwhile runs once it ends.
     @ObservationIgnored var libraryIndexTask: Task<Void, Never>?
     @ObservationIgnored var libraryIndexPending = false
@@ -425,8 +424,22 @@ final class AppModel {
     /// The Shortcuts tab is recording a new shortcut: the main window's Esc and Space go to it.
     var isCapturingHotKey: Bool { hotKeyCapturing }
 
-    init(store: SettingsStore = SettingsStore()) {
-        self.store = store
+    /// `store` nil: the real settings file. The DEBUG `--measure-screen` harness keeps its settings, library and index
+    /// in its `--out` folder instead (it exits 8 before any store is built when `--out` is unusable).
+    init(store: SettingsStore? = nil) {
+        var store = store
+        var libraryRoot = RecordingSession.conversationsRoot
+        var indexRoot = libraryRoot.deletingLastPathComponent().appendingPathComponent("RAG", isDirectory: true)
+        #if DEBUG
+        if let out = ScreenHarness.isolatedDirectory() {
+            store = SettingsStore(directory: out)
+            libraryRoot = out
+            indexRoot = out.appendingPathComponent("RAG", isDirectory: true)
+        }
+        #endif
+        self.store = store ?? SettingsStore()
+        library = LibraryStore(root: libraryRoot)
+        libraryIndex = LibraryIndex(root: indexRoot)
         let engine = RecordingEngine()
         self.engine = engine
         levels = LevelFeed(engine: engine)
@@ -473,6 +486,9 @@ final class AppModel {
 
         #if DEBUG
         if runMeasureHarness() || runTranscribeHarness() || runModelHarness() { return }
+        if runScreenHarness(settingsDirectory: store.directory, transcriberStarted: { [weak self] in
+            self?.recordingTranscriber != nil
+        }) { return }
         DebugLibrarySeed.run()
         #endif
         guard ProcessInfo.processInfo.arguments.allSatisfy({ !Self.harnessArguments.contains($0) }) else { return }

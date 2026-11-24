@@ -44,8 +44,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             CaptureProbe.run()
             return
         }
-        // The `--measure` harness never writes the real library and never checks for updates.
-        let measuring = ProcessInfo.processInfo.arguments.contains("--measure")
+        // The `--measure` and `--measure-screen` harnesses never write the real library and never check for updates.
+        let measuring = ProcessInfo.processInfo.arguments.contains { $0 == "--measure" || $0 == "--measure-screen" }
         #else
         let measuring = false
         #endif

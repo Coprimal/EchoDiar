@@ -75,7 +75,24 @@ public final class ChannelWriter: @unchecked Sendable {
 
     public var stats: Stats { statsLock.withLock { $0 } }
 
+    /// The audio file time, in seconds (paused spans removed), of `hostTime` in `mach_absolute_time()` ticks, e.g. a
+    /// video frame's host time (convert a `CMTime` first: ticks are not nanoseconds on Apple Silicon). Nil unless
+    /// running (not started, paused or stopped). Earlier host times give earlier, possibly negative, times. Lock-only.
+    public func fileTime(atHostTime hostTime: UInt64) -> Double? {
+        let clock = clockLock.withLock { $0 }
+        guard clock.running else { return nil }
+        let frame = clock.baseFrame + Double(Int64(bitPattern: hostTime &- clock.baseHost)) / hostTicksPerSecond * Self.sampleRate
+        return frame / Self.sampleRate
+    }
+
     private enum State { case idle, running, paused, stopped }
+
+    /// `baseHost`/`baseFrame` as of the last `rebase()`, for `fileTime(atHostTime:)` off the writer queue.
+    private struct Clock {
+        var baseHost: UInt64 = 0
+        var baseFrame: Double = 0
+        var running = false
+    }
 
     private static let drainInterval = DispatchTimeInterval.milliseconds(200)
     private static let syncInterval: UInt64 = 15_000_000_000
@@ -89,6 +106,7 @@ public final class ChannelWriter: @unchecked Sendable {
     private let queue = DispatchQueue(label: "EchoDiar.ChannelWriter", qos: .utility)
     private let queueKey = DispatchSpecificKey<Void>()
     private let statsLock = Mutex(Stats())
+    private let clockLock = Mutex(Clock())
     private let hostTicksPerSecond: Double
 
     private var file: ExtAudioFileRef?
@@ -200,6 +218,7 @@ public final class ChannelWriter: @unchecked Sendable {
             guard state == .running else { return }
             finishSegment()
             state = .paused
+            clockLock.withLock { $0.running = false }
         }
     }
 
@@ -220,6 +239,7 @@ public final class ChannelWriter: @unchecked Sendable {
             timer?.cancel()
             timer = nil
             state = .stopped
+            clockLock.withLock { $0.running = false }
             if let file {
                 let status = ExtAudioFileDispose(file)
                 self.file = nil
@@ -245,6 +265,8 @@ public final class ChannelWriter: @unchecked Sendable {
         baseHost = mach_absolute_time()
         baseFrame = Double(framesWritten)
         for stream in streams { stream.position = baseFrame }
+        let (host, frame) = (baseHost, baseFrame)
+        clockLock.withLock { $0 = Clock(baseHost: host, baseFrame: frame, running: true) }
     }
 
     private func tick() {
@@ -269,12 +291,15 @@ public final class ChannelWriter: @unchecked Sendable {
         }
     }
 
-    /// Writes everything staged, padding the shorter channel, so the next segment starts aligned.
+    /// Writes everything staged, padding each channel with silence up to the clock's now (the file length then matches
+    /// `fileTime(atHostTime:)`, even with no buffers at all) and the shorter channel, so the next segment starts aligned.
     private func finishSegment() {
         guard failure == nil else { return }
         do {
+            for stream in streams { try drain(stream) }
+            let now = outputIndex(of: mach_absolute_time())
             for stream in streams {
-                try drain(stream)
+                if stream.position < now { try stream.appendSilence(outputFrames: now - stream.position) }
                 try stream.convert(end: true)
             }
             try writeStaged(padToLongest: true)

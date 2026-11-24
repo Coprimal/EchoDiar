@@ -42,6 +42,8 @@ targets:
         product: EchoAI
       - package: EchoKit
         product: EchoLocalLLM
+      - package: EchoKit
+        product: EchoScreen
       - package: Sparkle
     settings:
       base:
@@ -75,3 +77,4 @@ schemes:
         - package: EchoKit/EchoAudioTests
         - package: EchoKit/EchoTranscribeTests
         - package: EchoKit/EchoAITests
+        - package: EchoKit/EchoScreenTests
