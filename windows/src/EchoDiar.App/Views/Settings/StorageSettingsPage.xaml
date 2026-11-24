@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Settings › Storage (macOS StorageSettingsView.swift), one panel per inner tab picked in the title bar:
-    - Usage: disk usage by kind (a bar in the theme's attention, success and caution colours, then Audio, Transcripts
-      and AI, Models, each with its Delete button, and Total), the largest conversations, and the data folder with
-      "Open in File Explorer".
+    - Usage: disk usage by kind (a bar in the theme's attention, accent, success and caution colours, then Audio,
+      Video, Transcripts and AI, Models, each but Video with its Delete button, and Total), the largest conversations,
+      and the data folder with "Open in File Explorer".
     - Audio: free space (delete the audio of transcribed conversations), delete audio after transcription, compression
       bitrate, keep uncompressed audio, playback.
     - Auto-delete: on or off, the age, what is deleted, and what the next run would delete.
@@ -17,45 +17,65 @@
     xmlns:local="using:EchoDiar.App">
 
     <UserControl.Resources>
-        <Style x:Key="DotStyle" TargetType="Ellipse">
-            <Setter Property="Width" Value="8" />
-            <Setter Property="Height" Value="8" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style x:Key="SizeStyle" TargetType="TextBlock">
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-        </Style>
-        <!-- The rows of Largest conversations and of the auto-delete preview, made in code, in theme colours. -->
-        <Style x:Key="TrackStyle" TargetType="Grid">
-            <Setter Property="Height" Value="4" />
-            <Setter Property="CornerRadius" Value="2" />
-            <Setter Property="Background" Value="{ThemeResource ControlStrongFillColorDisabledBrush}" />
-        </Style>
-        <Style x:Key="AudioPartStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource SystemFillColorAttentionBrush}" />
-        </Style>
-        <Style x:Key="RestPartStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource SystemFillColorSuccessBrush}" />
-        </Style>
-        <Style x:Key="ListTitleStyle" TargetType="TextBlock">
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="TextWrapping" Value="NoWrap" />
-        </Style>
-        <Style
-            x:Key="PreviewTitleStyle"
-            BasedOn="{StaticResource ListTitleStyle}"
-            TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-        </Style>
-        <!-- A usage row's Delete; the Total row keeps its width empty so the sizes line up. -->
-        <Style
-            x:Key="TrashButtonStyle"
-            BasedOn="{StaticResource SubtleButtonStyle}"
-            TargetType="Button">
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Padding" Value="0,6" />
-        </Style>
+        <ResourceDictionary>
+            <!--
+                Video's colour: an accent shade apart from Audio's attention colour in brightness (lighter in Light,
+                darker in Dark) and from Transcripts' green, not the critical red, which means an error.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="VideoFillBrush" Color="{ThemeResource SystemAccentColorDark1}" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="VideoFillBrush" Color="{ThemeResource SystemAccentColorLight2}" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="VideoFillBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <Style x:Key="DotStyle" TargetType="Ellipse">
+                <Setter Property="Width" Value="8" />
+                <Setter Property="Height" Value="8" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="SizeStyle" TargetType="TextBlock">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Style>
+            <!-- The rows of Largest conversations and of the auto-delete preview, made in code, in theme colours. -->
+            <Style x:Key="TrackStyle" TargetType="Grid">
+                <Setter Property="Height" Value="4" />
+                <Setter Property="CornerRadius" Value="2" />
+                <Setter Property="Background" Value="{ThemeResource ControlStrongFillColorDisabledBrush}" />
+            </Style>
+            <Style x:Key="AudioPartStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource SystemFillColorAttentionBrush}" />
+            </Style>
+            <Style x:Key="VideoPartStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource VideoFillBrush}" />
+            </Style>
+            <Style x:Key="RestPartStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+            </Style>
+            <Style x:Key="ListTitleStyle" TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+            </Style>
+            <Style
+                x:Key="PreviewTitleStyle"
+                BasedOn="{StaticResource ListTitleStyle}"
+                TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Style>
+            <!-- A usage row's Delete; the Total row keeps its width empty so the sizes line up. -->
+            <Style
+                x:Key="TrashButtonStyle"
+                BasedOn="{StaticResource SubtleButtonStyle}"
+                TargetType="Button">
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Padding" Value="0,6" />
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer>
@@ -86,6 +106,7 @@
                             Visibility="Collapsed">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition x:Name="AudioColumn" Width="0" />
+                                <ColumnDefinition x:Name="VideoColumn" Width="0" />
                                 <ColumnDefinition x:Name="TranscriptsColumn" Width="0" />
                                 <ColumnDefinition x:Name="ModelsColumn" Width="0" />
                                 <ColumnDefinition x:Name="FreeColumn" Width="*" />
@@ -95,12 +116,16 @@
                                 Grid.Column="0"
                                 Background="{ThemeResource SystemFillColorAttentionBrush}" />
                             <Border
-                                x:Name="TranscriptsPart"
+                                x:Name="VideoPart"
                                 Grid.Column="1"
+                                Background="{ThemeResource VideoFillBrush}" />
+                            <Border
+                                x:Name="TranscriptsPart"
+                                Grid.Column="2"
                                 Background="{ThemeResource SystemFillColorSuccessBrush}" />
                             <Border
                                 x:Name="ModelsPart"
-                                Grid.Column="2"
+                                Grid.Column="3"
                                 Background="{ThemeResource SystemFillColorCautionBrush}" />
                         </Grid>
                     </Grid>
@@ -118,6 +143,20 @@
                         <Button x:Name="AudioDeleteButton" Style="{StaticResource TrashButtonStyle}">
                             <FontIcon FontSize="16" Glyph="&#xE74D;" />
                         </Button>
+                    </StackPanel>
+                </controls:SettingsCard>
+
+                <!-- No Delete on Windows: the video goes with its conversation or by auto-delete; the empty width lines the size up. -->
+                <controls:SettingsCard>
+                    <controls:SettingsCard.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Fill="{ThemeResource VideoFillBrush}" Style="{StaticResource DotStyle}" />
+                            <TextBlock Text="{local:T Text='Video'}" />
+                        </StackPanel>
+                    </controls:SettingsCard.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="VideoSizeText" Style="{StaticResource SizeStyle}" />
+                        <Border Width="36" />
                     </StackPanel>
                 </controls:SettingsCard>
 
@@ -278,7 +317,9 @@
                         x:Name="ModeCombo"
                         MinWidth="200"
                         AutomationProperties.Name="{local:T Text='Delete'}">
-                        <ComboBoxItem Content="{local:T Text='Audio only (keep transcript, summary and chat)'}" />
+                        <!-- The rows of ModeRows, in macOS order. -->
+                        <ComboBoxItem Content="{local:T Text='Video only (keep audio, transcript, summary and chat)'}" />
+                        <ComboBoxItem Content="{local:T Text='Audio and video (keep transcript, summary and chat)'}" />
                         <ComboBoxItem Content="{local:T Text='Whole conversation'}" />
                     </ComboBox>
                 </controls:SettingsCard>

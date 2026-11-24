@@ -146,6 +146,40 @@
         }
       }
     },
+    "%@ (~%@ MB/min)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (~%2$@ MB/min)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (~%2$@ MB/min)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (~%2$@ Mo/min)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (~%2$@ MB/min)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（~%2$@ MB/min）"
+          }
+        }
+      }
+    },
     "%@ + output (approx.)" : {
       "localizations" : {
         "es" : {
@@ -1092,7 +1126,172 @@
         }
       }
     },
+    "%lld conversations have video but no audio: their video stays, but they cannot be transcribed again." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversation has video but no audio: its video stays, but it cannot be transcribed again."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversations have video but no audio: their video stays, but they cannot be transcribed again."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversaciones tienen vídeo pero no audio: su vídeo se conserva, pero ya no se pueden volver a transcribir."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversación tiene vídeo pero no audio: su vídeo se conserva, pero ya no se puede volver a transcribir."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversaciones tienen vídeo pero no audio: su vídeo se conserva, pero ya no se pueden volver a transcribir."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversations ont une vidéo mais pas d’audio : leur vidéo reste, mais elles ne peuvent plus être retranscrites."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversation a une vidéo mais pas d’audio : sa vidéo reste, mais elle ne peut plus être retranscrite."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversations ont une vidéo mais pas d’audio : leur vidéo reste, mais elles ne peuvent plus être retranscrites."
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cuộc hội thoại có video nhưng không có âm thanh: video của chúng vẫn được giữ, nhưng không thể chép lời lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话有视频但没有音频：其视频会保留，但无法再重新转写。"
+          }
+        }
+      }
+    },
+    "%lld conversations without audio or video would be left empty: they are moved to the Trash entirely." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversation without audio or video would be left empty: it is moved to the Trash entirely."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversations without audio or video would be left empty: they are moved to the Trash entirely."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversaciones sin audio ni vídeo quedarían vacías: se trasladan enteras a la Papelera."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversación sin audio ni vídeo quedaría vacía: se traslada entera a la Papelera."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversaciones sin audio ni vídeo quedarían vacías: se trasladan enteras a la Papelera."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversations sans audio ni vidéo seraient vides : elles sont placées entièrement dans la Corbeille."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversation sans audio ni vidéo serait vide : elle est placée entièrement dans la Corbeille."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversations sans audio ni vidéo seraient vides : elles sont placées entièrement dans la Corbeille."
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cuộc hội thoại không có âm thanh hoặc video sẽ trở nên trống: chúng được chuyển toàn bộ vào Thùng rác."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个没有音频或视频的对话将变为空：它们会被整个移到废纸篓。"
+          }
+        }
+      }
+    },
     "%lld conversations without audio would be left empty: they are moved to the Trash entirely." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -1170,6 +1369,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 个没有音频的对话将变为空：它们会被整个移到废纸篓。"
+          }
+        }
+      }
+    },
+    "%lld fps" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fps"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fps"
           }
         }
       }
@@ -2521,6 +2748,34 @@
         }
       }
     },
+    "All keys are shown" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se muestran todas las teclas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les touches sont affichées"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mọi phím đều được hiển thị"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会显示所有按键"
+          }
+        }
+      }
+    },
     "All system audio" : {
       "comment" : "A toggle that records all system audio.",
       "isCommentAutoGenerated" : true,
@@ -2551,6 +2806,34 @@
         }
       }
     },
+    "Allow Camera" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser la caméra"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许使用摄像头"
+          }
+        }
+      }
+    },
     "Allow Microphone" : {
       "comment" : "A button that asks the user to allow microphone access.",
       "isCommentAutoGenerated" : true,
@@ -2577,6 +2860,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许使用麦克风"
+          }
+        }
+      }
+    },
+    "Allow Screen Recording" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir grabación de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l’enregistrement de l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许录屏"
           }
         }
       }
@@ -2633,6 +2944,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "录音时也用于“聊天”标签页中的回答。简洁：几条简短要点。"
+          }
+        }
+      }
+    },
+    "Also record a screen, a window or an area" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar también una pantalla, una ventana o un área"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer aussi un écran, une fenêtre ou une zone"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi thêm một màn hình, một cửa sổ hoặc một vùng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同时录制屏幕、窗口或区域"
           }
         }
       }
@@ -3035,6 +3374,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apple Foundation Models 需要 macOS 26。"
+          }
+        }
+      }
+    },
+    "Applies to recordings you start with Record or its shortcuts, not from the calendar or a meeting prompt." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se aplica a las grabaciones que inicias con Grabar o sus atajos, no desde el calendario ni desde un aviso de reunión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S’applique aux enregistrements lancés avec Enregistrer ou ses raccourcis, pas depuis le calendrier ni une proposition d’enregistrement de réunion."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Áp dụng cho các bản ghi âm bạn bắt đầu bằng Ghi âm hoặc phím tắt của nó, không áp dụng khi bắt đầu từ lịch hay lời nhắc cuộc họp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适用于通过“录制”或其快捷键开始的录音，不适用于从日历或会议提示开始的录音。"
           }
         }
       }
@@ -3445,6 +3812,34 @@
         }
       }
     },
+    "Audio and video (keep transcript, summary and chat)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio y vídeo (conservar transcripción, resumen y chat)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio et vidéo (conserver la transcription, le résumé et la discussion)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video (giữ bản chép lời, bản tóm tắt và cuộc trò chuyện)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频和视频（保留转写文本、摘要和聊天）"
+          }
+        }
+      }
+    },
     "Audio has been removed" : {
       "localizations" : {
         "es" : {
@@ -3469,6 +3864,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音频已移除"
+          }
+        }
+      }
+    },
+    "Audio has been removed; the screen recording stays" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se ha eliminado el audio; la grabación de pantalla se conserva"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’audio a été supprimé ; l’enregistrement de l’écran reste"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh đã bị xoá; bản ghi màn hình vẫn được giữ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频已移除；屏幕录制会保留"
           }
         }
       }
@@ -3602,6 +4025,7 @@
       }
     },
     "Audio only (keep transcript, summary and chat)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3625,6 +4049,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仅音频（保留转写文本、摘要和聊天）"
+          }
+        }
+      }
+    },
+    "Audio, transcripts, summaries and chats stay." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El audio, las transcripciones, los resúmenes y los chats se conservan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’audio, les transcriptions, les résumés et les discussions restent."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh, bản chép lời, bản tóm tắt và cuộc trò chuyện vẫn được giữ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频、转写文本、摘要和聊天会保留。"
+          }
+        }
+      }
+    },
+    "Audio:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio :"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频："
           }
         }
       }
@@ -3865,6 +4345,34 @@
         }
       }
     },
+    "Available when recording a display or an area" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible al grabar una pantalla o un área"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible lors de l’enregistrement d’un écran ou d’une zone"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Có sẵn khi ghi một màn hình hoặc một vùng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制显示器或区域时可用"
+          }
+        }
+      }
+    },
     "Back" : {
       "comment" : "A button that goes back one step in the onboarding process.",
       "isCommentAutoGenerated" : true,
@@ -4069,6 +4577,34 @@
         }
       }
     },
+    "Both" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ambos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les deux"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cả hai"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "两者"
+          }
+        }
+      }
+    },
     "Both voices in both ears" : {
       "localizations" : {
         "es" : {
@@ -4265,6 +4801,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日历设置…"
+          }
+        }
+      }
+    },
+    "Camera" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caméra"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摄像头"
+          }
+        }
+      }
+    },
+    "Camera bubble" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Burbuja de cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulle de caméra"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bong bóng camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摄像头气泡"
+          }
+        }
+      }
+    },
+    "Camera bubble and key presses work for display and area recordings only." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La burbuja de cámara y las pulsaciones de teclas solo funcionan al grabar una pantalla o un área."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La bulle de caméra et les touches pressées ne fonctionnent que pour l’enregistrement d’un écran ou d’une zone."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bong bóng camera và phím bấm chỉ hoạt động khi ghi toàn màn hình hoặc ghi một vùng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摄像头气泡和按键显示仅适用于显示器和区域录制。"
           }
         }
       }
@@ -4806,6 +5426,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择模型…"
+          }
+        }
+      }
+    },
+    "Choose a place outside the conversation's folder." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige una ubicación fuera de la carpeta de la conversación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez un emplacement hors du dossier de la conversation."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy chọn một vị trí bên ngoài thư mục của cuộc hội thoại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择对话文件夹以外的位置。"
           }
         }
       }
@@ -5911,6 +6559,34 @@
         }
       }
     },
+    "Could not list the screens and windows." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido enumerar las pantallas y ventanas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de lister les écrans et les fenêtres."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể liệt kê các màn hình và cửa sổ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法列出屏幕和窗口。"
+          }
+        }
+      }
+    },
     "Current" : {
       "localizations" : {
         "es" : {
@@ -6759,6 +7435,34 @@
         }
       }
     },
+    "Delete all video…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar todos los vídeos…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer toutes les vidéos…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá toàn bộ video…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除所有视频…"
+          }
+        }
+      }
+    },
     "Delete audio after transcription" : {
       "localizations" : {
         "es" : {
@@ -7320,6 +8024,7 @@
       }
     },
     "Delete the audio or the selected conversations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7348,6 +8053,7 @@
       }
     },
     "Delete the audio or the whole conversation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7371,6 +8077,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除音频或整个对话"
+          }
+        }
+      }
+    },
+    "Delete the audio, the video or the selected conversations" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar el audio, el vídeo o las conversaciones seleccionadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer l’audio, la vidéo ou les conversations sélectionnées"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá âm thanh, video hoặc các cuộc hội thoại đã chọn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除音频、视频或所选对话"
+          }
+        }
+      }
+    },
+    "Delete the audio, the video or the whole conversation" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar el audio, el vídeo o toda la conversación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer l’audio, la vidéo ou toute la conversation"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá âm thanh, video hoặc toàn bộ cuộc hội thoại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除音频、视频或整个对话"
           }
         }
       }
@@ -7457,6 +8219,144 @@
         }
       }
     },
+    "Delete the video of \"%@\"?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar el vídeo de \"%@\"?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la vidéo de \"%@\" ?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá video của \"%@\"?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要删除“%@”的视频吗？"
+          }
+        }
+      }
+    },
+    "Delete the video of %lld conversations?" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete the video of %lld conversation?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete the video of %lld conversations?"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "¿Eliminar el vídeo de %lld conversaciones?"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "¿Eliminar el vídeo de %lld conversación?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "¿Eliminar el vídeo de %lld conversaciones?"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Supprimer la vidéo de %lld conversations ?"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Supprimer la vidéo de %lld conversation ?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Supprimer la vidéo de %lld conversations ?"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá video của %lld cuộc hội thoại?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要删除 %lld 个对话的视频吗？"
+          }
+        }
+      }
+    },
+    "Delete the video of every conversation" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar el vídeo de todas las conversaciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la vidéo de toutes les conversations"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá video của mọi cuộc hội thoại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除所有对话的视频"
+          }
+        }
+      }
+    },
     "Delete this event?" : {
       "localizations" : {
         "es" : {
@@ -7481,6 +8381,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要删除此日程吗？"
+          }
+        }
+      }
+    },
+    "Delete video" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar vídeo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la vidéo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除视频"
+          }
+        }
+      }
+    },
+    "Delete video…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar vídeo…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la vidéo…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá video…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除视频…"
           }
         }
       }
@@ -7765,6 +8721,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "说话人分离模型"
+          }
+        }
+      }
+    },
+    "Display %lld" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran %lld"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Màn hình %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示器 %lld"
           }
         }
       }
@@ -8370,6 +9354,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "EchoDiar 可能缺少“系统录音”权限。请允许该权限，然后重新开始录音。"
+          }
+        }
+      }
+    },
+    "EchoDiar needs Camera access to show the camera bubble." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar necesita acceso a la cámara para mostrar la burbuja de cámara."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar a besoin de l’accès à la caméra pour afficher la bulle de caméra."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar cần quyền Camera để hiển thị bong bóng camera."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar 需要“摄像头”访问权限才能显示摄像头气泡。"
+          }
+        }
+      }
+    },
+    "EchoDiar needs Input Monitoring access to show key presses." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar necesita acceso de Monitorización de los dispositivos de entrada para mostrar las pulsaciones de teclas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar a besoin de l’accès Surveillance de l’entrée pour afficher les touches pressées."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar cần quyền Giám sát đầu vào để hiển thị phím bấm."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar 需要“输入监控”访问权限才能显示按键。"
+          }
+        }
+      }
+    },
+    "EchoDiar needs Screen Recording permission to record the screen." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar necesita el permiso de Grabación de pantalla para grabar la pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar a besoin de l’autorisation Enregistrement de l’écran pour enregistrer l’écran."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar cần quyền Ghi màn hình để ghi lại màn hình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar 需要“录屏”权限才能录制屏幕。"
           }
         }
       }
@@ -9054,6 +10122,34 @@
         }
       }
     },
+    "Everything you type becomes visible in the video" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo que escribas será visible en el vídeo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout ce que vous tapez devient visible dans la vidéo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mọi thứ bạn gõ sẽ hiện trong video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你输入的所有内容都会显示在视频中"
+          }
+        }
+      }
+    },
     "Expand" : {
       "comment" : "A button that expands content.",
       "isCommentAutoGenerated" : true,
@@ -9108,6 +10204,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已展开"
+          }
+        }
+      }
+    },
+    "Export Video" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar vídeo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter la vidéo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出视频"
+          }
+        }
+      }
+    },
+    "Export video…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar vídeo…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter la vidéo…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất video…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出视频…"
+          }
+        }
+      }
+    },
+    "Exporting…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportation…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang xuất…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在导出…"
+          }
+        }
+      }
+    },
+    "Export…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出…"
           }
         }
       }
@@ -9193,6 +10401,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文件"
+          }
+        }
+      }
+    },
+    "Files can be several times larger. In a meeting-like test, a window recording took about %@ MB per minute at 60 fps, against %@ MB per minute at 15 fps." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Files can be several times larger. In a meeting-like test, a window recording took about %1$@ MB per minute at 60 fps, against %2$@ MB per minute at 15 fps."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos pueden ser varias veces más grandes. En una prueba similar a una reunión, la grabación de una ventana ocupó unos %1$@ MB por minuto a 60 fps, frente a %2$@ MB por minuto a 15 fps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les fichiers peuvent être plusieurs fois plus volumineux. Lors d’un test proche d’une réunion, l’enregistrement d’une fenêtre occupait environ %1$@ Mo par minute à 60 fps, contre %2$@ Mo par minute à 15 fps."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tệp có thể lớn hơn nhiều lần. Trong một thử nghiệm giống cuộc họp, bản ghi một cửa sổ chiếm khoảng %1$@ MB mỗi phút ở 60 fps, so với %2$@ MB mỗi phút ở 15 fps."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件可能会大好几倍。在一次类似会议的测试中，录制一个窗口在 60 fps 时每分钟约占 %1$@ MB，而在 15 fps 时每分钟约占 %2$@ MB。"
           }
         }
       }
@@ -9339,6 +10581,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "例如："
+          }
+        }
+      }
+    },
+    "Frame rate" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velocidad de fotogramas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fréquence d’images"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tốc độ khung hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "帧率"
           }
         }
       }
@@ -9771,6 +11041,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "EchoDiar 窗口位于最前面时隐藏"
+          }
+        }
+      }
+    },
+    "Hide video" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar vídeo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer la vidéo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ẩn video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏视频"
+          }
+        }
+      }
+    },
+    "Highlight clicks" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resaltar los clics"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettre en évidence les clics"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Làm nổi bật các lần bấm chuột"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "突出显示点按"
           }
         }
       }
@@ -10714,6 +12040,34 @@
         }
       }
     },
+    "Key presses" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsaciones de teclas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touches pressées"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phím bấm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按键显示"
+          }
+        }
+      }
+    },
     "LLM diarization — timestamps approximate, speakers can be mislabeled." : {
       "localizations" : {
         "es" : {
@@ -11027,6 +12381,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近 7 天"
+          }
+        }
+      }
+    },
+    "Last area" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última área"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière zone"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vùng gần nhất"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次的区域"
+          }
+        }
+      }
+    },
+    "Last used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usado por última vez"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé en dernier"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng gần nhất"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次使用"
           }
         }
       }
@@ -13262,6 +14672,34 @@
         }
       }
     },
+    "No audio" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans audio"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có âm thanh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无音频"
+          }
+        }
+      }
+    },
     "No calendar account can hold EchoDiar's calendar." : {
       "localizations" : {
         "es" : {
@@ -13656,6 +15094,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未列出模型；请输入模型 ID。"
+          }
+        }
+      }
+    },
+    "No screen recording at this point" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay grabación de pantalla en este punto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun enregistrement de l’écran à ce moment"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có bản ghi màn hình tại thời điểm này"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此时间点没有屏幕录制"
           }
         }
       }
@@ -14462,6 +15928,34 @@
         }
       }
     },
+    "Off: screen and sound only. No transcript, summary or chat until you transcribe it later." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivado: solo pantalla y sonido. Sin transcripción, resumen ni chat hasta que la transcribas más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivé : écran et son uniquement. Pas de transcription, de résumé ni de discussion jusqu’à ce que vous le transcriviez plus tard."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tắt: chỉ ghi màn hình và âm thanh. Không có bản chép lời, bản tóm tắt hay cuộc trò chuyện cho đến khi bạn chép lời sau."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭：仅录制屏幕和声音。在你稍后转写之前，没有转写文本、摘要或聊天。"
+          }
+        }
+      }
+    },
     "Offers to record when a meeting app starts using the microphone." : {
       "comment" : "A description of the meeting detection setting.",
       "isCommentAutoGenerated" : true,
@@ -14976,6 +16470,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开设置"
+          }
+        }
+      }
+    },
+    "Open System Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes del Sistema"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Réglages Système"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở Cài đặt hệ thống"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开系统设置"
           }
         }
       }
@@ -16616,6 +18138,34 @@
         }
       }
     },
+    "Re-transcribing is no longer possible. The video, transcript, summary and chat stay." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya no se podrá volver a transcribir. El vídeo, la transcripción, el resumen y el chat se conservan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La retranscription n’est plus possible. La vidéo, la transcription, le résumé et la discussion restent."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể chép lời lại nữa. Video, bản chép lời, bản tóm tắt và cuộc trò chuyện vẫn được giữ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将无法再重新转写。视频、转写文本、摘要和聊天会保留。"
+          }
+        }
+      }
+    },
     "Realtime model" : {
       "localizations" : {
         "es" : {
@@ -16816,6 +18366,34 @@
         }
       }
     },
+    "Record Screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制屏幕"
+          }
+        }
+      }
+    },
     "Record all system audio, from 15 min before the start" : {
       "localizations" : {
         "es" : {
@@ -16844,6 +18422,34 @@
         }
       }
     },
+    "Record at 60 frames per second?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Grabar a 60 fotogramas por segundo?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer à 60 images par seconde ?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi ở 60 khung hình mỗi giây?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要以每秒 60 帧录制吗？"
+          }
+        }
+      }
+    },
     "Record at start" : {
       "localizations" : {
         "es" : {
@@ -16868,6 +18474,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开始时录制"
+          }
+        }
+      }
+    },
+    "Record the screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制屏幕"
+          }
+        }
+      }
+    },
+    "Record the screen from now on" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar la pantalla a partir de ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer l’écran à partir de maintenant"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi màn hình từ bây giờ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从现在开始录制屏幕"
           }
         }
       }
@@ -17309,6 +18971,34 @@
         }
       }
     },
+    "Recordings without a transcript are never deleted automatically." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las grabaciones sin transcripción nunca se eliminan automáticamente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les enregistrements sans transcription ne sont jamais supprimés automatiquement."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các bản ghi âm chưa có bản chép lời không bao giờ bị xoá tự động."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有转写文本的录音永远不会被自动删除。"
+          }
+        }
+      }
+    },
     "Recording…" : {
       "comment" : "A title on the recording card while a recording is in progress.",
       "isCommentAutoGenerated" : true,
@@ -17335,6 +19025,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在录音…"
+          }
+        }
+      }
+    },
+    "Records it in this recording from now on." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo añade a esta grabación a partir de ahora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ajoute à cet enregistrement à partir de maintenant."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Từ bây giờ sẽ ghi nó vào bản ghi âm này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从现在起将其录制到本次录音中。"
           }
         }
       }
@@ -17889,6 +19607,34 @@
         }
       }
     },
+    "Resume the recording to record the screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reanuda la grabación para grabar la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprenez l’enregistrement pour enregistrer l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy tiếp tục ghi âm để ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续录音以录制屏幕"
+          }
+        }
+      }
+    },
     "Retry" : {
       "comment" : "A button that retries transcribing a conversation.",
       "isCommentAutoGenerated" : true,
@@ -18216,6 +19962,62 @@
         }
       }
     },
+    "Screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕"
+          }
+        }
+      }
+    },
+    "Screen and sound only. No transcript, summary or chat until you transcribe it later." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo pantalla y sonido. Sin transcripción, resumen ni chat hasta que la transcribas más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran et son uniquement. Pas de transcription, de résumé ni de discussion jusqu’à ce que vous le transcriviez plus tard."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ ghi màn hình và âm thanh. Không có bản chép lời, bản tóm tắt hay cuộc trò chuyện cho đến khi bạn chép lời sau."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅录制屏幕和声音。在你稍后转写之前，没有转写文本、摘要或聊天。"
+          }
+        }
+      }
+    },
     "Screen locked — stop recording?" : {
       "localizations" : {
         "es" : {
@@ -18240,6 +20042,202 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "屏幕已锁定 — 要停止录音吗？"
+          }
+        }
+      }
+    },
+    "Screen recorded" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla grabada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran enregistré"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已录制屏幕"
+          }
+        }
+      }
+    },
+    "Screen recording" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bản ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制"
+          }
+        }
+      }
+    },
+    "Screen recording could not resume. The sound is still recording." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido reanudar la grabación de pantalla. El sonido se sigue grabando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enregistrement de l’écran n’a pas pu reprendre. Le son est toujours enregistré."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể tiếp tục ghi màn hình. Âm thanh vẫn đang được ghi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法继续录制屏幕。声音仍在录制。"
+          }
+        }
+      }
+    },
+    "Screen recording stopped: could not write the video. The sound is still recording." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla detenida: no se ha podido escribir el vídeo. El sonido se sigue grabando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de l’écran arrêté : impossible d’écrire la vidéo. Le son est toujours enregistré."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã dừng ghi màn hình: không thể ghi dữ liệu video. Âm thanh vẫn đang được ghi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制已停止：无法写入视频。声音仍在录制。"
+          }
+        }
+      }
+    },
+    "Screen recording stopped: less than 1 GB of disk space left. The sound is still recording." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla detenida: queda menos de 1 GB de espacio en disco. El sonido se sigue grabando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de l’écran arrêté : il reste moins de 1 Go d’espace disque. Le son est toujours enregistré."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã dừng ghi màn hình: dung lượng ổ đĩa còn dưới 1 GB. Âm thanh vẫn đang được ghi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制已停止：磁盘空间剩余不足 1 GB。声音仍在录制。"
+          }
+        }
+      }
+    },
+    "Screen recording stopped: the screen or window is no longer available. The sound is still recording." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla detenida: la pantalla o la ventana ya no está disponible. El sonido se sigue grabando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de l’écran arrêté : l’écran ou la fenêtre n’est plus disponible. Le son est toujours enregistré."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã dừng ghi màn hình: màn hình hoặc cửa sổ không còn khả dụng. Âm thanh vẫn đang được ghi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制已停止：屏幕或窗口已不可用。声音仍在录制。"
+          }
+        }
+      }
+    },
+    "Screen recordings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabaciones de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrements de l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các bản ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制内容"
           }
         }
       }
@@ -18566,6 +20564,34 @@
         }
       }
     },
+    "Select area…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleccionar área…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionner une zone…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chọn vùng…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择区域…"
+          }
+        }
+      }
+    },
     "Send" : {
       "comment" : "The label of a button that sends audio to a cloud provider for transcription.",
       "isCommentAutoGenerated" : true,
@@ -18770,6 +20796,34 @@
         }
       }
     },
+    "Sharper" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más nítido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus net"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sắc nét hơn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更清晰"
+          }
+        }
+      }
+    },
     "Shortcut" : {
       "comment" : "A label for the keyboard shortcut for the current user.",
       "isCommentAutoGenerated" : true,
@@ -18884,6 +20938,34 @@
         }
       }
     },
+    "Show all keys" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar todas las teclas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher toutes les touches"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiển thị mọi phím"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示所有按键"
+          }
+        }
+      }
+    },
     "Show floating indicator while recording" : {
       "comment" : "A toggle to show the floating indicator while recording.",
       "isCommentAutoGenerated" : true,
@@ -18910,6 +20992,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "录音时显示悬浮指示器"
+          }
+        }
+      }
+    },
+    "Show in Finder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar en Finder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher dans le Finder"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiển thị trong Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示"
           }
         }
       }
@@ -18968,6 +21078,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "再次显示引导"
+          }
+        }
+      }
+    },
+    "Show the cursor" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar el puntero"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le pointeur"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiển thị con trỏ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示指针"
           }
         }
       }
@@ -19086,6 +21224,34 @@
         }
       }
     },
+    "Shows shortcuts such as ⌘K at the bottom of the screen." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra atajos como ⌘K en la parte inferior de la pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche les raccourcis comme ⌘K en bas de l’écran."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiển thị các phím tắt như ⌘K ở cuối màn hình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在屏幕底部显示 ⌘K 等快捷键。"
+          }
+        }
+      }
+    },
     "Shows the transcript during the recording. WhisperKit and Parakeet models keep it, so it is ready within seconds of Stop; Apple Speech (macOS 26+) only shows it and transcribes after Stop. Uses more CPU and memory while recording. A cloud engine can show it with a local model or its realtime stream: see Transcription model below." : {
       "localizations" : {
         "es" : {
@@ -19200,6 +21366,62 @@
         }
       }
     },
+    "Shows your camera in a round bubble on screen." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra tu cámara en una burbuja redonda en la pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche votre caméra dans une bulle ronde à l’écran."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiển thị camera của bạn trong một bong bóng tròn trên màn hình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在屏幕上以圆形气泡显示你的摄像头画面。"
+          }
+        }
+      }
+    },
+    "Sizes measured in a meeting-like window recording at 15 fps. More motion or a higher frame rate makes larger files." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamaños medidos en una grabación de ventana similar a una reunión a 15 fps. Más movimiento o una velocidad de fotogramas mayor genera archivos más grandes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailles mesurées sur l’enregistrement d’une fenêtre proche d’une réunion à 15 fps. Plus de mouvement ou une fréquence d’images plus élevée donne des fichiers plus volumineux."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kích thước được đo trên một bản ghi cửa sổ giống cuộc họp ở 15 fps. Nhiều chuyển động hơn hoặc tốc độ khung hình cao hơn sẽ tạo tệp lớn hơn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大小是在类似会议的窗口录制中以 15 fps 测得的。画面运动越多或帧率越高，文件就越大。"
+          }
+        }
+      }
+    },
     "Skip" : {
       "localizations" : {
         "es" : {
@@ -19280,6 +21502,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "小"
+          }
+        }
+      }
+    },
+    "Smaller" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más pequeño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus léger"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhỏ hơn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更小"
           }
         }
       }
@@ -19780,6 +22030,34 @@
         }
       }
     },
+    "Stop Recording Screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener grabación de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter l’enregistrement de l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dừng ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止录制屏幕"
+          }
+        }
+      }
+    },
     "Stop after a recording length of" : {
       "comment" : "A settings search result for the auto-stop after a recording length.",
       "isCommentAutoGenerated" : true,
@@ -19958,6 +22236,34 @@
         }
       }
     },
+    "Stop recording the screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar de grabar la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter d’enregistrer l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dừng ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止录制屏幕"
+          }
+        }
+      }
+    },
     "Stop recording?" : {
       "localizations" : {
         "es" : {
@@ -19982,6 +22288,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要停止录音吗？"
+          }
+        }
+      }
+    },
+    "Stop screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener la grabación de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter l’enregistrement de l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dừng ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止录屏"
           }
         }
       }
@@ -21259,6 +23593,252 @@
         }
       }
     },
+    "The audio and video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversation will be moved to the Trash at the next run (at launch or within a day):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversación se trasladarán a la Papelera en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversation seront placés dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ở lần chạy tới (khi khởi động hoặc trong vòng một ngày):"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的音频和视频将在下次运行时（启动时或一天内）移到废纸篓："
+          }
+        }
+      }
+    },
+    "The audio and video of %lld conversations will be moved to the Trash now, then daily for older ones:" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversation will be moved to the Trash now, then daily for older ones:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversations will be moved to the Trash now, then daily for older ones:"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera ahora y, después, a diario los de las más antiguas:"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversación se trasladarán a la Papelera ahora y, después, a diario los de las más antiguas:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera ahora y, después, a diario los de las más antiguas:"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversation seront placés dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ngay bây giờ, sau đó hằng ngày với các cuộc cũ hơn:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的音频和视频将立即移到废纸篓，之后每天处理更旧的对话："
+          }
+        }
+      }
+    },
+    "The audio and video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of transcribed conversations older than %lld day will be moved to the Trash once a day. Nothing matches now."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de las conversaciones transcritas con más de %lld días se trasladarán a la Papelera una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de las conversaciones transcritas con más de %lld día se trasladarán a la Papelera una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de las conversaciones transcritas con más de %lld días se trasladarán a la Papelera una vez al día. Ahora no hay coincidencias."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo des conversations transcrites de plus de %lld jours seront placés dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo des conversations transcrites de plus de %lld jour seront placés dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo des conversations transcrites de plus de %lld jours seront placés dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video của các cuộc hội thoại đã chép lời cũ hơn %lld ngày sẽ được chuyển vào Thùng rác mỗi ngày một lần. Hiện không có gì khớp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超过 %lld 天的已转写对话的音频和视频将每天移到废纸篓一次。目前没有匹配项。"
+          }
+        }
+      }
+    },
     "The audio device changed while recording was starting. Try again." : {
       "localizations" : {
         "es" : {
@@ -21374,6 +23954,7 @@
       }
     },
     "The audio of %lld conversations will be moved to the Trash at the next run (at launch or within a day):" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -21456,6 +24037,7 @@
       }
     },
     "The audio of %lld conversations will be moved to the Trash now, then daily for older ones:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -21538,6 +24120,7 @@
       }
     },
     "The audio of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -21901,6 +24484,62 @@
         }
       }
     },
+    "The next recording also records %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La próxima grabación también graba %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le prochain enregistrement enregistre aussi %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bản ghi âm tiếp theo cũng ghi %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次录音也会录制 %@"
+          }
+        }
+      }
+    },
+    "The next recording also records the screen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La próxima grabación también graba la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le prochain enregistrement enregistre aussi l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bản ghi âm tiếp theo cũng ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次录音也会录制屏幕"
+          }
+        }
+      }
+    },
     "The open chat stays. This can't be undone." : {
       "localizations" : {
         "es" : {
@@ -22121,6 +24760,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存的转写文本会在停止后生成，可能有所不同。"
+          }
+        }
+      }
+    },
+    "The screen could not be recorded. The sound is still recording." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido grabar la pantalla. El sonido se sigue grabando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’écran n’a pas pu être enregistré. Le son est toujours enregistré."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể ghi màn hình. Âm thanh vẫn đang được ghi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法录制屏幕。声音仍在录制。"
+          }
+        }
+      }
+    },
+    "The screen could not be recorded. This recording will not be transcribed automatically; you can transcribe it later." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido grabar la pantalla. Esta grabación no se transcribirá automáticamente; puedes transcribirla más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’écran n’a pas pu être enregistré. Cet enregistrement ne sera pas transcrit automatiquement ; vous pourrez le transcrire plus tard."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể ghi màn hình. Bản ghi âm này sẽ không được chép lời tự động; bạn có thể chép lời sau."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法录制屏幕。此录音不会自动转写；你可以稍后转写。"
+          }
+        }
+      }
+    },
+    "The screen is recorded too" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pantalla también se graba"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’écran est aussi enregistré"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Màn hình cũng đang được ghi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕也在录制"
+          }
+        }
+      }
+    },
+    "The screen recording is moved to the Trash. Everything else in the conversation stays." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La grabación de pantalla se traslada a la Papelera. Todo lo demás de la conversación se conserva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enregistrement de l’écran est placé dans la Corbeille. Tout le reste de la conversation est conservé."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong cuộc hội thoại vẫn được giữ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制会移到废纸篓。对话中的其他内容都会保留。"
+          }
+        }
+      }
+    },
+    "The screen recordings are moved to the Trash. Everything else in these conversations stays." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las grabaciones de pantalla se trasladan a la Papelera. Todo lo demás de estas conversaciones se conserva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les enregistrements de l’écran sont placés dans la Corbeille. Tout le reste de ces conversations est conservé."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong các cuộc hội thoại này vẫn được giữ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制会移到废纸篓。这些对话中的其他内容都会保留。"
+          }
+        }
+      }
+    },
+    "The screen was recorded until it stopped" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pantalla se grabó hasta que se detuvo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’écran a été enregistré jusqu’à son arrêt"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Màn hình đã được ghi cho đến khi dừng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制已在中途停止"
           }
         }
       }
@@ -22376,6 +25183,308 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "转写模型、说话人模型和 AI 模型会从这台 Mac 上移除（不会移到废纸篓）。可在“设置 › 转写”和“设置 › AI”中重新下载。"
+          }
+        }
+      }
+    },
+    "The video could not be exported." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido exportar el vídeo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La vidéo n’a pas pu être exportée."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể xuất video."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法导出视频。"
+          }
+        }
+      }
+    },
+    "The video files are moved to the Trash. Audio, transcripts, summaries and chats stay." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos de vídeo se trasladan a la Papelera. El audio, las transcripciones, los resúmenes y los chats se conservan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les fichiers vidéo sont placés dans la Corbeille. L’audio, les transcriptions, les résumés et les discussions restent."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các tệp video được chuyển vào Thùng rác. Âm thanh, bản chép lời, bản tóm tắt và cuộc trò chuyện vẫn được giữ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频文件会移到废纸篓。音频、转写文本、摘要和聊天会保留。"
+          }
+        }
+      }
+    },
+    "The video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversation will be moved to the Trash at the next run (at launch or within a day):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversación se trasladará a la Papelera en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversation sera placée dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ở lần chạy tới (khi khởi động hoặc trong vòng một ngày):"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的视频将在下次运行时（启动时或一天内）移到废纸篓："
+          }
+        }
+      }
+    },
+    "The video of %lld conversations will be moved to the Trash now, then daily for older ones:" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversation will be moved to the Trash now, then daily for older ones:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversations will be moved to the Trash now, then daily for older ones:"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera ahora y, después, a diario el de las más antiguas:"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversación se trasladará a la Papelera ahora y, después, a diario el de las más antiguas:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera ahora y, después, a diario el de las más antiguas:"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversation sera placée dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ngay bây giờ, sau đó hằng ngày với các cuộc cũ hơn:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的视频将立即移到废纸篓，之后每天处理更旧的对话："
+          }
+        }
+      }
+    },
+    "The video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of transcribed conversations older than %lld day will be moved to the Trash once a day. Nothing matches now."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de las conversaciones transcritas con más de %lld días se trasladará a la Papelera una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de las conversaciones transcritas con más de %lld día se trasladará a la Papelera una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de las conversaciones transcritas con más de %lld días se trasladará a la Papelera una vez al día. Ahora no hay coincidencias."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo des conversations transcrites de plus de %lld jours sera placée dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo des conversations transcrites de plus de %lld jour sera placée dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo des conversations transcrites de plus de %lld jours sera placée dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video của các cuộc hội thoại đã chép lời cũ hơn %lld ngày sẽ được chuyển vào Thùng rác mỗi ngày một lần. Hiện không có gì khớp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超过 %lld 天的已转写对话的视频将每天移到废纸篓一次。目前没有匹配项。"
           }
         }
       }
@@ -23008,6 +26117,34 @@
         }
       }
     },
+    "Transcribe screen recordings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribir las grabaciones de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrire les enregistrements de l’écran"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chép lời bản ghi màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转写屏幕录制"
+          }
+        }
+      }
+    },
     "Transcribe this conversation" : {
       "comment" : "A button that transcribes a conversation.",
       "isCommentAutoGenerated" : true,
@@ -23034,6 +26171,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "转写此对话"
+          }
+        }
+      }
+    },
+    "Transcribe this recording" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribir esta grabación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrire cet enregistrement"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chép lời bản ghi âm này"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转写此录音"
           }
         }
       }
@@ -23236,6 +26401,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "转写失败 — 请重新转写此对话"
+          }
+        }
+      }
+    },
+    "Transcription is off for this recording." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La transcripción está desactivada para esta grabación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La transcription est désactivée pour cet enregistrement."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chép lời đang tắt cho bản ghi âm này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此录音的转写已关闭。"
           }
         }
       }
@@ -24187,6 +27380,34 @@
         }
       }
     },
+    "Use 60 fps" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar 60 fps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser 60 fps"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng 60 fps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 60 fps"
+          }
+        }
+      }
+    },
     "Use an https link." : {
       "localizations" : {
         "es" : {
@@ -24551,6 +27772,146 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通过 API"
+          }
+        }
+      }
+    },
+    "Video" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vídeo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频"
+          }
+        }
+      }
+    },
+    "Video layout" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposición del vídeo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposition de la vidéo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bố cục video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频布局"
+          }
+        }
+      }
+    },
+    "Video on the left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vídeo a la izquierda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo à gauche"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video ở bên trái"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频在左侧"
+          }
+        }
+      }
+    },
+    "Video on top" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vídeo arriba"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo en haut"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video ở trên"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频在上方"
+          }
+        }
+      }
+    },
+    "Video only (keep audio, transcript, summary and chat)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo el vídeo (conservar audio, transcripción, resumen y chat)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo seulement (conserver l’audio, la transcription, le résumé et la discussion)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ video (giữ âm thanh, bản chép lời, bản tóm tắt và cuộc trò chuyện)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅视频（保留音频、转写文本、摘要和聊天）"
           }
         }
       }
@@ -25714,6 +29075,34 @@
         }
       }
     },
+    "macOS applies the permission once EchoDiar is quit and opened again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS aplica el permiso cuando EchoDiar se cierra y se vuelve a abrir."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS applique l’autorisation une fois EchoDiar quitté et rouvert."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS áp dụng quyền này sau khi bạn thoát và mở lại EchoDiar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出并重新打开 EchoDiar 后，macOS 才会应用该权限。"
+          }
+        }
+      }
+    },
     "macOS gives silence, not an error, when System Audio Recording is off. If you just allowed it, test again. Otherwise turn on EchoDiar in Privacy & Security › Screen & System Audio Recording." : {
       "localizations" : {
         "es" : {
@@ -25854,6 +29243,34 @@
         }
       }
     },
+    "the last area" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la última área"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la dernière zone"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vùng gần nhất"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次的区域"
+          }
+        }
+      }
+    },
     "the provider" : {
       "localizations" : {
         "es" : {
@@ -25878,6 +29295,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提供商"
+          }
+        }
+      }
+    },
+    "the selected area" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "el área seleccionada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la zone sélectionnée"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vùng đã chọn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选区域"
           }
         }
       }

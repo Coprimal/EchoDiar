@@ -52,6 +52,9 @@ public sealed partial class StorageSettingsPage : UserControl
 
     private enum Kind { Audio, TranscriptsAndAI, Models }
 
+    /// <summary>The mode combo's rows, in macOS order (not the enum's).</summary>
+    private static readonly RetentionMode[] ModeRows = [RetentionMode.VideoOnly, RetentionMode.AudioOnly, RetentionMode.WholeConversation];
+
     private readonly AppViewModel _model;
     private readonly SettingsViewModel _settings;
 
@@ -139,7 +142,7 @@ public sealed partial class StorageSettingsPage : UserControl
         ModeCombo.SelectionChanged += (_, _) =>
         {
             if (_syncing || ModeCombo.SelectedIndex < 0) return;
-            var mode = (RetentionMode)ModeCombo.SelectedIndex;
+            var mode = ModeRows[ModeCombo.SelectedIndex];
             _ = ChangeAutoDeleteAsync(s => s with { AutoDeleteMode = mode });
         };
 
@@ -230,7 +233,7 @@ public sealed partial class StorageSettingsPage : UserControl
             DeleteAfterToggle.IsOn = _settings.DeleteAudioAfterTranscription;
             AutoDeleteToggle.IsOn = _settings.AutoDeleteEnabled;
             DaysBox.Value = _settings.AutoDeleteAfterDays;
-            ModeCombo.SelectedIndex = (int)_settings.AutoDeleteMode;
+            ModeCombo.SelectedIndex = Array.IndexOf(ModeRows, _settings.AutoDeleteMode);
         }
         finally
         {
@@ -289,6 +292,7 @@ public sealed partial class StorageSettingsPage : UserControl
         (ColumnDefinition Column, Border Part, long Bytes)[] parts =
         [
             (AudioColumn, AudioPart, usage.Audio),
+            (VideoColumn, VideoPart, usage.Video),
             (TranscriptsColumn, TranscriptsPart, usage.TranscriptsAndAI),
             (ModelsColumn, ModelsPart, usage.Models),
         ];
@@ -303,12 +307,13 @@ public sealed partial class StorageSettingsPage : UserControl
         }
         FreeColumn.Width = total > 0 ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         AudioSizeText.Text = ConversationCard.FileSize(usage.Audio);
+        VideoSizeText.Text = ConversationCard.FileSize(usage.Video);
         TranscriptsSizeText.Text = ConversationCard.FileSize(usage.TranscriptsAndAI);
         ModelsSizeText.Text = ConversationCard.FileSize(usage.Models);
         TotalSizeText.Text = ConversationCard.FileSize(total);
     }
 
-    /// <summary>The five largest conversations, each over a bar as long as its share of the largest one (audio, then the rest).</summary>
+    /// <summary>The five largest conversations, each over a bar as long as its share of the largest one (audio, video, then the rest).</summary>
     private void ShowLargest(LibraryStore.Usage usage)
     {
         var largest = usage.Conversations.Take(LargestCount).ToList();
@@ -358,25 +363,31 @@ public sealed partial class StorageSettingsPage : UserControl
         return row;
     }
 
-    /// <summary>A 4 px bar: the audio and the rest of <paramref name="usage"/>, over a track as long as <paramref name="max"/>.</summary>
+    /// <summary>A 4 px bar: the audio, the video and the rest of <paramref name="usage"/>, over a track as long as <paramref name="max"/>.</summary>
     private Grid ShareBar(LibraryStore.ConversationUsage usage, long max)
     {
-        var rest = usage.Total - usage.Audio;
+        var rest = Math.Max(0, usage.Total - usage.Audio - usage.Video);
         var bar = new Grid { Style = StyleOf("TrackStyle") };
         AutomationProperties.SetAccessibilityView(bar, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
-        foreach (var bytes in new[] { usage.Audio, rest, Math.Max(0, max - usage.Total) })
+        (string Style, long Bytes)[] parts = [("AudioPartStyle", usage.Audio), ("VideoPartStyle", usage.Video), ("RestPartStyle", rest)];
+        foreach (var bytes in parts.Select(p => p.Bytes).Append(Math.Max(0, max - usage.Total)))
         {
             bar.ColumnDefinitions.Add(new ColumnDefinition
             {
                 Width = bytes > 0 ? new GridLength(bytes, GridUnitType.Star) : new GridLength(0),
             });
         }
-        // The filled part's rounded ends.
-        var audio = new Border { Style = StyleOf("AudioPartStyle"), CornerRadius = new CornerRadius(2, rest > 0 ? 0 : 2, rest > 0 ? 0 : 2, 2) };
-        var other = new Border { Style = StyleOf("RestPartStyle"), CornerRadius = new CornerRadius(usage.Audio > 0 ? 0 : 2, 2, 2, usage.Audio > 0 ? 0 : 2) };
-        Grid.SetColumn(other, 1);
-        bar.Children.Add(audio);
-        bar.Children.Add(other);
+        // The filled part's rounded ends: the first and the last part shown round their outer corners.
+        var first = Array.FindIndex(parts, p => p.Bytes > 0);
+        var last = Array.FindLastIndex(parts, p => p.Bytes > 0);
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var left = i == first ? 2 : 0;
+            var right = i == last ? 2 : 0;
+            var part = new Border { Style = StyleOf(parts[i].Style), CornerRadius = new CornerRadius(left, right, right, left) };
+            Grid.SetColumn(part, i);
+            bar.Children.Add(part);
+        }
         return bar;
     }
 
@@ -409,9 +420,9 @@ public sealed partial class StorageSettingsPage : UserControl
     /// <summary>Conversations with audio that can lose it now (not recorded, compressed or transcribed).</summary>
     private List<Conversation> AudioCandidates() => [.. _model.Conversations.Where(c => c.HasAudio && _model.CanDelete(c))];
 
-    /// <summary>Conversations with a transcript, summary or chat to delete, or without audio (deleted whole).</summary>
+    /// <summary>Conversations with a transcript, summary or chat to delete, or without audio and video (deleted whole).</summary>
     private List<Conversation> TranscriptCandidates() =>
-        [.. _model.Conversations.Where(c => _model.CanDelete(c) && (c.HasTranscript || c.HasSummary || !c.HasAudio))];
+        [.. _model.Conversations.Where(c => _model.CanDelete(c) && (c.HasTranscript || c.HasSummary || (!c.HasAudio && !c.HasVideo)))];
 
     /// <summary>Transcribed conversations whose audio is still on disk, per the last usage measure.</summary>
     private List<Conversation> TranscribedWithAudio()
@@ -440,19 +451,23 @@ public sealed partial class StorageSettingsPage : UserControl
     }
 
     /// <summary>
-    /// A usage row's Delete: asks with what it removes, then removes it from what qualifies when confirmed (busy ones
-    /// are skipped). Texts as macOS, with the Recycle Bin for the Trash.
+    /// A usage row's Delete: asks with what it removes, then removes exactly what the dialog counted (ones that became
+    /// busy meanwhile are skipped, and conversations added meanwhile are not touched). Texts as macOS, with the Recycle
+    /// Bin for the Trash.
     /// </summary>
     private async Task DeleteAllAsync(Kind kind)
     {
         string title;
         string message;
+        List<Guid> ids = [];
+        HashSet<Guid> whole = [];
         switch (kind)
         {
             case Kind.Audio:
             {
                 var candidates = AudioCandidates();
                 if (candidates.Count == 0) return;
+                ids = [.. candidates.Select(c => c.Id)];
                 var untranscribed = candidates.Count(c => !c.HasTranscript);
                 title = Loc.Plural("Delete the audio of %lld conversations?", candidates.Count);
                 message = Loc.T("The audio files are moved to the Recycle Bin. Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.")
@@ -464,11 +479,16 @@ public sealed partial class StorageSettingsPage : UserControl
             {
                 var candidates = TranscriptCandidates();
                 if (candidates.Count == 0) return;
-                var withoutAudio = candidates.Count(c => !c.HasAudio);
+                ids = [.. candidates.Select(c => c.Id)];
+                whole = [.. candidates.Where(c => !c.HasAudio && !c.HasVideo).Select(c => c.Id)];
+                var withoutMedia = whole.Count;
+                var videoOnly = candidates.Count(c => !c.HasAudio && c.HasVideo);
                 title = Loc.Plural("Delete the transcripts, summaries and chats of %lld conversations?", candidates.Count);
                 message = Loc.T("They are moved to the Recycle Bin. The audio stays, so the conversations can be transcribed again.")
-                    + (withoutAudio == 0 ? ""
-                        : "\n\n" + Loc.Plural("%lld conversations without audio would be left empty: they are moved to the Recycle Bin entirely.", withoutAudio));
+                    + (withoutMedia == 0 ? ""
+                        : "\n\n" + Loc.Plural("%lld conversations without audio or video would be left empty: they are moved to the Recycle Bin entirely.", withoutMedia))
+                    + (videoOnly == 0 ? ""
+                        : "\n\n" + Loc.Plural("%lld conversations have video but no audio: their video stays, but they cannot be transcribed again.", videoOnly));
                 break;
             }
             default:
@@ -484,10 +504,12 @@ public sealed partial class StorageSettingsPage : UserControl
         switch (kind)
         {
             case Kind.Audio:
-                await DeletingAsync(() => _model.DeleteAudioAsync([.. AudioCandidates().Select(c => c.Id)]));
+                await DeletingAsync(() => _model.DeleteAudioAsync(StillDeletable(ids)));
                 break;
             case Kind.TranscriptsAndAI:
-                await DeletingAsync(() => _model.DeleteTranscriptsAndAIAsync([.. TranscriptCandidates().Select(c => c.Id)]));
+                // One that lost its audio and video meanwhile would go whole, which the dialog did not say: kept.
+                await DeletingAsync(() => _model.DeleteTranscriptsAndAIAsync(
+                    StillDeletable(ids, c => c.HasAudio || c.HasVideo || whole.Contains(c.Id))));
                 break;
             default:
                 // A recording or a transcription may have started while the dialog was open.
@@ -499,15 +521,25 @@ public sealed partial class StorageSettingsPage : UserControl
     /// <summary>"Delete audio of transcribed conversations…": asks, then moves their audio to the Recycle Bin.</summary>
     private async Task DeleteTranscribedAudioAsync()
     {
-        var count = TranscribedWithAudio().Count;
+        List<Guid> ids = [.. TranscribedWithAudio().Select(c => c.Id)];
+        var count = ids.Count;
         if (count == 0 || _model.Confirm is not { } confirm) return;
         var confirmed = await confirm(
             Loc.Plural("Delete the audio of %lld transcribed conversations?", count),
             Loc.T("The audio files are moved to the Recycle Bin. Transcripts, summaries and chats stay."),
             Loc.T("Move to Recycle Bin"));
         if (!confirmed || _model.IsClosing) return;
-        await DeletingAsync(() => _model.DeleteAudioAsync([.. TranscribedWithAudio().Select(c => c.Id)]));
+        // The dialog said the transcripts stay: one that lost its transcript meanwhile keeps its audio.
+        await DeletingAsync(() => _model.DeleteAudioAsync(StillDeletable(ids, c => c.HasTranscript)));
     }
+
+    /// <summary>
+    /// The confirmed conversations still in the library that can be deleted now (not recording, compressing or
+    /// transcribing) and still <paramref name="match"/> what the dialog said; the view model skips any with a job.
+    /// </summary>
+    private List<Guid> StillDeletable(List<Guid> ids, Func<Conversation, bool>? match = null) =>
+        [.. ids.Where(id => _model.Conversations.FirstOrDefault(c => c.Id == id) is { } c
+            && _model.CanDelete(c) && (match?.Invoke(c) ?? true))];
 
     /// <summary>Runs a deletion with the delete buttons off.</summary>
     private async Task DeletingAsync(Func<Task> delete)
@@ -610,7 +642,8 @@ public sealed partial class StorageSettingsPage : UserControl
 
     /// <summary>
     /// Off: saved at once. On: saved at once unless the next run would then delete more than now (another conversation,
-    /// or whole folders instead of audio), which asks first with the new list; Cancel shows the saved value again.
+    /// or more of one: audio instead of video, whole folders instead of media), which asks first with the new list;
+    /// Cancel shows the saved value again.
     /// </summary>
     private async Task ChangeAutoDeleteAsync(Func<AppSettings, AppSettings> change)
     {
@@ -662,44 +695,54 @@ public sealed partial class StorageSettingsPage : UserControl
         }
     }
 
-    /// <summary><paramref name="next"/> has a conversation <paramref name="now"/> has not, or deletes the whole folder of one whose audio only it deletes.</summary>
+    /// <summary>
+    /// <paramref name="next"/> has a conversation <paramref name="now"/> has not, or deletes one under a mode of higher
+    /// <see cref="RetentionModeExtensions.Rank"/> (video only &lt; audio and video &lt; whole conversation; macOS <c>deletesMore</c>).
+    /// </summary>
     private static bool DeletesMore(IReadOnlyList<RetentionPolicy.Deletion> next, IReadOnlyList<RetentionPolicy.Deletion> now)
     {
         var modes = new Dictionary<Guid, RetentionMode>();
         foreach (var deletion in now) modes.TryAdd(deletion.ConversationId, deletion.Mode);
         return next.Any(deletion => !modes.TryGetValue(deletion.ConversationId, out var mode)
-            || (mode == RetentionMode.AudioOnly && deletion.Mode == RetentionMode.WholeConversation));
+            || deletion.Mode.Rank() > mode.Rank());
     }
 
     // The auto-delete messages: as macOS, with the Recycle Bin for the Trash.
 
     private string TurnOnMessage(AppSettings settings, IReadOnlyList<RetentionPolicy.Deletion> preview)
     {
-        var audio = settings.AutoDeleteMode == RetentionMode.AudioOnly;
         if (preview.Count == 0)
         {
-            return Loc.Plural(
-                audio
-                    ? "The audio of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now."
-                    : "All files of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.",
-                settings.AutoDeleteAfterDays);
+            var text = settings.AutoDeleteMode switch
+            {
+                RetentionMode.VideoOnly =>
+                    "The video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.",
+                RetentionMode.AudioOnly =>
+                    "The audio and video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.",
+                _ => "All files of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.",
+            };
+            return Loc.Plural(text, settings.AutoDeleteAfterDays);
         }
-        var head = Loc.Plural(
-            audio
-                ? "The audio of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:"
-                : "All files of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:",
-            preview.Count);
-        return $"{head}\n\n{TitleList(preview)}";
+        var head = settings.AutoDeleteMode switch
+        {
+            RetentionMode.VideoOnly => "The video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:",
+            RetentionMode.AudioOnly => "The audio and video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:",
+            _ => "All files of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:",
+        };
+        return $"{Loc.Plural(head, preview.Count)}\n\n{TitleList(preview)}";
     }
 
     private string ChangeMessage(AppSettings settings, IReadOnlyList<RetentionPolicy.Deletion> preview)
     {
-        var head = Loc.Plural(
-            settings.AutoDeleteMode == RetentionMode.AudioOnly
-                ? "The audio of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):"
-                : "All files of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):",
-            preview.Count);
-        return $"{head}\n\n{TitleList(preview)}";
+        var head = settings.AutoDeleteMode switch
+        {
+            RetentionMode.VideoOnly =>
+                "The video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):",
+            RetentionMode.AudioOnly =>
+                "The audio and video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):",
+            _ => "All files of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):",
+        };
+        return $"{Loc.Plural(head, preview.Count)}\n\n{TitleList(preview)}";
     }
 
     private string TitleList(IReadOnlyList<RetentionPolicy.Deletion> deletions)
