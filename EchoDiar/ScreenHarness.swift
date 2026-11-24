@@ -23,7 +23,7 @@ extension AppModel {
             $0.deleteAudioAfterTranscription = false
         }
         let harness = ScreenHarness(
-            engine: engine, settingsDirectory: settingsDirectory, transcriberStarted: transcriberStarted)
+            model: self, settingsDirectory: settingsDirectory, transcriberStarted: transcriberStarted)
         ScreenHarness.current = harness
         Task { await harness.run() }
         return true
@@ -36,7 +36,8 @@ extension AppModel {
 ///
 /// `--measure-screen <static|slides|scroll|meeting|video> --target window|display|area:x,y,w,h --seconds N
 /// --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps 15] [--quality 0.75] [--pause-at S] [--resume-at S]
-/// [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] [--any-display]`
+/// [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] [--any-display] [--via-model] [--no-transcribe]
+/// [--resize-at S]`
 ///
 /// Copies the stage page and the clip into `<out>/stage/`, shows the page on the built-in display (a titled 1440x900
 /// window for `window`; a borderless `.screenSaver` window covering the whole display for `display` and `area`, the
@@ -46,6 +47,12 @@ extension AppModel {
 /// `<out>/result.json` holds the numbers. `--seconds` counts from the moment the video started (the engine starts
 /// just before it); `--pause-at` and `--resume-at` count from there too and pause or resume both.
 /// `--stage-only` only shows the stage for `seconds` (printing `WINDOWID <n>`), for Screenshot baselines.
+/// `--via-model` records through the app's own path instead: the source armed on `AppModel.screenRecording`, Record
+/// (`toggleRecording`, not brought forward), `togglePause` and Stop, the engine on `<out>` as a probe session with no
+/// live transcriber and nothing finished after Stop (`AppModel.harnessRecordingRoot`); `--fps`, `--quality` and
+/// `--no-cursor` go through the settings, and `--no-transcribe` turns `screenTranscribes` off ("screen only").
+/// `--resize-at S` (window target only) shrinks the stage window to `resizedSize`, top-left kept, on the same display,
+/// S seconds after the video started; `result.json` reports the actual time as `resizedAt` and the new frame.
 ///
 /// `--measure-screen preflight --out <dir> --stage <page> --clip <mp4>` checks the grants and the instruments and
 /// deletes everything it recorded (see `preflight()`).
@@ -87,6 +94,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     static let motionScenarios: Set<String> = ["scroll", "meeting", "video"]
     /// The stage window of `--target window`, frame size in points (title bar included).
     static let windowSize = NSSize(width: 1440, height: 900)
+    /// The stage window's frame size after `--resize-at`, in points.
+    static let resizedSize = NSSize(width: 1200, height: 750)
     /// The system channel must peak above this in preflight (a denied tap delivers silence).
     static let silenceThresholdDB = -40.0
 
@@ -119,6 +128,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
 
     // MARK: Options
 
+    private let model: AppModel
     private let engine: RecordingEngine
     private let settingsDirectory: URL
     private let transcriberStarted: @MainActor () -> Bool
@@ -133,12 +143,15 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     private let quality: Double
     private let pauseAt: Double?
     private let resumeAt: Double?
+    private let resizeAt: Double?
     private let noVideo: Bool
     private let noCursor: Bool
     private let syncMarks: Bool
     private let stageOnly: Bool
     private let mov: Bool
     private let anyDisplay: Bool
+    private let viaModel: Bool
+    private let noTranscribe: Bool
 
     // MARK: Run state
 
@@ -153,6 +166,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     private var recording = false
     private var videoStartFileTime: Double?
     private var endEvent: ScreenRecorder.EndEvent?
+    /// `--via-model`: what the snapshot consumer handed over once the video was finished.
+    private var modelEnded: (folder: URL?, video: ScreenRecordingController.Outcome?)?
+    private var modelEndReason: ScreenRecordingController.EndReason?
     private var maxFootprint: UInt64 = 0
     private var sampler: Task<Void, Never>?
     /// Preflight: folders to delete before exiting.
@@ -161,15 +177,17 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
 
     private var videoFileName: String { mov ? "video.mov" : ScreenSource.videoFileName }
 
-    init(engine: RecordingEngine, settingsDirectory: URL, transcriberStarted: @escaping @MainActor () -> Bool) {
-        self.engine = engine
+    init(model: AppModel, settingsDirectory: URL, transcriberStarted: @escaping @MainActor () -> Bool) {
+        self.model = model
+        engine = model.engine
         self.settingsDirectory = settingsDirectory
         self.transcriberStarted = transcriberStarted
         let arguments = ProcessInfo.processInfo.arguments
         let usage = "usage: --measure-screen <static|slides|scroll|meeting|video> --target window|display|area:x,y,w,h "
             + "--seconds N --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps N] [--quality Q] "
             + "[--pause-at S] [--resume-at S] [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] "
-            + "[--any-display] | --measure-screen preflight --out <dir> --stage <page> --clip <mp4>"
+            + "[--any-display] [--via-model] [--no-transcribe] [--resize-at S] | --measure-screen preflight --out <dir> "
+            + "--stage <page> --clip <mp4>"
         // `isolatedDirectory` already exited 8 unless `--out` is a usable folder.
         guard let out = Self.isolatedDirectory() else { Self.die(Code.badOut, "error: --out is missing") }
         self.out = out
@@ -184,6 +202,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         stageOnly = arguments.contains("--stage-only")
         mov = arguments.contains("--mov")
         anyDisplay = arguments.contains("--any-display")
+        viaModel = arguments.contains("--via-model")
+        noTranscribe = arguments.contains("--no-transcribe")
+        if viaModel, noVideo || mov { Self.die(Code.failed, "error: --via-model records video.mp4: no --no-video or --mov") }
         func number(_ flag: String) -> Double? {
             guard let text = Self.value(after: flag) else { return nil }
             guard let value = Double(text), value.isFinite, value >= 0 else { Self.die(Code.failed, "error: bad \(flag) \(text)") }
@@ -193,10 +214,12 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         let quality = number("--quality") ?? 0.75
         let pauseAt = number("--pause-at")
         let resumeAt = number("--resume-at")
+        let resizeAt = number("--resize-at")
         self.fps = fps
         self.quality = quality
         self.pauseAt = pauseAt
         self.resumeAt = resumeAt
+        self.resizeAt = resizeAt
         if command == "preflight" {
             target = .window
             targetName = "window"
@@ -228,6 +251,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             if let end = resumeAt ?? pauseAt, end >= runSeconds {
                 Self.die(Code.failed, "error: --pause-at and --resume-at must be before --seconds")
             }
+            if let resizeAt, name != "window" || resizeAt >= runSeconds {
+                Self.die(Code.failed, "error: --resize-at needs --target window and must be before --seconds")
+            }
         }
         super.init()
         fields = [
@@ -235,7 +261,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             "fps": fps, "quality": quality, "seconds": seconds, "pauseAt": pauseAt ?? NSNull(),
             "resumeAt": resumeAt ?? NSNull(), "noVideo": noVideo, "noCursor": noCursor, "syncMarks": syncMarks,
             "stageOnly": stageOnly, "videoFileName": noVideo ? NSNull() : videoFileName,
-            "settingsDirectory": settingsDirectory.path, "clipPlaying": NSNull(),
+            "settingsDirectory": settingsDirectory.path, "clipPlaying": NSNull(), "viaModel": viaModel,
+            "noTranscribe": noTranscribe, "resizeAt": resizeAt ?? NSNull(), "resizedAt": NSNull(),
         ]
     }
 
@@ -291,7 +318,11 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             await Self.sleep(seconds)
             await finish(Code.ok, nil)
         }
-        await record(displayID: displayID, window: window)
+        if viaModel {
+            await recordViaModel(displayID: displayID, window: window)
+        } else {
+            await record(displayID: displayID, window: window)
+        }
     }
 
     /// Starts the engine (muted) and the video, runs the timeline, stops both and checks the frames.
@@ -344,6 +375,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         }
         let start = ContinuousClock.now
         videoStartFileTime = engine.fileTime(atHostTime: mach_absolute_time())
+        scheduleResize(window, from: start)
         if syncMarks {
             // From recording start, not page load: the page runs no mark before this call.
             fields["marksAudioState"] = await js("return await startMarks();") as? String ?? NSNull()
@@ -385,14 +417,127 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         await finish(code, message)
     }
 
+    /// `--via-model`: the same run through `AppModel`. The source is armed, Record starts the engine (muted as soon
+    /// as it runs) and then the video; the timeline counts from the video running; pause and resume go through
+    /// `togglePause`.
+    private func recordViaModel(displayID: CGDirectDisplayID, window: NSWindow) async {
+        let engine = engine
+        let source: ScreenSource = switch target {
+        case .window: .window(CGWindowID(window.windowNumber))
+        case .display: .display(displayID)
+        case .area(let rect): .area(display: displayID, rect: rect)
+        }
+        model.updateSettings {
+            $0.screenFPS = fps
+            $0.screenQuality = quality
+            $0.screenShowsCursor = !noCursor
+            $0.screenShowsClicks = false
+            $0.screenTranscribes = !noTranscribe
+        }
+        model.harnessRecordingRoot = out
+        model.harnessRecordingEnded = { [weak self] folder, video in self?.modelEnded = (folder, video) }
+        model.screenRecording.armedSource = source
+        model.toggleRecording(bringForward: false)
+        guard await Self.wait(seconds: 15, until: { [model] in model.isRecording || model.recordingError != nil }),
+              model.isRecording else {
+            await finish(Code.failed, "error: the engine did not start: \(model.recordingError ?? "timeout")")
+        }
+        recording = true
+        // The engine cannot start muted: mute at once, so no microphone audio is written after this.
+        await Task.detached(priority: .userInitiated) { engine.toggleMicMuted() }.value
+        startSampler()
+        let screen = model.screenRecording
+        guard await Self.wait(seconds: 15, until: { screen.state != .starting && screen.state != .off }) else {
+            await finish(Code.failed, "error: the screen recorder did not start in 15 s")
+        }
+        if case .ended(let reason) = screen.state {
+            await finish(Code.failed, "error: the screen recorder did not start: \(reason) (\(screen.notice ?? ""))")
+        }
+        fields["videoStartAttempts"] = 1
+        let start = ContinuousClock.now
+        videoStartFileTime = engine.fileTime(atHostTime: mach_absolute_time())
+        scheduleResize(window, from: start)
+        if syncMarks {
+            fields["marksAudioState"] = await js("return await startMarks();") as? String ?? NSNull()
+        }
+        if let pauseAt {
+            try? await Task.sleep(until: start + .seconds(pauseAt))
+            model.togglePause()
+        }
+        if let resumeAt {
+            try? await Task.sleep(until: start + .seconds(resumeAt))
+            model.togglePause()
+        }
+        try? await Task.sleep(until: start + .seconds(seconds))
+        let videoError = await stopAndCollect()
+
+        var code = Code.ok
+        var message: String?
+        let frames = fields["frames"] as? Int ?? 0
+        let expected = fields["expectedFrames"] as? Double ?? 0
+        let gap = (fields["audioDuration"] as? Double ?? 0) - (fields["lastFrameFileTime"] as? Double ?? 0)
+        if frames == 0 {
+            (code, message) = (Code.noFrames, "error: no video frame was written")
+        } else if Self.motionScenarios.contains(command), Double(frames) < 0.9 * expected || gap > 1 {
+            (code, message) = (Code.fewFrames, String(
+                format: "error: %d frames of %.0f expected, last frame %.2f s before the end", frames, expected, gap))
+        } else if let videoError {
+            (code, message) = (Code.failed, "error: the video did not finish: \(videoError)")
+        } else if let modelEndReason {
+            (code, message) = (Code.failed, "error: the video ended early: \(modelEndReason)")
+        } else if let error = model.recordingError {
+            (code, message) = (Code.failed, "error: \(error)")
+        }
+        await finish(code, message)
+    }
+
+    /// `--resize-at`: shrinks the stage window to `resizedSize` (top-left kept, same display) at `start + resizeAt`
+    /// while the recording runs, and records when it happened and the frame it got.
+    private func scheduleResize(_ window: NSWindow, from start: ContinuousClock.Instant) {
+        guard let resizeAt else { return }
+        Task { [weak self] in
+            try? await Task.sleep(until: start + .seconds(resizeAt))
+            guard let self, self.recording else { return }
+            let old = window.frame
+            let display = window.screen.map { Self.displayID(of: $0) }
+            let frame = NSRect(
+                x: old.minX, y: old.maxY - Self.resizedSize.height,
+                width: Self.resizedSize.width, height: Self.resizedSize.height)
+            window.setFrame(frame, display: true)
+            let elapsed = ContinuousClock.now - start
+            self.fields["resizedAt"] = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+            self.fields["resizedFrame"] = [
+                "width": window.frame.width, "height": window.frame.height,
+                "sameDisplay": display != nil && window.screen.map { Self.displayID(of: $0) } == display,
+            ] as [String: Any]
+        }
+    }
+
+    /// `--via-model`: Stop, then the snapshot consumer's hand-over (the video finished at the audio file's length).
+    private func stopModelRecording() async {
+        if modelEnded == nil { model.stopRecording() }
+        guard await Self.wait(seconds: 30, until: { [weak self] in self?.modelEnded != nil }) else {
+            Self.warn("error: the recording did not end in 30 s")
+            return
+        }
+        sessionFolder = modelEnded?.folder
+        // The end snapshot's file time, which the video was finished at.
+        fields["videoStopFileTime"] = model.snapshot.elapsed
+    }
+
     /// Stops the video stream, then the engine, then ends the video at the audio file's length; fills the numbers.
     /// Returns the video's finish error, if any.
     private func stopAndCollect() async -> String? {
-        guard recording, let folder = sessionFolder else { return nil }
+        guard recording else { return nil }
         recording = false
         let engine = engine
-        await recorder?.pause()
-        await Task.detached(priority: .userInitiated) { _ = engine.stop() }.value
+        if viaModel {
+            await stopModelRecording()
+        } else {
+            await recorder?.pause()
+            await Task.detached(priority: .userInitiated) { _ = engine.stop() }.value
+        }
+        guard let folder = sessionFolder else { return nil }
         sampler?.cancel()
         sampleFootprint()
         fields["sessionFolder"] = folder.path
@@ -410,15 +555,23 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         fields["unpausedSeconds"] = unpaused
         // The same span on the audio file's clock; shorter when the audio file lost time.
         fields["fileTimeSpan"] = max(0, audioDuration - (videoStartFileTime ?? 0))
-        guard let recorder else { return nil }
-
+        let stats: ScreenRecorder.Stats
         var videoError: String?
-        do {
-            try await recorder.stop(at: audioDuration)
-        } catch {
-            videoError = String(describing: error)
+        if viaModel {
+            guard let video = modelEnded?.video else { return nil }
+            stats = video.stats
+            videoError = video.finishError
+            modelEndReason = video.endReason
+        } else {
+            guard let recorder else { return nil }
+            do {
+                try await recorder.stop(at: audioDuration)
+            } catch {
+                videoError = String(describing: error)
+            }
+            stats = recorder.stats
+            fields["videoStopFileTime"] = audioDuration
         }
-        let stats = recorder.stats
         let videoURL = folder.appendingPathComponent(videoFileName)
         let asset = AVURLAsset(url: videoURL)
         let videoDuration = try? await asset.load(.duration).seconds
@@ -437,7 +590,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         fields["lastFrameFileTime"] = stats.lastFileTime ?? NSNull()
         fields["videoDuration"] = videoDuration ?? NSNull()
         fields["videoTrackDuration"] = trackDuration ?? NSNull()
-        fields["videoEndEvent"] = endEvent.map { String(describing: $0) } ?? NSNull()
+        fields["videoEndEvent"] = (viaModel ? modelEndReason.map { String(describing: $0) }
+            : endEvent.map { String(describing: $0) }) ?? NSNull()
         fields["videoError"] = videoError ?? NSNull()
         return videoError
     }
@@ -686,6 +840,16 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
 
     private static func sleep(_ seconds: Double) async {
         try? await Task.sleep(for: .seconds(seconds))
+    }
+
+    /// Checks `condition` every 20 ms; false when it still does not hold after `seconds`.
+    private static func wait(seconds: Double, until condition: () -> Bool) async -> Bool {
+        let deadline = ContinuousClock.now + .seconds(seconds)
+        while !condition() {
+            guard ContinuousClock.now < deadline else { return false }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return true
     }
 
     nonisolated private static func value(after flag: String) -> String? {

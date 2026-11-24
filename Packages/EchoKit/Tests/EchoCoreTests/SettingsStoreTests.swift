@@ -33,6 +33,12 @@ struct SettingsStoreTests {
             #expect(store.load().rememberRecordingLanguage == false)
             #expect(store.load().lastRecordingLanguage == nil)
             #expect(store.load().libraryPageSize == 100)
+            #expect(store.load().screenFPS == 15)
+            #expect(store.load().screenQuality == 0.75)
+            #expect(store.load().screenShowsCursor)
+            #expect(!store.load().screenShowsClicks)
+            #expect(store.load().screenTranscribes)
+            #expect(store.load().screenSource == nil)
             #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         }
     }
@@ -109,6 +115,27 @@ struct SettingsStoreTests {
     func modelIdleMinutesIsClamped(written: Int, read: Int) throws {
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"modelIdleMinutes":\#(written)}"#.utf8))
         #expect(settings.modelIdleMinutes == read)
+    }
+
+    /// A hand-edited frame rate outside the offered ones falls back to 15; quality stays in the encoder's useful range.
+    @Test(arguments: [
+        (#"{"screenFPS":25}"#, 15, 0.75), (#"{"screenFPS":30}"#, 30, 0.75),
+        (#"{"screenQuality":0.2}"#, 15, 0.4), (#"{"screenQuality":1.0}"#, 15, 0.95),
+    ])
+    func screenFPSAndQualityAreNormalized(json: String, fps: Int, quality: Double) throws {
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.screenFPS == fps)
+        #expect(settings.screenQuality == quality)
+    }
+
+    /// The remembered screen source keeps its display and, when picked, its area.
+    @Test(arguments: [nil, CGRect(x: 10, y: 20, width: 640, height: 360)])
+    func screenSourceRoundTrips(area: CGRect?) throws {
+        try withTemporaryStore { store in
+            let settings = AppSettings(screenSource: RememberedScreenSource(displayID: 69_734_208, area: area))
+            try store.save(settings)
+            #expect(store.load().screenSource == settings.screenSource)
+        }
     }
 
     /// Playback plays both voices in both ears unless the user asked to split them.

@@ -203,10 +203,10 @@ struct MainView: View {
     }
 
     /// On the library page the sidebar button in its own capsule, then Back in its own capsule (not on the list without
-    /// the library chat), the record capsule, then a conversation's title. The record capsule: while idle Record and a
-    /// chevron menu that picks the target and the language; while recording, Stop (red, pulsing unless paused or Reduce
-    /// Motion) and Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the other buttons go to the
-    /// overflow menu first.
+    /// the library chat), the record capsule, then a conversation's title. The record capsule: while idle Record, a
+    /// chevron menu that picks the target and the language, and the screen control (`ScreenSourceButton`); while
+    /// recording, Stop (red, pulsing unless paused or Reduce Motion) and Pause/Resume. ⌘R and ⇧⌘P come from the main
+    /// menu. In a narrow window the other buttons go to the overflow menu first.
     @ToolbarContentBuilder private var leadingItems: some ToolbarContent {
         if Page(model.route) == .library {
             ToolbarItem(placement: leadingPlacement) {
@@ -292,6 +292,7 @@ struct MainView: View {
             .menuIndicator(.hidden)
             .disabled(model.isStarting)
             .help("Choose what to record and the language")
+            ScreenSourceButton(model: model)
         }
     }
 
@@ -389,12 +390,15 @@ struct MainView: View {
     private static let trailingButtonsWidth: CGFloat = 244
 
     private var updateWidth: CGFloat { showsUpdate ? 52 : 0 }
+    /// The record capsule's screen control, there only while idle.
+    private var screenButtonWidth: CGFloat { model.isRecording ? 0 : 36 }
 
     /// What the toolbar's other items leave of the window, at most `titleMaxWidth`: the title truncates instead of
     /// pushing buttons into the overflow menu.
     private var titleWidth: CGFloat {
         min(Self.titleMaxWidth,
-            windowWidth - Self.leadingWidth - Self.tabsWidth - Self.trailingButtonsWidth - updateWidth)
+            windowWidth - Self.leadingWidth - Self.tabsWidth - Self.trailingButtonsWidth - updateWidth
+                - screenButtonWidth)
     }
 
     /// Too short a title is left out.

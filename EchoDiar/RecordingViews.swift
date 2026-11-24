@@ -4,9 +4,9 @@ import EchoCore
 import SwiftUI
 
 /// The recording in the sidebar, above the first day: the recorded app's icon, its title (else "Recording…" or
-/// "Paused"; double-click to rename), the elapsed clock and mini meters, then a bottom row with Stop, Pause or Resume,
-/// Mute or Unmute and the language; selected adds the accent fill and stroke of `ConversationCard`. A click opens the
-/// recording page.
+/// "Paused"; double-click to rename), the elapsed clock, mini meters and a glyph while the screen is recorded too, then
+/// a bottom row with Stop, Pause or Resume, Mute or Unmute and the language; selected adds the accent fill and stroke of
+/// `ConversationCard`. A click opens the recording page.
 struct RecordingCard: View {
     let model: AppModel
     var selected = false
@@ -35,6 +35,10 @@ struct RecordingCard: View {
                         if !paused { MiniMeters(feed: model.levels) }
                     } else {
                         elapsedText
+                    }
+                    if screenRecorded {
+                        Image(systemName: "rectangle.dashed.badge.record")
+                            .help("The screen is recorded too")
                     }
                 }
                 .font(.caption)
@@ -85,6 +89,9 @@ struct RecordingCard: View {
 
     /// The `GlassCard` shape, for the selection.
     private static let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+
+    /// The recording has a screen video starting or running (a static glyph, no animation).
+    private var screenRecorded: Bool { model.screenRecording.isOn }
 
     /// The recording's title, else its state; a field while renamed in place, as `ConversationCard`'s title: Return
     /// saves, Esc and a click elsewhere cancel.
@@ -462,6 +469,12 @@ struct RecordingHeader: View {
                     .font(.callout)
                     .foregroundStyle(.yellow)
             }
+            // Why the screen video ended before the recording.
+            if let notice = model.screenRecording.notice {
+                Label(notice, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.yellow)
+            }
             if model.snapshot.silentTapSuspected {
                 SilentTapBanner { PrivacySettings.openSystemAudioRecording() }
             }
@@ -492,7 +505,7 @@ struct RecordingHeader: View {
                     .allowsHitTesting(false))
     }
 
-    /// The state icon, elapsed clock and state, the meters, "Catch up" and the language.
+    /// The state icon, elapsed clock and state, the meters, the screen toggle, "Catch up" and the language.
     private func statusRow(paused: Bool) -> some View {
         HStack(spacing: 10) {
             Image(systemName: paused ? "pause.circle.fill" : "record.circle.fill")
@@ -513,6 +526,7 @@ struct RecordingHeader: View {
             } else {
                 Spacer(minLength: 8)
             }
+            ScreenToggleButton(model: model, paused: paused)
             CatchUpButton(model: model)
             languageMenu
         }
@@ -541,6 +555,42 @@ struct RecordingHeader: View {
         let pattern: Duration.TimeFormatStyle.Pattern = elapsed >= 3_600 ? .hourMinuteSecond : .minuteSecond
         return Text(Duration.seconds(elapsed).formatted(.time(pattern: pattern)))
             .font(.body.monospacedDigit().weight(.semibold))
+    }
+}
+
+/// The recording header's screen toggle, a static glyph in the capsule style of "Catch up" (a record badge while the
+/// video runs): starts the armed or remembered source, or stops the video; not while paused, nor once this recording's
+/// video ended (one video span per recording). Without a source the model asks for one, and this control opens the
+/// source popover.
+private struct ScreenToggleButton: View {
+    let model: AppModel
+    let paused: Bool
+    @State private var showsPopover = false
+
+    var body: some View {
+        let screen = model.screenRecording
+        let on = screen.isOn
+        // The help sits on a wrapper: a disabled button may show none of its own.
+        HStack {
+            Button(action: model.toggleScreenRecording) {
+                Label(on ? "Stop screen" : "Screen",
+                      systemImage: on ? "rectangle.dashed.badge.record" : "rectangle.dashed")
+            }
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+            .disabled(!on && (paused || !screen.canStartDuringRecording))
+        }
+        .help(on ? "Stop recording the screen" : screen.canStartDuringRecording
+              ? (paused ? "Resume the recording to record the screen" : "Record the screen from now on")
+              : "The screen was recorded until it stopped")
+        .popover(isPresented: $showsPopover, arrowEdge: .bottom) {
+            ScreenSourcePopover(model: model)
+        }
+        .onChange(of: screen.sourcePickerRequested, initial: true) { _, requested in
+            guard requested else { return }
+            screen.sourcePickerRequested = false
+            showsPopover = true
+        }
     }
 }
 

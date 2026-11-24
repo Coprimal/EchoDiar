@@ -33,6 +33,11 @@ struct RecordingMenuControls {
     var micMuted: @MainActor () -> Bool
     var systemMicMuted: @MainActor () -> Bool
     var toggleMicMute: @MainActor () -> Void
+    /// The recording's screen video is starting or running.
+    var screenOn: @MainActor () -> Bool
+    /// The screen toggle can act: the video runs, or none ran in this recording yet.
+    var screenAvailable: @MainActor () -> Bool
+    var toggleScreen: @MainActor () -> Void
     var stop: @MainActor () -> Void
     var language: @MainActor () -> String
     /// `LanguageOptions.groups` for the current language.
@@ -264,8 +269,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(quit)
     }
 
-    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Stop, Language and the silent-tap fix. The values are read
-    /// when the menu opens.
+    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Record Screen/Stop Recording Screen, Stop, Language and the
+    /// silent-tap fix. The values are read when the menu opens.
     private func addRecordingItems(_ controls: RecordingMenuControls) {
         let elapsed = controls.elapsed()
         let pattern: Duration.TimeFormatStyle.Pattern = elapsed >= 3_600 ? .hourMinuteSecond : .minuteSecond
@@ -284,6 +289,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let muteItem = item(mute, #selector(toggleMicMute))
         muteItem.isEnabled = !systemMuted
         menu.addItem(muteItem)
+        menu.addItem(screenItem(controls))
         let stop = item(String(localized: "Stop Recording"), #selector(stopRecording))
         stop.isEnabled = recordingEnabled
         menu.addItem(stop)
@@ -292,6 +298,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.addItem(item(String(localized: "System audio is silent — Fix…"), #selector(fixSilentTap)))
         }
         menu.addItem(.separator())
+    }
+
+    /// The screen toggle with a static glyph (a record badge while the video runs). Starting is not offered while
+    /// paused, nor once this recording's video ended (one video span per recording).
+    private func screenItem(_ controls: RecordingMenuControls) -> NSMenuItem {
+        let on = controls.screenOn()
+        let screen = item(on ? String(localized: "Stop Recording Screen") : String(localized: "Record Screen"),
+                          #selector(toggleScreen))
+        screen.isEnabled = controls.screenAvailable() && (on || state != .paused)
+        screen.image = NSImage(systemSymbolName: on ? "rectangle.dashed.badge.record" : "rectangle.dashed",
+                               accessibilityDescription: nil)
+        return screen
     }
 
     /// Up to 3 events in progress or starting within 12 h, as "14:00 Weekly sync"; one with a link opens it.
@@ -346,6 +364,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
     @objc private func togglePause() { Self.controls?.togglePause() }
     @objc private func toggleMicMute() { Self.controls?.toggleMicMute() }
+    @objc private func toggleScreen() { Self.controls?.toggleScreen() }
     @objc private func stopRecording() { Self.controls?.stop() }
     @objc private func setLanguage(_ sender: NSMenuItem) {
         if let code = sender.representedObject as? String { Self.controls?.setLanguage(code) }

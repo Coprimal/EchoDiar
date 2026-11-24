@@ -144,6 +144,18 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var realtimeAsFinal: Bool
     /// Conversations per page in the library sidebar; offered sizes are `LibraryPaging.sizeOptions`.
     public var libraryPageSize: Int
+    /// Screen recording frame rate, one of `screenFPSOptions`; any other value reads as 15.
+    public var screenFPS: Int
+    /// Screen recording encoder quality, in `screenQualityRange`.
+    public var screenQuality: Double
+    /// Draw the pointer in screen recordings.
+    public var screenShowsCursor: Bool
+    /// Highlight clicks in screen recordings.
+    public var screenShowsClicks: Bool
+    /// Transcribe screen recordings; false = "screen only": the next screen recording gets the "no transcript" mark.
+    public var screenTranscribes: Bool
+    /// The display (and area) last picked for a screen recording; nil = none picked yet.
+    public var screenSource: RememberedScreenSource?
 
     public static let defaultEmbeddingModelID = "mlx-qwen3-embedding-0.6b"
 
@@ -214,7 +226,13 @@ public struct AppSettings: Codable, Equatable, Sendable {
         cloudLiveSource: CloudLiveSource = .off,
         cloudLiveModelID: String? = nil,
         realtimeAsFinal: Bool = false,
-        libraryPageSize: Int = 100
+        libraryPageSize: Int = 100,
+        screenFPS: Int = 15,
+        screenQuality: Double = 0.75,
+        screenShowsCursor: Bool = true,
+        screenShowsClicks: Bool = false,
+        screenTranscribes: Bool = true,
+        screenSource: RememberedScreenSource? = nil
     ) {
         self.launchAtLogin = launchAtLogin
         self.defaultLanguage = defaultLanguage
@@ -283,6 +301,12 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.cloudLiveModelID = cloudLiveModelID
         self.realtimeAsFinal = realtimeAsFinal
         self.libraryPageSize = libraryPageSize
+        self.screenFPS = screenFPS
+        self.screenQuality = screenQuality
+        self.screenShowsCursor = screenShowsCursor
+        self.screenShowsClicks = screenShowsClicks
+        self.screenTranscribes = screenTranscribes
+        self.screenSource = screenSource
     }
 
     public static let autoDeleteDaysRange = 1...3650
@@ -292,6 +316,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
     /// Idle times offered in Settings; a hand-edited value is clamped to `modelIdleMinutesRange`.
     public static let modelIdleMinutesOptions = [1, 2, 5, 10]
     public static let modelIdleMinutesRange = 1...60
+    /// Screen recording frame rates offered in Settings; a hand-edited other value reads as 15.
+    public static let screenFPSOptions = [15, 20, 30, 60]
+    public static let screenQualityRange = 0.4...0.95
 
     private enum CodingKeys: String, CodingKey {
         case version, launchAtLogin, defaultLanguage, recentLanguages, compressionBitrateKbps, keepUncompressedAudio
@@ -311,6 +338,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case autoExcludedProviderIDs, providerAvailabilityMigrated, aiSettingsMigrated
         case cloudLiveSource, cloudLiveModelID, realtimeAsFinal
         case libraryPageSize
+        case screenFPS, screenQuality, screenShowsCursor, screenShowsClicks, screenTranscribes, screenSource
     }
 
     public init(from decoder: Decoder) throws {
@@ -397,6 +425,14 @@ public struct AppSettings: Codable, Equatable, Sendable {
         cloudLiveModelID = try container.decodeIfPresent(String.self, forKey: .cloudLiveModelID)
         realtimeAsFinal = try container.decodeIfPresent(Bool.self, forKey: .realtimeAsFinal) ?? false
         libraryPageSize = try container.decodeIfPresent(Int.self, forKey: .libraryPageSize) ?? 100
+        let fps = try container.decodeIfPresent(Int.self, forKey: .screenFPS) ?? 15
+        screenFPS = Self.screenFPSOptions.contains(fps) ? fps : 15
+        screenQuality = Self.clamped(
+            try container.decodeIfPresent(Double.self, forKey: .screenQuality) ?? 0.75, to: Self.screenQualityRange)
+        screenShowsCursor = try container.decodeIfPresent(Bool.self, forKey: .screenShowsCursor) ?? true
+        screenShowsClicks = try container.decodeIfPresent(Bool.self, forKey: .screenShowsClicks) ?? false
+        screenTranscribes = try container.decodeIfPresent(Bool.self, forKey: .screenTranscribes) ?? true
+        screenSource = try container.decodeIfPresent(RememberedScreenSource.self, forKey: .screenSource)
     }
 
     /// One-time move to "key saved = available" for cloud providers (settings only, no Keychain read). Every cloud
@@ -456,7 +492,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         return settings
     }
 
-    private static func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {
+    private static func clamped<T: Comparable>(_ value: T, to range: ClosedRange<T>) -> T {
         min(max(value, range.lowerBound), range.upperBound)
     }
 }
@@ -585,6 +621,20 @@ public struct PillPosition: Codable, Equatable, Sendable {
     public init(x: Double, y: Double) {
         self.x = x
         self.y = y
+    }
+}
+
+/// The display (and optional area) last picked for a screen recording. EchoCore cannot import EchoScreen, so the app
+/// converts it to and from `ScreenSource`.
+public struct RememberedScreenSource: Codable, Equatable, Sendable {
+    /// The `CGDirectDisplayID`.
+    public var displayID: UInt32
+    /// The recorded area in display-local points; nil = the whole display.
+    public var area: CGRect?
+
+    public init(displayID: UInt32, area: CGRect? = nil) {
+        self.displayID = displayID
+        self.area = area
     }
 }
 
