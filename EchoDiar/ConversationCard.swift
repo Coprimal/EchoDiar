@@ -5,7 +5,8 @@ import EchoTranscribe
 import SwiftUI
 
 /// One conversation of the library's sidebar, as a compact row: source app icon, title on one line (double-click to
-/// rename), then "date time · duration" and status on one smaller line (the size in its tooltip), then a row with the
+/// rename), then "date time · duration · size" and status on one smaller line (the size tinted by how large it is), a
+/// video badge on the icon for a screen recording, then a row with the
 /// transcription progress or its action. The actions are in the context menu and the detail. A click elsewhere opens
 /// the conversation on the detail's tab; selected adds an accent fill and stroke. ⌘-click and ⇧-click select cards
 /// instead of opening.
@@ -30,6 +31,10 @@ struct ConversationCard: View {
                         ActivityBadge(
                             activity: activity,
                             blinks: activity != .queued && !reduceMotion && model.mainWindowVisible)
+                            .offset(x: 4, y: 4)
+                            .allowsHitTesting(false)
+                    } else if conversation.hasVideo {
+                        VideoBadge(selected: selected)
                             .offset(x: 4, y: 4)
                             .allowsHitTesting(false)
                     }
@@ -114,19 +119,12 @@ struct ConversationCard: View {
     /// The title and its rename field, so renaming does not move the row.
     private static let titleFont = Font.callout.weight(.medium)
 
-    /// "date time · duration" (no duration while it is 0), the size in its tooltip; then the status badge.
+    /// "date time · duration · size" (no duration while it is 0, no size while unknown), the size tinted by
+    /// `sizeStyle`; then the status badge. A screen recording shows as the app icon's video badge.
     private var details: some View {
         HStack(spacing: 6) {
-            Text(detailText)
-                .monospacedDigit()
-                .help(conversation.sizeBytes > 0
-                      ? ByteCountFormatter.string(fromByteCount: conversation.sizeBytes, countStyle: .file) : "")
+            detailLine.monospacedDigit()
             if let badge = StatusBadge(status: conversation.status) { badge }
-            if conversation.hasVideo {
-                Image(systemName: "video")
-                    .help("Screen recording")
-                    .accessibilityLabel("Screen recording")
-            }
             // A failed recording may never have had audio: its badge says so. With a video, only the audio is gone.
             if !conversation.hasAudio && conversation.status != .recording && conversation.status != .failed {
                 let text = conversation.hasVideo
@@ -146,6 +144,29 @@ struct ConversationCard: View {
         let date = conversation.createdAt.formatted(date: .abbreviated, time: .shortened)
         guard conversation.duration > 0 else { return date }
         return "\(date) · \(Self.durationText(conversation.duration))"
+    }
+
+    /// `detailText`, then " · size" in its tint: one `Text`, so the line truncates as a whole.
+    private var detailLine: Text {
+        guard conversation.sizeBytes > 0 else { return Text(detailText) }
+        return Text(detailText) + Text(verbatim: " · ")
+            + Text(Self.sizeText(conversation.sizeBytes)).foregroundStyle(Self.sizeStyle(conversation.sizeBytes))
+    }
+
+    static func sizeText(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+
+    /// The tint of a conversation's size, shared by the sidebar cards and the toolbar's details: secondary below
+    /// 50 MB (an hour of audio), yellow up to 200 MB, orange up to 1 GB (an hour with a screen recording), red from
+    /// 1 GB. Decimal units, as `ByteCountFormatter`'s `.file` style shows them.
+    static func sizeStyle(_ bytes: Int64) -> AnyShapeStyle {
+        switch bytes {
+        case ..<50_000_000: AnyShapeStyle(.secondary)
+        case ..<200_000_000: AnyShapeStyle(.yellow)
+        case ..<1_000_000_000: AnyShapeStyle(.orange)
+        default: AnyShapeStyle(.red)
+        }
     }
 
     /// m:ss, or h:mm:ss from one hour.
@@ -580,6 +601,25 @@ private struct ActivityBadge: View {
             .background(Circle().fill(Palette.raisedSurface))
             .accessibilityElement()
             .accessibilityLabel(activity.text)
+    }
+}
+
+/// The app icon's "has a screen recording" badge, where the activity badge sits while nothing runs: `video.fill` in a
+/// ring of the card's own fill (with the selection's tint), so it reads as cut out of the icon.
+private struct VideoBadge: View {
+    let selected: Bool
+
+    var body: some View {
+        Image(systemName: "video.fill")
+            .font(.system(size: 7, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .frame(width: 14, height: 14)
+            .background {
+                Circle().fill(Palette.raisedSurface)
+                    .overlay { if selected { Circle().fill(Color.accentColor.opacity(0.18)) } }
+            }
+            .accessibilityElement()
+            .accessibilityLabel("Screen recording")
     }
 }
 

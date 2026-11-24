@@ -364,7 +364,9 @@ struct MainView: View {
                 Text(ConversationCard.durationText(conversation.duration)).monospacedDigit().fixedSize()
             }
             if conversation.sizeBytes > 0 {
-                Text(ByteCountFormatter.string(fromByteCount: conversation.sizeBytes, countStyle: .file)).fixedSize()
+                Text(ConversationCard.sizeText(conversation.sizeBytes))
+                    .foregroundStyle(ConversationCard.sizeStyle(conversation.sizeBytes))
+                    .fixedSize()
             }
             if let badge = StatusBadge(status: conversation.status) { badge.fixedSize() }
         }
