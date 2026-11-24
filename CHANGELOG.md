@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- macOS: screen recording. The screen button next to Record picks a display, a window or an area ("Select area…") for the next recording; the floating indicator, the menu bar menu and the recording header turn it on during a recording, and once turned off it stays off for that recording. The video is a small HEVC file in the conversation's folder, on the same time line as the audio, and pauses with it. Recordings started from the calendar or a detected meeting start without the screen. If the video stops (low disk space, an error), the audio goes on and the recording says why.
+- macOS: "Transcribe this recording" in the screen menu is the same switch as "Transcribe screen recordings" in Settings > Recording > Screen. When it is off, the recording keeps its picture and sound but is not transcribed automatically, live or after Stop ("screen only"), and it stays off for later recordings started with a screen source until you turn it back on; "Transcribe" makes a transcript later. Recordings without a transcript are never deleted automatically.
+- macOS: Settings > Recording > Screen: frame rate (15, 20, 30 or 60 fps; 60 asks first), quality (Smaller, Balanced or Sharper), show the cursor, highlight clicks, camera bubble, key presses and "Show all keys". For a meeting window on a Retina MacBook display, Smaller, Balanced and Sharper take about 2.4, 4.9 and 8.4 MB per minute at 15 fps, and 60 fps about 13 MB per minute; scrolling text takes more (about 16 MB per minute at 15 fps). The macOS Screenshot app records the same meeting window about 38 times larger than Balanced at 15 fps.
+- macOS: a camera bubble and key presses for display and area recordings (not single windows): a round camera picture you can move, and the shortcuts you press at the bottom of the screen, both recorded into the video. With "Show all keys" off, only shortcuts with ⌘ or ⌃, and Option with special keys (arrows, Delete, Return, Tab, Esc, function keys, ...), are shown. Key presses are only drawn into the picture, never logged. Camera and Input Monitoring are asked for only when you turn their option on.
+- macOS: the Transcript tab plays the video beside the transcript, in sync with the sound. A switch in the bottom bar puts the video on the left, on top, or hides it, and a click on a line's time seeks both. Where the video started late or stopped early, the pane says "No screen recording at this point".
+- macOS: "Export video…" saves the video as one MP4 with both channels, the microphone, the system audio or no sound, without re-encoding the picture.
+- macOS: "Delete video…" for one or several conversations and in the Transcript tab, "Delete all video…" in Settings > Storage, a video mark in the library, and a Video row in the storage usage.
+- Windows: Settings > Storage shows the size of video files and has the three auto-delete modes. Windows does not record the screen yet.
+
+### Changed
+
+- Auto-delete has three modes: "Video only" (keeps audio, transcript, summary and chat), "Audio and video" (keeps transcript, summary and chat) and "Whole conversation". The former "Audio only" mode is now "Audio and video" and also deletes the video. With auto-delete on, switching to a mode that deletes more asks first.
+- Deleting the audio or the transcripts never removes a video: a conversation with video but no audio keeps its folder and its video. "Delete transcripts" on a conversation with neither audio nor video still moves the whole conversation to the Trash (the Recycle Bin on Windows), as before.
+- Windows: details it does not know in a recording's files, such as the video's settings and the "no transcript" mark written by the Mac app, are kept when it rewrites them.
+- Going back to 1.6.1 or earlier: it reads "Video only" as "Audio only" and deletes the audio (to the Trash or the Recycle Bin); its "Delete transcripts" moves a conversation that has video but no audio to the Trash as a whole; and it does not know the "no transcript" mark of "screen only" recordings, so it could transcribe one.
+
+### Fixed
+
+- macOS: a recording no longer loses up to a second of silence at each pause and stop: the audio is filled with silence up to that moment, so the pause times and the video stay in step.
+
 ## [1.6.1] - 2026-11-23
 
 ### Added

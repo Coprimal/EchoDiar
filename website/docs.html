@@ -86,6 +86,7 @@
               <li><a href="#windows-warnings">Moving to the Store</a></li>
               <li><a href="#permissions">Permissions</a></li>
               <li><a href="#recording">Recording</a></li>
+              <li><a href="#screen-recording">Screen recording</a></li>
               <li><a href="#meetings">Meeting detection</a></li>
               <li><a href="#calendar">Calendar</a></li>
               <li><a href="#transcription">Transcription</a></li>
@@ -136,6 +137,7 @@
             <li><strong>Microphone:</strong> records your voice. On Windows, if it is off, turn on EchoDiar in <strong>Windows Settings &gt; Privacy &amp; security &gt; Microphone</strong>.</li>
             <li><strong>System Audio Recording</strong> (on Mac): records the meeting's audio. The first-run onboarding tests it and opens the right Privacy &amp; Security pane. On Windows, the onboarding's <strong>Test System Audio</strong> checks that EchoDiar hears it.</li>
             <li><strong>Accessibility</strong> (optional, on Mac): only to keep the floating indicator on the meeting window. Windows needs no permission for that.</li>
+            <li><strong>Screen Recording</strong>, <strong>Camera</strong> and <strong>Input Monitoring</strong> (optional, on Mac): only for <a href="#screen-recording">screen recording</a>. Screen Recording is asked the first time you record the screen, Camera and Input Monitoring only when you turn on the camera bubble or key presses.</li>
             <li><strong>Calendars</strong> (optional): reads your meetings to offer recording when they start and to name the recording, and adds the events you create to an "EchoDiar" calendar. EchoDiar writes to no other calendar. On Mac, it reads macOS Calendar, and the "EchoDiar" calendar is On My Mac when available, otherwise in your default account, e.g. iCloud, which syncs it. On Windows, click <strong>Grant Access</strong> in <strong>Settings &gt; Calendar</strong>; if access is off, turn on EchoDiar in <strong>Windows Settings &gt; Privacy &amp; security &gt; Calendar</strong>.</li>
             <li>Tell the people you record. Onboarding and Settings &gt; General have a <strong>Copy consent message</strong> button.</li>
 </ul>
@@ -151,6 +153,29 @@
             <li>Live level meters while recording, and live captions with <strong>Transcribe while recording</strong>. The menu bar icon on Mac shows idle, recording, paused and processing. On Windows, the notification area icon shows a red dot while recording and an orange badge while paused; a left click opens EchoDiar.</li>
             <li>Pick the microphone, and what happens when it disconnects, in <strong>Settings &gt; Recording &gt; Microphone</strong>.</li>
             <li>Each recording is compressed to AAC (64 kbps by default) once it is transcribed. A recording cut short by a crash is recovered and transcribed at next launch.</li>
+</ul>
+          </section>
+
+          <section id="screen-recording" class="doc">
+            <h2>Screen recording</h2>
+<ul class="list">
+            <li>On Mac, a recording can also record the screen: a whole display, one window or an area. The video is saved next to the audio in the conversation's folder (<code>video.mp4</code>) and plays in sync with it. Sound is recorded as usual.</li>
+            <li><strong>Choose what to record</strong> with the screen button next to <strong>Record</strong>: your displays, the open windows grouped by app, <strong>Select area…</strong> (drag a rectangle on the screen, <kbd>Esc</kbd> cancels) or <strong>Off</strong>. The choice is armed for the next recording only. The last display or area is offered again as <strong>Last used</strong> or <strong>Last area</strong>; a window is picked each time.</li>
+            <li>Recordings started from the calendar or a meeting prompt start without the screen; it is recorded only if you turn it on during the recording.</li>
+            <li><strong>Screen only:</strong> while a source is armed, turn off <strong>Transcribe this recording</strong> to record the screen and the sound without a transcript. No transcript, summary or chat is made until you click <strong>Transcribe</strong> on the conversation later. <strong>Transcribe this recording</strong> is the same switch as <strong>Settings &gt; Recording &gt; Screen &gt; Transcribe screen recordings</strong>: it stays off for later screen recordings until you turn it back on. Recordings without a transcript are never deleted automatically.</li>
+            <li><strong>Frame rate:</strong> 15 fps by default, or 20, 30 or 60, in <strong>Settings &gt; Recording &gt; Screen</strong>. 60 asks first: its files can be several times larger.</li>
+            <li><strong>Quality:</strong> <strong>Smaller</strong>, <strong>Balanced</strong> (the default) or <strong>Sharper</strong>, about 2.4, 4.9 and 8.4 MB per minute, measured on a Mac recording a meeting-like window at 15 fps. At 60 fps the same window takes about 13 MB per minute. More motion makes larger files: scrolling text takes about 16 MB per minute at 15 fps.</li>
+            <li><strong>Show the cursor</strong> (on by default) and <strong>Highlight clicks</strong> (off by default) are in <strong>Settings &gt; Recording &gt; Screen</strong>.</li>
+            <li><strong>Camera bubble</strong> shows your camera in a round bubble on the screen; drag it where you want. <strong>Key presses</strong> shows shortcuts such as <kbd>Cmd+K</kbd> at the bottom of the screen. Both are in the picture, and work for display and area recordings only: a window recording shows the window, the cursor and clicks. Turn them on in the screen button's list or in <strong>Settings &gt; Recording &gt; Screen</strong>.</li>
+            <li>Key presses show only shortcuts held with <kbd>Cmd</kbd> or <kbd>Control</kbd>, and <kbd>Option</kbd> with a special key (arrows, <kbd>Delete</kbd>, <kbd>Return</kbd>, <kbd>Tab</kbd>, <kbd>Esc</kbd>, function keys, <kbd>Home</kbd>, <kbd>End</kbd>, <kbd>Page Up</kbd>, <kbd>Page Down</kbd>). Plain typing never shows. <strong>Show all keys</strong> shows everything you type, including passwords typed outside password fields.</li>
+            <li><strong>Pause</strong> pauses the video too, and <strong>Resume</strong> continues it.</li>
+            <li>The floating indicator, the menu bar menu and the recording's header have a screen button: start recording the screen from that moment, or stop it while the sound keeps recording. A recording has one video span: once the screen is stopped, it can't start again in that recording.</li>
+            <li>When the recorded window closes, or less than 1 GB of disk space is left, the video stops and the sound keeps recording.</li>
+            <li><strong>Watch:</strong> in the Transcript tab, the video plays beside the transcript. Click the video to play or pause; a line's timestamp jumps both picture and sound. The switch in the bottom bar puts the video on the left, on top, or hides it. Where the screen was not recorded, the video says "No screen recording at this point".</li>
+            <li><strong>Export video…</strong> in the Transcript tab saves one <code>.mp4</code> file with the sound you choose: both, the microphone, the system audio, or no audio. The picture is copied as is, not encoded again.</li>
+            <li><strong>Delete video</strong> is in the conversation's menu, the menu for several selected conversations and the Transcript tab; <strong>Settings &gt; Storage</strong> has <strong>Delete all video…</strong>. Deleting the audio or the transcripts keeps the video.</li>
+            <li>Auto-delete in <strong>Settings &gt; Storage</strong> has three modes: <strong>Video only</strong> (keeps audio, transcript, summary and chat), <strong>Audio and video</strong> (keeps transcript, summary and chat) and <strong>Whole conversation</strong>.</li>
+            <li>Screen recording is macOS only for now. Windows keeps and manages videos in its library: <strong>Settings &gt; Storage</strong> shows their size, auto-delete has the same three modes, and deleting the audio or the transcripts keeps the video.</li>
 </ul>
           </section>
 
@@ -374,7 +399,7 @@
             <h2>Storage</h2>
 <ul class="list">
             <li>Data lives in <code>~/Library/Application Support/EchoDiar</code> on Mac, <code>%LOCALAPPDATA%\EchoDiar</code> on Windows, with the same layout. <strong>Settings &gt; Storage</strong> shows the space used.</li>
-            <li>Auto-delete: once a day, moves transcribed conversations older than an age you set to the Trash (the Recycle Bin on Windows), whole or audio only.</li>
+            <li>Auto-delete: once a day, moves transcribed conversations older than an age you set to the Trash (the Recycle Bin on Windows): their video only, their audio and video, or the whole conversation.</li>
             <li>The uncompressed audio (<code>audio.caf</code>) is kept until the transcript is written, then compressed to <code>audio.m4a</code> and deleted. If transcription can't start right away, the audio is compressed first.</li>
             <li>Optionally delete the audio once a transcription succeeds: with <strong>Delete audio after transcription</strong>, a new recording's uncompressed audio is moved to the Trash (the Recycle Bin on Windows) instead of being compressed. The transcript, summary and chat stay.</li>
             <li>Choose the compression bitrate, or keep the uncompressed audio too.</li>
