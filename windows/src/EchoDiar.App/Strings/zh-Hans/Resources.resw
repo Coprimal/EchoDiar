@@ -142,6 +142,10 @@
     <value>已添加</value>
     <comment>Added</comment>
   </data>
+  <data name="AfterAllowingItQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>允许后，请退出并重新打开 EchoDiar。</value>
+    <comment>After allowing it, quit and reopen EchoDiar.</comment>
+  </data>
   <data name="AfterRecording" xml:space="preserve">
     <value>录音结束后</value>
     <comment>After recording</comment>
@@ -178,9 +182,17 @@
     <value>全部系统音频</value>
     <comment>All system audio</comment>
   </data>
+  <data name="Allow" xml:space="preserve">
+    <value>允许…</value>
+    <comment>Allow…</comment>
+  </data>
   <data name="AllowCamera" xml:space="preserve">
     <value>允许使用摄像头</value>
     <comment>Allow Camera</comment>
+  </data>
+  <data name="AllowItInSystemSettingsThenQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>请在“系统设置”中允许，然后退出并重新打开 EchoDiar。</value>
+    <comment>Allow it in System Settings, then quit and reopen EchoDiar.</comment>
   </data>
   <data name="AllowMicrophone" xml:space="preserve">
     <value>允许使用麦克风</value>
@@ -189,6 +201,10 @@
   <data name="AllowScreenRecording" xml:space="preserve">
     <value>允许录屏</value>
     <comment>Allow Screen Recording</comment>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>已允许</value>
+    <comment>Allowed</comment>
   </data>
   <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
     <value>录音时也用于回答“聊天”标签页中的问题。</value>
@@ -494,6 +510,14 @@
     <value>按流式传输分钟数计费，每条连接每小时约 {0}</value>
     <comment>billed per streamed minute, about %@ per hour for each connection</comment>
   </data>
+  <data name="BlurBackground" xml:space="preserve">
+    <value>虚化背景</value>
+    <comment>Blur background</comment>
+  </data>
+  <data name="BlursEverythingBehindYouInTheCameraBubble" xml:space="preserve">
+    <value>虚化摄像头气泡中你身后的一切。</value>
+    <comment>Blurs everything behind you in the camera bubble.</comment>
+  </data>
   <data name="Both" xml:space="preserve">
     <value>两者</value>
     <comment>Both</comment>
@@ -661,6 +685,10 @@
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>点按以录制新的快捷键</value>
     <comment>Click to record a new shortcut</comment>
+  </data>
+  <data name="ClickToRecordThisDisplay" xml:space="preserve">
+    <value>点按以录制此显示器</value>
+    <comment>Click to record this display</comment>
   </data>
   <data name="Close" xml:space="preserve">
     <value>关闭</value>
@@ -1230,9 +1258,25 @@
     <value>EchoDiar 需要“摄像头”访问权限才能显示摄像头气泡。</value>
     <comment>EchoDiar needs Camera access to show the camera bubble.</comment>
   </data>
+  <data name="EchoDiarNeedsCameraAccessToShowTheCameraBubbleAllowItInSyste" xml:space="preserve">
+    <value>EchoDiar 需要“摄像头”访问权限才能显示摄像头气泡。请在“系统设置”中允许。</value>
+    <comment>EchoDiar needs Camera access to show the camera bubble. Allow it in System Settings.</comment>
+  </data>
   <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPresses" xml:space="preserve">
     <value>EchoDiar 需要“输入监控”访问权限才能显示按键。</value>
     <comment>EchoDiar needs Input Monitoring access to show key presses.</comment>
+  </data>
+  <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPressesAllowItInS" xml:space="preserve">
+    <value>EchoDiar 需要“输入监控”访问权限才能显示按键。请在“系统设置”中允许，然后退出并重新打开 EchoDiar。</value>
+    <comment>EchoDiar needs Input Monitoring access to show key presses. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessAllowItInSystemSettingsThe" xml:space="preserve">
+    <value>EchoDiar 需要“录屏”访问权限。请在“系统设置”中允许，然后退出并重新打开 EchoDiar。</value>
+    <comment>EchoDiar needs Screen Recording access. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessToRecordTheScreen" xml:space="preserve">
+    <value>EchoDiar 需要“录屏”访问权限才能录制屏幕。</value>
+    <comment>EchoDiar needs Screen Recording access to record the screen.</comment>
   </data>
   <data name="EchoDiarNeedsScreenRecordingPermissionToRecordTheScreen" xml:space="preserve">
     <value>EchoDiar 需要“录屏”权限才能录制屏幕。</value>
@@ -1286,6 +1330,10 @@
     <value>编辑…</value>
     <comment>Edit…</comment>
   </data>
+  <data name="ElapsedTime" xml:space="preserve">
+    <value>已录制时长</value>
+    <comment>Elapsed time</comment>
+  </data>
   <data name="Embedding" xml:space="preserve">
     <value>嵌入</value>
     <comment>Embedding</comment>
@@ -1333,6 +1381,10 @@
   <data name="EnterTheEmbeddingModelOfInSettingsRAG" xml:space="preserve">
     <value>在“设置 › RAG”中输入 {0} 的嵌入模型</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
+  </data>
+  <data name="EntireScreen" xml:space="preserve">
+    <value>整个屏幕</value>
+    <comment>Entire screen</comment>
   </data>
   <data name="EntriesPerPage" xml:space="preserve">
     <value>每页条目数</value>
@@ -1389,6 +1441,10 @@
   <data name="File" xml:space="preserve">
     <value>文件</value>
     <comment>File</comment>
+  </data>
+  <data name="FileSize" xml:space="preserve">
+    <value>文件大小</value>
+    <comment>File size</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>文件可能会大好几倍。在一次类似会议的测试中，录制一个窗口在 60 fps 时每分钟约占 {0} MB，而在 15 fps 时每分钟约占 {1} MB。</value>
@@ -1530,6 +1586,10 @@
     <value>Hugging Face 下载</value>
     <comment>Hugging Face downloads</comment>
   </data>
+  <data name="IconOnly" xml:space="preserve">
+    <value>仅图标</value>
+    <comment>Icon only</comment>
+  </data>
   <data name="IdentifyingSpeakers" xml:space="preserve">
     <value>正在识别说话人…</value>
     <comment>Identifying speakers…</comment>
@@ -1585,6 +1645,10 @@
   <data name="IndicatorSize" xml:space="preserve">
     <value>指示器大小</value>
     <comment>Indicator size</comment>
+  </data>
+  <data name="InputMonitoring" xml:space="preserve">
+    <value>输入监控</value>
+    <comment>Input Monitoring</comment>
   </data>
   <data name="InstallAndRelaunch" xml:space="preserve">
     <value>安装并重新启动</value>
@@ -1834,6 +1898,10 @@
     <value>使用 {0} 实时流</value>
     <comment>Live with %@ realtime</comment>
   </data>
+  <data name="Lld" xml:space="preserve">
+    <value>{0}</value>
+    <comment>%lld</comment>
+  </data>
   <data name="LldBytes" xml:space="preserve">
     <value>{0} 字节</value>
     <comment>%lld bytes</comment>
@@ -1865,6 +1933,10 @@
   <data name="LldLanguages" xml:space="preserve">
     <value>{0} 种语言</value>
     <comment>%lld languages</comment>
+  </data>
+  <data name="LldLld" xml:space="preserve">
+    <value>{0}–{1} {2}</value>
+    <comment>%lld–%lld %@</comment>
   </data>
   <data name="LldLldOfLld" xml:space="preserve">
     <value>第 {0}–{1} 条，共 {2} 条</value>
@@ -1981,6 +2053,10 @@
   <data name="Meetings" xml:space="preserve">
     <value>会议</value>
     <comment>Meetings</comment>
+  </data>
+  <data name="MenuBarWhileRecording" xml:space="preserve">
+    <value>录音时的菜单栏</value>
+    <comment>Menu bar while recording</comment>
   </data>
   <data name="Mic" xml:space="preserve">
     <value>麦克风</value>
@@ -2322,6 +2398,10 @@
     <value>不是可识别的会议链接：不会提供“加入”。</value>
     <comment>Not a recognized meeting link: Join won't be offered.</comment>
   </data>
+  <data name="NotAllowed" xml:space="preserve">
+    <value>未允许</value>
+    <comment>Not allowed</comment>
+  </data>
   <data name="NotAvailableOnThisMac" xml:space="preserve">
     <value>在这台 Mac 上不可用</value>
     <comment>Not available on this Mac</comment>
@@ -2450,6 +2530,10 @@
     <value>每行一个，格式为“名称: 值”。保存在设置文件中：请将 API 密钥填入“API 密钥”栏。</value>
     <comment>One per line, Name: value. Saved in the settings file: put API keys in the API key field.</comment>
   </data>
+  <data name="Only" xml:space="preserve">
+    <value>仅 {0}</value>
+    <comment>Only %@</comment>
+  </data>
   <data name="OnlyEventsInTheEchoDiarCalendarCanBeChanged" xml:space="preserve">
     <value>只能更改 EchoDiar 日历中的日程。</value>
     <comment>Only events in the EchoDiar calendar can be changed.</comment>
@@ -2461,6 +2545,10 @@
   <data name="OnlyEventsWithAMeetingLinkOrInTheEchoDiarCalendarAreShown" xml:space="preserve">
     <value>仅显示包含会议链接或位于 EchoDiar 日历中的日程。</value>
     <comment>Only events with a meeting link, or in the EchoDiar calendar, are shown.</comment>
+  </data>
+  <data name="OnlyRecordsAllSystemAudio" xml:space="preserve">
+    <value>仅 {0}（录制全部系统音频）</value>
+    <comment>Only %@ (records all system audio)</comment>
   </data>
   <data name="OnlyTheSystemChannelIsUploadedAsOneExtraTranscriptionBilledB" xml:space="preserve">
     <value>仅上传系统声道，作为一次额外的转写由提供商计费；只保留说话人标签。如果转写模型已能标注说话人，则不使用。价格为每音频小时的大致标价。</value>
@@ -2618,6 +2706,10 @@
     <value>在任意应用中暂停或继续录音。</value>
     <comment>Pauses or resumes the recording from any app.</comment>
   </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>权限</value>
+    <comment>Permissions</comment>
+  </data>
   <data name="PermissionsAndConsent" xml:space="preserve">
     <value>权限与知情同意</value>
     <comment>Permissions and consent</comment>
@@ -2681,6 +2773,10 @@
   <data name="PlaybackStopped" xml:space="preserve">
     <value>播放已停止（{0}）。</value>
     <comment>Playback stopped (%@).</comment>
+  </data>
+  <data name="PortionOfTheScreen" xml:space="preserve">
+    <value>部分屏幕</value>
+    <comment>Portion of the screen</comment>
   </data>
   <data name="PreparingAudio" xml:space="preserve">
     <value>正在准备音频…</value>
@@ -2842,6 +2938,14 @@
     <value>录制屏幕</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAndR" xml:space="preserve">
+    <value>录制屏幕和“{0}”（⌘R）</value>
+    <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
+    <value>录制屏幕和麦克风（⌘R）</value>
+    <comment>Record the screen and the microphone (⌘R)</comment>
+  </data>
   <data name="RecordTheScreenFromNowOn" xml:space="preserve">
     <value>从现在开始录制屏幕</value>
     <comment>Record the screen from now on</comment>
@@ -2849,6 +2953,10 @@
   <data name="RecordTheScreenToShowTheCameraBubble" xml:space="preserve">
     <value>录制屏幕以显示摄像头气泡</value>
     <comment>Record the screen to show the camera bubble</comment>
+  </data>
+  <data name="RecordTheScreenToo" xml:space="preserve">
+    <value>同时录制屏幕</value>
+    <comment>Record the screen too</comment>
   </data>
   <data name="RecordYourFirstConversation" xml:space="preserve">
     <value>录制你的第一个对话</value>
@@ -2933,6 +3041,10 @@
   <data name="RecordsItInThisRecordingFromNowOn" xml:space="preserve">
     <value>从现在起将其录制到本次录音中。</value>
     <comment>Records it in this recording from now on.</comment>
+  </data>
+  <data name="RecordsTheScreen" xml:space="preserve">
+    <value>录制屏幕。</value>
+    <comment>Records the screen.</comment>
   </data>
   <data name="Recovered" xml:space="preserve">
     <value>已恢复</value>
@@ -3093,6 +3205,10 @@
   <data name="ScreenRecorded" xml:space="preserve">
     <value>已录制屏幕</value>
     <comment>Screen recorded</comment>
+  </data>
+  <data name="ScreenRecording" xml:space="preserve">
+    <value>录屏</value>
+    <comment>Screen Recording</comment>
   </data>
   <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
     <value>无法继续录制屏幕。声音仍在录制。</value>
@@ -3266,9 +3382,17 @@
     <value>显示未来 7 天内的会议。列表会自动更新。</value>
     <comment>Showing meetings in the next 7 days. The list updates automatically.</comment>
   </data>
+  <data name="ShowsKeyPresses" xml:space="preserve">
+    <value>显示按键。</value>
+    <comment>Shows key presses.</comment>
+  </data>
   <data name="ShowsShortcutsSuchAsKAtTheBottomOfTheScreen" xml:space="preserve">
     <value>在屏幕底部显示 ⌘K 等快捷键。</value>
     <comment>Shows shortcuts such as ⌘K at the bottom of the screen.</comment>
+  </data>
+  <data name="ShowsTheCameraBubble" xml:space="preserve">
+    <value>显示摄像头气泡。</value>
+    <comment>Shows the camera bubble.</comment>
   </data>
   <data name="ShowsTheTranscriptDuringTheRecordingWhisperAndParakeetModels" xml:space="preserve">
     <value>在录音期间显示转写文本。Whisper 和 Parakeet 模型会保留下来，因此停止后几秒内即可就绪。录音时会占用更多 CPU 和内存。云端引擎可以通过本地模型或其实时流显示转写文本：请参阅下方的“转写模型”。</value>
@@ -3797,6 +3921,10 @@
   <data name="TheRecordingFailed" xml:space="preserve">
     <value>录音失败。</value>
     <comment>The recording failed.</comment>
+  </data>
+  <data name="TheRecordingStartsAsSoonAsYouPick" xml:space="preserve">
+    <value>选择后立即开始录制。</value>
+    <comment>The recording starts as soon as you pick.</comment>
   </data>
   <data name="TheRecordingsAndTheirFilesAreMovedToTheRecycleBin" xml:space="preserve">
     <value>这些录音及其文件会移到回收站。</value>

@@ -142,6 +142,10 @@
     <value>Đã thêm</value>
     <comment>Added</comment>
   </data>
+  <data name="AfterAllowingItQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>Sau khi cho phép, hãy thoát và mở lại EchoDiar.</value>
+    <comment>After allowing it, quit and reopen EchoDiar.</comment>
+  </data>
   <data name="AfterRecording" xml:space="preserve">
     <value>Sau khi ghi âm</value>
     <comment>After recording</comment>
@@ -178,9 +182,17 @@
     <value>Toàn bộ âm thanh hệ thống</value>
     <comment>All system audio</comment>
   </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Cho phép…</value>
+    <comment>Allow…</comment>
+  </data>
   <data name="AllowCamera" xml:space="preserve">
     <value>Cho phép camera</value>
     <comment>Allow Camera</comment>
+  </data>
+  <data name="AllowItInSystemSettingsThenQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>Hãy cho phép trong Cài đặt hệ thống, rồi thoát và mở lại EchoDiar.</value>
+    <comment>Allow it in System Settings, then quit and reopen EchoDiar.</comment>
   </data>
   <data name="AllowMicrophone" xml:space="preserve">
     <value>Cho phép micrô</value>
@@ -189,6 +201,10 @@
   <data name="AllowScreenRecording" xml:space="preserve">
     <value>Cho phép ghi màn hình</value>
     <comment>Allow Screen Recording</comment>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>Đã cho phép</value>
+    <comment>Allowed</comment>
   </data>
   <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
     <value>Cũng trả lời trong tab Trò chuyện khi đang ghi âm.</value>
@@ -494,6 +510,14 @@
     <value>tính phí theo số phút truyền, khoảng {0} mỗi giờ cho mỗi kết nối</value>
     <comment>billed per streamed minute, about %@ per hour for each connection</comment>
   </data>
+  <data name="BlurBackground" xml:space="preserve">
+    <value>Làm mờ nền</value>
+    <comment>Blur background</comment>
+  </data>
+  <data name="BlursEverythingBehindYouInTheCameraBubble" xml:space="preserve">
+    <value>Làm mờ mọi thứ phía sau bạn trong bong bóng camera.</value>
+    <comment>Blurs everything behind you in the camera bubble.</comment>
+  </data>
   <data name="Both" xml:space="preserve">
     <value>Cả hai</value>
     <comment>Both</comment>
@@ -661,6 +685,10 @@
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>Bấm để nhập phím tắt mới</value>
     <comment>Click to record a new shortcut</comment>
+  </data>
+  <data name="ClickToRecordThisDisplay" xml:space="preserve">
+    <value>Bấm để ghi màn hình này</value>
+    <comment>Click to record this display</comment>
   </data>
   <data name="Close" xml:space="preserve">
     <value>Đóng</value>
@@ -1230,9 +1258,25 @@
     <value>EchoDiar cần quyền Camera để hiển thị bong bóng camera.</value>
     <comment>EchoDiar needs Camera access to show the camera bubble.</comment>
   </data>
+  <data name="EchoDiarNeedsCameraAccessToShowTheCameraBubbleAllowItInSyste" xml:space="preserve">
+    <value>EchoDiar cần quyền Camera để hiển thị bong bóng camera. Hãy cho phép trong Cài đặt hệ thống.</value>
+    <comment>EchoDiar needs Camera access to show the camera bubble. Allow it in System Settings.</comment>
+  </data>
   <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPresses" xml:space="preserve">
     <value>EchoDiar cần quyền Giám sát đầu vào để hiển thị phím bấm.</value>
     <comment>EchoDiar needs Input Monitoring access to show key presses.</comment>
+  </data>
+  <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPressesAllowItInS" xml:space="preserve">
+    <value>EchoDiar cần quyền Giám sát đầu vào để hiển thị phím bấm. Hãy cho phép trong Cài đặt hệ thống, rồi thoát và mở lại EchoDiar.</value>
+    <comment>EchoDiar needs Input Monitoring access to show key presses. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessAllowItInSystemSettingsThe" xml:space="preserve">
+    <value>EchoDiar cần quyền Ghi màn hình. Hãy cho phép trong Cài đặt hệ thống, rồi thoát và mở lại EchoDiar.</value>
+    <comment>EchoDiar needs Screen Recording access. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessToRecordTheScreen" xml:space="preserve">
+    <value>EchoDiar cần quyền Ghi màn hình để ghi lại màn hình.</value>
+    <comment>EchoDiar needs Screen Recording access to record the screen.</comment>
   </data>
   <data name="EchoDiarNeedsScreenRecordingPermissionToRecordTheScreen" xml:space="preserve">
     <value>EchoDiar cần quyền Ghi màn hình để ghi lại màn hình.</value>
@@ -1286,6 +1330,10 @@
     <value>Sửa…</value>
     <comment>Edit…</comment>
   </data>
+  <data name="ElapsedTime" xml:space="preserve">
+    <value>Thời gian đã ghi</value>
+    <comment>Elapsed time</comment>
+  </data>
   <data name="Embedding" xml:space="preserve">
     <value>Nhúng</value>
     <comment>Embedding</comment>
@@ -1333,6 +1381,10 @@
   <data name="EnterTheEmbeddingModelOfInSettingsRAG" xml:space="preserve">
     <value>Nhập mô hình nhúng của {0} trong Cài đặt › RAG</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
+  </data>
+  <data name="EntireScreen" xml:space="preserve">
+    <value>Toàn bộ màn hình</value>
+    <comment>Entire screen</comment>
   </data>
   <data name="EntriesPerPage" xml:space="preserve">
     <value>Số mục mỗi trang</value>
@@ -1389,6 +1441,10 @@
   <data name="File" xml:space="preserve">
     <value>Tệp</value>
     <comment>File</comment>
+  </data>
+  <data name="FileSize" xml:space="preserve">
+    <value>Dung lượng tệp</value>
+    <comment>File size</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>Tệp có thể lớn hơn nhiều lần. Trong một thử nghiệm giống cuộc họp, bản ghi một cửa sổ chiếm khoảng {0} MB mỗi phút ở 60 fps, so với {1} MB mỗi phút ở 15 fps.</value>
@@ -1530,6 +1586,10 @@
     <value>Tải về từ Hugging Face</value>
     <comment>Hugging Face downloads</comment>
   </data>
+  <data name="IconOnly" xml:space="preserve">
+    <value>Chỉ biểu tượng</value>
+    <comment>Icon only</comment>
+  </data>
   <data name="IdentifyingSpeakers" xml:space="preserve">
     <value>Đang nhận diện người nói…</value>
     <comment>Identifying speakers…</comment>
@@ -1585,6 +1645,10 @@
   <data name="IndicatorSize" xml:space="preserve">
     <value>Kích thước chỉ báo</value>
     <comment>Indicator size</comment>
+  </data>
+  <data name="InputMonitoring" xml:space="preserve">
+    <value>Giám sát đầu vào</value>
+    <comment>Input Monitoring</comment>
   </data>
   <data name="InstallAndRelaunch" xml:space="preserve">
     <value>Cài đặt và khởi động lại</value>
@@ -1834,6 +1898,10 @@
     <value>Chép lời trực tiếp bằng {0} thời gian thực</value>
     <comment>Live with %@ realtime</comment>
   </data>
+  <data name="Lld" xml:space="preserve">
+    <value>{0}</value>
+    <comment>%lld</comment>
+  </data>
   <data name="LldBytes" xml:space="preserve">
     <value>{0} byte</value>
     <comment>%lld bytes</comment>
@@ -1865,6 +1933,10 @@
   <data name="LldLanguages" xml:space="preserve">
     <value>{0} ngôn ngữ</value>
     <comment>%lld languages</comment>
+  </data>
+  <data name="LldLld" xml:space="preserve">
+    <value>{0}–{1} {2}</value>
+    <comment>%lld–%lld %@</comment>
   </data>
   <data name="LldLldOfLld" xml:space="preserve">
     <value>{0}–{1} trên {2}</value>
@@ -1981,6 +2053,10 @@
   <data name="Meetings" xml:space="preserve">
     <value>Cuộc họp</value>
     <comment>Meetings</comment>
+  </data>
+  <data name="MenuBarWhileRecording" xml:space="preserve">
+    <value>Thanh menu khi ghi âm</value>
+    <comment>Menu bar while recording</comment>
   </data>
   <data name="Mic" xml:space="preserve">
     <value>Micrô</value>
@@ -2322,6 +2398,10 @@
     <value>Không phải liên kết cuộc họp được nhận diện: sẽ không có nút Tham gia.</value>
     <comment>Not a recognized meeting link: Join won't be offered.</comment>
   </data>
+  <data name="NotAllowed" xml:space="preserve">
+    <value>Chưa cho phép</value>
+    <comment>Not allowed</comment>
+  </data>
   <data name="NotAvailableOnThisMac" xml:space="preserve">
     <value>Không khả dụng trên máy Mac này</value>
     <comment>Not available on this Mac</comment>
@@ -2450,6 +2530,10 @@
     <value>Mỗi dòng một header, dạng Tên: giá trị. Được lưu trong tệp cài đặt: hãy nhập khoá API vào ô Khoá API.</value>
     <comment>One per line, Name: value. Saved in the settings file: put API keys in the API key field.</comment>
   </data>
+  <data name="Only" xml:space="preserve">
+    <value>Chỉ {0}</value>
+    <comment>Only %@</comment>
+  </data>
   <data name="OnlyEventsInTheEchoDiarCalendarCanBeChanged" xml:space="preserve">
     <value>Chỉ có thể thay đổi các sự kiện trong lịch EchoDiar.</value>
     <comment>Only events in the EchoDiar calendar can be changed.</comment>
@@ -2461,6 +2545,10 @@
   <data name="OnlyEventsWithAMeetingLinkOrInTheEchoDiarCalendarAreShown" xml:space="preserve">
     <value>Chỉ hiển thị các sự kiện có liên kết cuộc họp hoặc nằm trong lịch EchoDiar.</value>
     <comment>Only events with a meeting link, or in the EchoDiar calendar, are shown.</comment>
+  </data>
+  <data name="OnlyRecordsAllSystemAudio" xml:space="preserve">
+    <value>Chỉ {0} (ghi toàn bộ âm thanh hệ thống)</value>
+    <comment>Only %@ (records all system audio)</comment>
   </data>
   <data name="OnlyTheSystemChannelIsUploadedAsOneExtraTranscriptionBilledB" xml:space="preserve">
     <value>Chỉ kênh hệ thống được tải lên, tính là một lượt chép lời thêm do nhà cung cấp tính phí; chỉ giữ lại nhãn người nói. Không dùng khi mô hình chép lời đã gắn nhãn người nói. Giá là giá niêm yết ước tính cho mỗi giờ âm thanh.</value>
@@ -2618,6 +2706,10 @@
     <value>Tạm dừng hoặc tiếp tục ghi âm từ bất kỳ ứng dụng nào.</value>
     <comment>Pauses or resumes the recording from any app.</comment>
   </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>Quyền</value>
+    <comment>Permissions</comment>
+  </data>
   <data name="PermissionsAndConsent" xml:space="preserve">
     <value>Quyền và sự đồng ý</value>
     <comment>Permissions and consent</comment>
@@ -2681,6 +2773,10 @@
   <data name="PlaybackStopped" xml:space="preserve">
     <value>Đã dừng phát ({0}).</value>
     <comment>Playback stopped (%@).</comment>
+  </data>
+  <data name="PortionOfTheScreen" xml:space="preserve">
+    <value>Một phần màn hình</value>
+    <comment>Portion of the screen</comment>
   </data>
   <data name="PreparingAudio" xml:space="preserve">
     <value>Đang chuẩn bị âm thanh…</value>
@@ -2842,6 +2938,14 @@
     <value>Ghi màn hình</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAndR" xml:space="preserve">
+    <value>Ghi màn hình và {0} (⌘R)</value>
+    <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
+    <value>Ghi màn hình và micrô (⌘R)</value>
+    <comment>Record the screen and the microphone (⌘R)</comment>
+  </data>
   <data name="RecordTheScreenFromNowOn" xml:space="preserve">
     <value>Ghi màn hình từ bây giờ</value>
     <comment>Record the screen from now on</comment>
@@ -2849,6 +2953,10 @@
   <data name="RecordTheScreenToShowTheCameraBubble" xml:space="preserve">
     <value>Ghi màn hình để hiện bong bóng camera</value>
     <comment>Record the screen to show the camera bubble</comment>
+  </data>
+  <data name="RecordTheScreenToo" xml:space="preserve">
+    <value>Ghi thêm màn hình</value>
+    <comment>Record the screen too</comment>
   </data>
   <data name="RecordYourFirstConversation" xml:space="preserve">
     <value>Ghi âm cuộc hội thoại đầu tiên của bạn</value>
@@ -2933,6 +3041,10 @@
   <data name="RecordsItInThisRecordingFromNowOn" xml:space="preserve">
     <value>Từ bây giờ sẽ ghi nó vào bản ghi âm này.</value>
     <comment>Records it in this recording from now on.</comment>
+  </data>
+  <data name="RecordsTheScreen" xml:space="preserve">
+    <value>Ghi lại màn hình.</value>
+    <comment>Records the screen.</comment>
   </data>
   <data name="Recovered" xml:space="preserve">
     <value>Đã khôi phục</value>
@@ -3093,6 +3205,10 @@
   <data name="ScreenRecorded" xml:space="preserve">
     <value>Đã ghi màn hình</value>
     <comment>Screen recorded</comment>
+  </data>
+  <data name="ScreenRecording" xml:space="preserve">
+    <value>Ghi màn hình</value>
+    <comment>Screen Recording</comment>
   </data>
   <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
     <value>Không thể tiếp tục ghi màn hình. Âm thanh vẫn đang được ghi.</value>
@@ -3266,9 +3382,17 @@
     <value>Đang hiển thị các cuộc họp trong 7 ngày tới. Danh sách tự động cập nhật.</value>
     <comment>Showing meetings in the next 7 days. The list updates automatically.</comment>
   </data>
+  <data name="ShowsKeyPresses" xml:space="preserve">
+    <value>Hiển thị phím bấm.</value>
+    <comment>Shows key presses.</comment>
+  </data>
   <data name="ShowsShortcutsSuchAsKAtTheBottomOfTheScreen" xml:space="preserve">
     <value>Hiển thị các phím tắt như ⌘K ở cuối màn hình.</value>
     <comment>Shows shortcuts such as ⌘K at the bottom of the screen.</comment>
+  </data>
+  <data name="ShowsTheCameraBubble" xml:space="preserve">
+    <value>Hiển thị bong bóng camera.</value>
+    <comment>Shows the camera bubble.</comment>
   </data>
   <data name="ShowsTheTranscriptDuringTheRecordingWhisperAndParakeetModels" xml:space="preserve">
     <value>Hiển thị bản chép lời trong khi ghi âm. Mô hình Whisper và Parakeet giữ lại bản này, nhờ đó bản chép lời sẵn sàng trong vài giây sau khi bấm Dừng. Dùng nhiều CPU và bộ nhớ hơn khi ghi âm. Công cụ đám mây có thể hiển thị bản này bằng một mô hình cục bộ hoặc luồng thời gian thực của nó: xem Mô hình chép lời ở bên dưới.</value>
@@ -3797,6 +3921,10 @@
   <data name="TheRecordingFailed" xml:space="preserve">
     <value>Ghi âm không thành công.</value>
     <comment>The recording failed.</comment>
+  </data>
+  <data name="TheRecordingStartsAsSoonAsYouPick" xml:space="preserve">
+    <value>Việc ghi bắt đầu ngay khi bạn chọn.</value>
+    <comment>The recording starts as soon as you pick.</comment>
   </data>
   <data name="TheRecordingsAndTheirFilesAreMovedToTheRecycleBin" xml:space="preserve">
     <value>Các bản ghi âm và tệp của chúng được chuyển vào Thùng rác.</value>

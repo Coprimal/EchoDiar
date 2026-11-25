@@ -142,6 +142,10 @@
     <value>Añadido</value>
     <comment>Added</comment>
   </data>
+  <data name="AfterAllowingItQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>Después de permitirlo, cierra y vuelve a abrir EchoDiar.</value>
+    <comment>After allowing it, quit and reopen EchoDiar.</comment>
+  </data>
   <data name="AfterRecording" xml:space="preserve">
     <value>Después de grabar</value>
     <comment>After recording</comment>
@@ -202,9 +206,17 @@
     <value>Todo el audio del sistema</value>
     <comment>All system audio</comment>
   </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Permitir…</value>
+    <comment>Allow…</comment>
+  </data>
   <data name="AllowCamera" xml:space="preserve">
     <value>Permitir cámara</value>
     <comment>Allow Camera</comment>
+  </data>
+  <data name="AllowItInSystemSettingsThenQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>Permítelo en Ajustes del Sistema y luego cierra y vuelve a abrir EchoDiar.</value>
+    <comment>Allow it in System Settings, then quit and reopen EchoDiar.</comment>
   </data>
   <data name="AllowMicrophone" xml:space="preserve">
     <value>Permitir micrófono</value>
@@ -213,6 +225,10 @@
   <data name="AllowScreenRecording" xml:space="preserve">
     <value>Permitir grabación de pantalla</value>
     <comment>Allow Screen Recording</comment>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>Acceso permitido</value>
+    <comment>Allowed</comment>
   </data>
   <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
     <value>También responde en la pestaña Chat durante la grabación.</value>
@@ -518,6 +534,14 @@
     <value>facturado por minuto transmitido, unos {0} por hora por cada conexión</value>
     <comment>billed per streamed minute, about %@ per hour for each connection</comment>
   </data>
+  <data name="BlurBackground" xml:space="preserve">
+    <value>Desenfocar el fondo</value>
+    <comment>Blur background</comment>
+  </data>
+  <data name="BlursEverythingBehindYouInTheCameraBubble" xml:space="preserve">
+    <value>Desenfoca todo lo que hay detrás de ti en la burbuja de cámara.</value>
+    <comment>Blurs everything behind you in the camera bubble.</comment>
+  </data>
   <data name="Both" xml:space="preserve">
     <value>Ambos</value>
     <comment>Both</comment>
@@ -685,6 +709,10 @@
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>Haz clic para definir un nuevo atajo</value>
     <comment>Click to record a new shortcut</comment>
+  </data>
+  <data name="ClickToRecordThisDisplay" xml:space="preserve">
+    <value>Haz clic para grabar esta pantalla</value>
+    <comment>Click to record this display</comment>
   </data>
   <data name="Close" xml:space="preserve">
     <value>Cerrar</value>
@@ -1282,9 +1310,25 @@
     <value>EchoDiar necesita acceso a la cámara para mostrar la burbuja de cámara.</value>
     <comment>EchoDiar needs Camera access to show the camera bubble.</comment>
   </data>
+  <data name="EchoDiarNeedsCameraAccessToShowTheCameraBubbleAllowItInSyste" xml:space="preserve">
+    <value>EchoDiar necesita acceso a la cámara para mostrar la burbuja de cámara. Permítelo en Ajustes del Sistema.</value>
+    <comment>EchoDiar needs Camera access to show the camera bubble. Allow it in System Settings.</comment>
+  </data>
   <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPresses" xml:space="preserve">
     <value>EchoDiar necesita acceso de Monitorización de los dispositivos de entrada para mostrar las pulsaciones de teclas.</value>
     <comment>EchoDiar needs Input Monitoring access to show key presses.</comment>
+  </data>
+  <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPressesAllowItInS" xml:space="preserve">
+    <value>EchoDiar necesita acceso de Monitorización de los dispositivos de entrada para mostrar las pulsaciones de teclas. Permítelo en Ajustes del Sistema y luego cierra y vuelve a abrir EchoDiar.</value>
+    <comment>EchoDiar needs Input Monitoring access to show key presses. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessAllowItInSystemSettingsThe" xml:space="preserve">
+    <value>EchoDiar necesita acceso de Grabación de pantalla. Permítelo en Ajustes del Sistema y luego cierra y vuelve a abrir EchoDiar.</value>
+    <comment>EchoDiar needs Screen Recording access. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessToRecordTheScreen" xml:space="preserve">
+    <value>EchoDiar necesita acceso de Grabación de pantalla para grabar la pantalla.</value>
+    <comment>EchoDiar needs Screen Recording access to record the screen.</comment>
   </data>
   <data name="EchoDiarNeedsScreenRecordingPermissionToRecordTheScreen" xml:space="preserve">
     <value>EchoDiar necesita el permiso de Grabación de pantalla para grabar la pantalla.</value>
@@ -1338,6 +1382,10 @@
     <value>Editar…</value>
     <comment>Edit…</comment>
   </data>
+  <data name="ElapsedTime" xml:space="preserve">
+    <value>Tiempo transcurrido</value>
+    <comment>Elapsed time</comment>
+  </data>
   <data name="Embedding" xml:space="preserve">
     <value>Embeddings</value>
     <comment>Embedding</comment>
@@ -1385,6 +1433,10 @@
   <data name="EnterTheEmbeddingModelOfInSettingsRAG" xml:space="preserve">
     <value>Introduce el modelo de embeddings de {0} en Ajustes › RAG</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
+  </data>
+  <data name="EntireScreen" xml:space="preserve">
+    <value>Pantalla entera</value>
+    <comment>Entire screen</comment>
   </data>
   <data name="EntriesPerPage" xml:space="preserve">
     <value>Entradas por página</value>
@@ -1441,6 +1493,10 @@
   <data name="File" xml:space="preserve">
     <value>Archivo</value>
     <comment>File</comment>
+  </data>
+  <data name="FileSize" xml:space="preserve">
+    <value>Tamaño del archivo</value>
+    <comment>File size</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>Los archivos pueden ser varias veces más grandes. En una prueba similar a una reunión, la grabación de una ventana ocupó unos {0} MB por minuto a 60 fps, frente a {1} MB por minuto a 15 fps.</value>
@@ -1582,6 +1638,10 @@
     <value>Descargas de Hugging Face</value>
     <comment>Hugging Face downloads</comment>
   </data>
+  <data name="IconOnly" xml:space="preserve">
+    <value>Solo el icono</value>
+    <comment>Icon only</comment>
+  </data>
   <data name="IdentifyingSpeakers" xml:space="preserve">
     <value>Identificando hablantes…</value>
     <comment>Identifying speakers…</comment>
@@ -1641,6 +1701,10 @@
   <data name="IndicatorSize" xml:space="preserve">
     <value>Tamaño del indicador</value>
     <comment>Indicator size</comment>
+  </data>
+  <data name="InputMonitoring" xml:space="preserve">
+    <value>Monitorización de los dispositivos de entrada</value>
+    <comment>Input Monitoring</comment>
   </data>
   <data name="InstallAndRelaunch" xml:space="preserve">
     <value>Instalar y reiniciar</value>
@@ -1890,6 +1954,10 @@
     <value>En directo con {0} en tiempo real</value>
     <comment>Live with %@ realtime</comment>
   </data>
+  <data name="Lld" xml:space="preserve">
+    <value>{0}</value>
+    <comment>%lld</comment>
+  </data>
   <data name="LldBytes" xml:space="preserve">
     <value>{0} bytes</value>
     <comment>%lld bytes</comment>
@@ -1945,6 +2013,10 @@
   <data name="LldLanguages__One" xml:space="preserve">
     <value>{0} idioma</value>
     <comment>%lld languages</comment>
+  </data>
+  <data name="LldLld" xml:space="preserve">
+    <value>{0}–{1} {2}</value>
+    <comment>%lld–%lld %@</comment>
   </data>
   <data name="LldLldOfLld" xml:space="preserve">
     <value>{0}–{1} de {2}</value>
@@ -2081,6 +2153,10 @@
   <data name="Meetings" xml:space="preserve">
     <value>Reuniones</value>
     <comment>Meetings</comment>
+  </data>
+  <data name="MenuBarWhileRecording" xml:space="preserve">
+    <value>Barra de menús al grabar</value>
+    <comment>Menu bar while recording</comment>
   </data>
   <data name="Mic" xml:space="preserve">
     <value>Mic.</value>
@@ -2426,6 +2502,10 @@
     <value>No es un enlace de reunión reconocido: no se ofrecerá "Unirse".</value>
     <comment>Not a recognized meeting link: Join won't be offered.</comment>
   </data>
+  <data name="NotAllowed" xml:space="preserve">
+    <value>Acceso no permitido</value>
+    <comment>Not allowed</comment>
+  </data>
   <data name="NotAvailableOnThisMac" xml:space="preserve">
     <value>No disponible en este Mac</value>
     <comment>Not available on this Mac</comment>
@@ -2554,6 +2634,10 @@
     <value>Uno por línea, Nombre: valor. Se guardan en el archivo de ajustes: pon las claves de API en el campo Clave de API.</value>
     <comment>One per line, Name: value. Saved in the settings file: put API keys in the API key field.</comment>
   </data>
+  <data name="Only" xml:space="preserve">
+    <value>Solo {0}</value>
+    <comment>Only %@</comment>
+  </data>
   <data name="OnlyEventsInTheEchoDiarCalendarCanBeChanged" xml:space="preserve">
     <value>Solo se pueden cambiar los eventos del calendario EchoDiar.</value>
     <comment>Only events in the EchoDiar calendar can be changed.</comment>
@@ -2565,6 +2649,10 @@
   <data name="OnlyEventsWithAMeetingLinkOrInTheEchoDiarCalendarAreShown" xml:space="preserve">
     <value>Solo se muestran los eventos con enlace de reunión o del calendario EchoDiar.</value>
     <comment>Only events with a meeting link, or in the EchoDiar calendar, are shown.</comment>
+  </data>
+  <data name="OnlyRecordsAllSystemAudio" xml:space="preserve">
+    <value>Solo {0} (graba todo el audio del sistema)</value>
+    <comment>Only %@ (records all system audio)</comment>
   </data>
   <data name="OnlyTheSystemChannelIsUploadedAsOneExtraTranscriptionBilledB" xml:space="preserve">
     <value>Solo se sube el canal del sistema, como una transcripción adicional facturada por el proveedor; solo se conservan las etiquetas de hablante. No se usa si el modelo de transcripción ya etiqueta a los hablantes. Los precios son precios de lista aproximados por hora de audio.</value>
@@ -2722,6 +2810,10 @@
     <value>Pausa o reanuda la grabación desde cualquier app.</value>
     <comment>Pauses or resumes the recording from any app.</comment>
   </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>Permisos</value>
+    <comment>Permissions</comment>
+  </data>
   <data name="PermissionsAndConsent" xml:space="preserve">
     <value>Permisos y consentimiento</value>
     <comment>Permissions and consent</comment>
@@ -2785,6 +2877,10 @@
   <data name="PlaybackStopped" xml:space="preserve">
     <value>La reproducción se ha detenido ({0}).</value>
     <comment>Playback stopped (%@).</comment>
+  </data>
+  <data name="PortionOfTheScreen" xml:space="preserve">
+    <value>Parte de la pantalla</value>
+    <comment>Portion of the screen</comment>
   </data>
   <data name="PreparingAudio" xml:space="preserve">
     <value>Preparando el audio…</value>
@@ -2946,6 +3042,14 @@
     <value>Grabar la pantalla</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAndR" xml:space="preserve">
+    <value>Grabar la pantalla y {0} (⌘R)</value>
+    <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
+    <value>Grabar la pantalla y el micrófono (⌘R)</value>
+    <comment>Record the screen and the microphone (⌘R)</comment>
+  </data>
   <data name="RecordTheScreenFromNowOn" xml:space="preserve">
     <value>Grabar la pantalla a partir de ahora</value>
     <comment>Record the screen from now on</comment>
@@ -2953,6 +3057,10 @@
   <data name="RecordTheScreenToShowTheCameraBubble" xml:space="preserve">
     <value>Graba la pantalla para mostrar la burbuja de cámara</value>
     <comment>Record the screen to show the camera bubble</comment>
+  </data>
+  <data name="RecordTheScreenToo" xml:space="preserve">
+    <value>Grabar también la pantalla</value>
+    <comment>Record the screen too</comment>
   </data>
   <data name="RecordYourFirstConversation" xml:space="preserve">
     <value>Graba tu primera conversación</value>
@@ -3037,6 +3145,10 @@
   <data name="RecordsItInThisRecordingFromNowOn" xml:space="preserve">
     <value>Lo añade a esta grabación a partir de ahora.</value>
     <comment>Records it in this recording from now on.</comment>
+  </data>
+  <data name="RecordsTheScreen" xml:space="preserve">
+    <value>Graba la pantalla.</value>
+    <comment>Records the screen.</comment>
   </data>
   <data name="Recovered" xml:space="preserve">
     <value>Recuperada</value>
@@ -3197,6 +3309,10 @@
   <data name="ScreenRecorded" xml:space="preserve">
     <value>Pantalla grabada</value>
     <comment>Screen recorded</comment>
+  </data>
+  <data name="ScreenRecording" xml:space="preserve">
+    <value>Grabación de pantalla</value>
+    <comment>Screen Recording</comment>
   </data>
   <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
     <value>No se ha podido reanudar la grabación de pantalla. El sonido se sigue grabando.</value>
@@ -3370,9 +3486,17 @@
     <value>Se muestran las reuniones de los próximos 7 días. La lista se actualiza automáticamente.</value>
     <comment>Showing meetings in the next 7 days. The list updates automatically.</comment>
   </data>
+  <data name="ShowsKeyPresses" xml:space="preserve">
+    <value>Muestra las pulsaciones de teclas.</value>
+    <comment>Shows key presses.</comment>
+  </data>
   <data name="ShowsShortcutsSuchAsKAtTheBottomOfTheScreen" xml:space="preserve">
     <value>Muestra atajos como ⌘K en la parte inferior de la pantalla.</value>
     <comment>Shows shortcuts such as ⌘K at the bottom of the screen.</comment>
+  </data>
+  <data name="ShowsTheCameraBubble" xml:space="preserve">
+    <value>Muestra la burbuja de cámara.</value>
+    <comment>Shows the camera bubble.</comment>
   </data>
   <data name="ShowsTheTranscriptDuringTheRecordingWhisperAndParakeetModels" xml:space="preserve">
     <value>Muestra la transcripción durante la grabación. Los modelos Whisper y Parakeet la conservan, para que esté lista segundos después de Detener. Usa más CPU y memoria al grabar. Un motor en la nube puede mostrarla con un modelo local o con su transmisión en tiempo real: consulta Modelo de transcripción abajo.</value>
@@ -3937,6 +4061,10 @@
   <data name="TheRecordingFailed" xml:space="preserve">
     <value>La grabación ha fallado.</value>
     <comment>The recording failed.</comment>
+  </data>
+  <data name="TheRecordingStartsAsSoonAsYouPick" xml:space="preserve">
+    <value>La grabación empieza en cuanto eliges.</value>
+    <comment>The recording starts as soon as you pick.</comment>
   </data>
   <data name="TheRecordingsAndTheirFilesAreMovedToTheRecycleBin" xml:space="preserve">
     <value>Las grabaciones y sus archivos se trasladan a la Papelera de reciclaje.</value>
