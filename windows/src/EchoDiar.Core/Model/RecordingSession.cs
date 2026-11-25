@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EchoDiar.Core.Json;
+using EchoDiar.Core.Settings;
 
 namespace EchoDiar.Core.Model;
 
@@ -26,6 +27,59 @@ public enum TapMode
 }
 
 public sealed class TapModeConverter() : TolerantEnumConverter<TapMode>(TapMode.Unknown);
+
+/// <summary>Swift <c>RecordingSession.Video.Source</c>. An unrecognized raw value reads as <see cref="Unknown"/>.</summary>
+[JsonConverter(typeof(VideoSourceConverter))]
+public enum VideoSource
+{
+    Display, Window, Area,
+    /// <summary>An unrecognized raw value. Written back as "unknown", as macOS does.</summary>
+    Unknown,
+}
+
+public sealed class VideoSourceConverter() : TolerantEnumConverter<VideoSource>(VideoSource.Unknown);
+
+/// <summary>
+/// Swift <c>RecordingSession.Video</c>: the screen recording of a session. Every key is required on read; macOS reads a
+/// partial block as no video, so all six are always written.
+/// </summary>
+public sealed record SessionVideo
+{
+    [JsonPropertyName("fileName")] public required string FileName { get; set; }
+    [JsonPropertyName("source")] public required VideoSource Source { get; set; }
+    [JsonPropertyName("fps")] public required int Fps { get; set; }
+    /// <summary>The constant-quality setting of the encoder, 0...1.</summary>
+    [JsonPropertyName("quality")] public required double Quality { get; set; }
+    /// <summary>Pixels.</summary>
+    [JsonPropertyName("width")] public required int Width { get; set; }
+    [JsonPropertyName("height")] public required int Height { get; set; }
+    /// <summary>
+    /// Keys not modeled here (Windows-only details, keys of later builds), written back as read. Null when there are none.
+    /// </summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// Swift's <c>try? decodeIfPresent</c>: a malformed or partial video block reads as null instead of failing the session.
+/// </summary>
+public sealed class LenientSessionVideoConverter : JsonConverter<SessionVideo>
+{
+    public override SessionVideo? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var element = JsonElement.ParseValue(ref reader);
+        try
+        {
+            return element.Deserialize<SessionVideo>(options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, SessionVideo value, JsonSerializerOptions options) =>
+        JsonSerializer.Serialize(writer, value, options);
+}
 
 /// <summary>
 /// The <c>session.json</c> file format, version 1, written next to the audio file of every recording.
@@ -106,9 +160,17 @@ public sealed record RecordingSession
     /// conversation built from this session takes it as a custom title.
     /// </summary>
     [JsonPropertyName("title")] public string? Title { get; set; }
+    /// <summary>The screen recording of this session (written once its first frame is in the file); null = audio only.</summary>
+    [JsonPropertyName("video"), JsonConverter(typeof(LenientSessionVideoConverter))]
+    public SessionVideo? Video { get; set; }
     /// <summary>
-    /// Keys not modeled here (macOS <c>video</c> and <c>skipsTranscription</c>, keys of later builds), written back as
-    /// read so a rewrite on Windows keeps them. Null when there are none.
+    /// "Screen only": never transcribed automatically (live or after Stop), whatever the settings say; a manual
+    /// transcription still works. See <see cref="AutoTranscribes(AppSettings)"/>.
+    /// </summary>
+    [JsonPropertyName("skipsTranscription")] public bool SkipsTranscription { get; set; }
+    /// <summary>
+    /// Keys not modeled here (keys of later builds), written back as read so a rewrite on Windows keeps them. Null when
+    /// there are none.
     /// </summary>
     [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
 
@@ -116,6 +178,14 @@ public sealed record RecordingSession
     [JsonIgnore]
     public string FolderName =>
         $"{StartedAt.ToLocalTime().ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture)}-{Id.ToString("D")[..8].ToLowerInvariant()}";
+
+    /// <summary>
+    /// Whether a recording is transcribed automatically (live and after Stop): "Transcribe automatically" is on and the
+    /// recording is not marked <see cref="SkipsTranscription"/>. Callable before the session exists.
+    /// </summary>
+    public static bool AutoTranscribes(bool skips, AppSettings settings) => settings.AutoTranscribe && !skips;
+
+    public bool AutoTranscribes(AppSettings settings) => AutoTranscribes(SkipsTranscription, settings);
 
     /// <summary>This session's folder under the conversations root (<see cref="AppPaths.Conversations"/>).</summary>
     public string Folder(string root) => Path.Combine(root, FolderName);

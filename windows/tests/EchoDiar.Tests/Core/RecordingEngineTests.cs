@@ -94,6 +94,47 @@ public sealed class RecordingEngineTests : IDisposable
     }
 
     [Fact]
+    public void WithoutSystemAudioNoSystemSourceOpensAndItsChannelIsSilence()
+    {
+        var engine = Engine();
+        var folder = engine.Start(CaptureTarget.Global, "auto", micEndpointId: null, _root, systemAudio: false);
+        var block = Enumerable.Repeat(0.25f, 1_600).ToArray();
+        _mics[^1].Emit(block, _now);
+
+        _routes.OutputChanged?.Invoke();
+        engine.Pause();
+        engine.Resume();
+        _mics[^1].Emit(block, _now);
+        var stored = engine.Stop()!;
+
+        Assert.Empty(_systems); // not at start, on an output change nor at resume
+        Assert.Null(stored.OutputDeviceName);
+        using var reader = new CafFile.Reader(Path.Combine(folder, stored.AudioFileName));
+        Assert.Equal(0.2, reader.Frames / 16_000.0, 0.005);
+        var samples = reader.Read(0, (int)reader.Frames); // interleaved ch0 mic, ch1 system
+        Assert.Equal(0.25f, samples[2 * 800], 0.01f);
+        Assert.All(samples.Where((_, i) => i % 2 == 1), sample => Assert.Equal(0f, sample));
+    }
+
+    [Fact]
+    public void SkipsTranscriptionAndVideoLandInTheSessionFile()
+    {
+        var engine = Engine();
+        var folder = engine.Start(CaptureTarget.Global, "auto", micEndpointId: null, _root, skipsTranscription: true);
+        Assert.True(RecordingSession.Read(folder).SkipsTranscription);
+
+        var video = new SessionVideo { FileName = "video.mp4", Source = VideoSource.Window, Fps = 30, Quality = 0.7, Width = 1_920, Height = 1_080 };
+        engine.SetVideo(video);
+        Assert.Equal(video, RecordingSession.Read(folder).Video);
+
+        engine.Stop();
+        engine.SetVideo(null); // idle: no-op
+        var stored = RecordingSession.Read(folder);
+        Assert.Equal(video, stored.Video);
+        Assert.True(stored.SkipsTranscription);
+    }
+
+    [Fact]
     public void MutedMicIsClosedAndItsChannelStaysTimeAlignedSilence()
     {
         var engine = Engine();
