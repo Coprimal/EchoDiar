@@ -778,6 +778,10 @@
     <value>Collapse</value>
     <comment>Collapse</comment>
   </data>
+  <data name="CollapsePanel" xml:space="preserve">
+    <value>Collapse panel</value>
+    <comment>Collapse panel</comment>
+  </data>
   <data name="Collapsed" xml:space="preserve">
     <value>Collapsed</value>
     <comment>Collapsed</comment>
@@ -1461,6 +1465,10 @@
   <data name="Expand" xml:space="preserve">
     <value>Expand</value>
     <comment>Expand</comment>
+  </data>
+  <data name="ExpandPanel" xml:space="preserve">
+    <value>Expand panel</value>
+    <comment>Expand panel</comment>
   </data>
   <data name="Expanded" xml:space="preserve">
     <value>Expanded</value>

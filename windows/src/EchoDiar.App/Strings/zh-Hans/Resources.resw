@@ -754,6 +754,10 @@
     <value>折叠</value>
     <comment>Collapse</comment>
   </data>
+  <data name="CollapsePanel" xml:space="preserve">
+    <value>折叠面板</value>
+    <comment>Collapse panel</comment>
+  </data>
   <data name="Collapsed" xml:space="preserve">
     <value>已折叠</value>
     <comment>Collapsed</comment>
@@ -1409,6 +1413,10 @@
   <data name="Expand" xml:space="preserve">
     <value>展开</value>
     <comment>Expand</comment>
+  </data>
+  <data name="ExpandPanel" xml:space="preserve">
+    <value>展开面板</value>
+    <comment>Expand panel</comment>
   </data>
   <data name="Expanded" xml:space="preserve">
     <value>已展开</value>

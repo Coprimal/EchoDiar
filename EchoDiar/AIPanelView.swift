@@ -71,37 +71,15 @@ struct AIPanelView: View {
     private static let answerFooterHeight: CGFloat = 22
 
     var body: some View {
-        // One card: the header (lined up with the sidebar's), a line, then the tab.
-        VStack(spacing: 0) {
-            header
-                .padding(MainView.headerPadding)
-            Divider()
-            // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
-            // the click that opened the conversation shows at once.
-            VStack(spacing: 10) {
-                if loaded {
-                    ZStack {
-                        switch tab {
-                        case .chat: chatPane.transition(transition)
-                        case .catchUp: catchUpPane.transition(transition)
-                        case .summary: summaryPane.transition(transition)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    errorText
-                        .padding(.horizontal, 14)
-                    // The catch-ups are read-only: no footer.
-                    if tab != .catchUp { footer }
-                } else {
-                    DetailLoadingPane(framed: false)
-                }
+        // Collapsed, a rail stands in for the card; this view stays, so the chat, the question and the loads stay too.
+        Group {
+            if model.aiPanelCollapsed {
+                CollapsedPanel(stacked: model.settings.stackedPanes, tabs: shownTabs, cornerRadius: 20,
+                               icon: TranscriptView.tabIcon, title: TranscriptView.tabTitle, open: expand)
+            } else {
+                card
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .overlay(alignment: .bottom) { toastView }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .modifier(GlassCard(cornerRadius: 20))
         .environment(\.openURL, OpenURLAction(handler: openLink))
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
@@ -136,6 +114,40 @@ struct AIPanelView: View {
         .onChange(of: showingHistory) { _, shown in
             if !shown { setHistorySearch(false) }
         }
+    }
+
+    /// The open panel: one card, the header (lined up with the sidebar's), a line, then the tab.
+    private var card: some View {
+        VStack(spacing: 0) {
+            header
+                .padding(MainView.headerPadding)
+            Divider()
+            // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
+            // the click that opened the conversation shows at once.
+            VStack(spacing: 10) {
+                if loaded {
+                    ZStack {
+                        switch tab {
+                        case .chat: chatPane.transition(transition)
+                        case .catchUp: catchUpPane.transition(transition)
+                        case .summary: summaryPane.transition(transition)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    errorText
+                        .padding(.horizontal, 14)
+                    // The catch-ups are read-only: no footer.
+                    if tab != .catchUp { footer }
+                } else {
+                    DetailLoadingPane(framed: false)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .overlay(alignment: .bottom) { toastView }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(GlassCard(cornerRadius: 20))
     }
 
     private struct LoadKey: Equatable {
@@ -584,7 +596,18 @@ struct AIPanelView: View {
                 } else {
                     headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight)
                 }
+                PanelCollapseButton(stacked: model.settings.stackedPanes) { model.aiPanelCollapsed = true }
             }
+        }
+    }
+
+    /// A button of the collapsed panel: opens it on `tab`; Chat as the View menu's Chat, with the cursor in the question.
+    private func expand(_ tab: AppModel.DetailTab) {
+        if tab == .chat {
+            model.requestChat()
+        } else {
+            model.detailTab = tab
+            model.aiPanelCollapsed = false
         }
     }
 

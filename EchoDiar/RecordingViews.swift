@@ -182,9 +182,9 @@ struct RecordingCard: View {
 
 /// The recording in the library page's detail: the header and the calendar suggestion if any, pinned on top, then the
 /// transcript beside a panel with its own Catch-up | Chat tabs (above it with `AppSettings.stackedPanes`), the gap
-/// between them dragging to resize them. The transcript is the live one, or the wave and why
-/// there is none (the conditions of `AppModel.startRecordingTranscriber`, read from the settings), with the Settings
-/// page that changes it.
+/// between them dragging to resize them; the panel collapses to a rail of tab buttons, as it starts. The transcript is
+/// the live one, or the wave and why there is none (the conditions of `AppModel.startRecordingTranscriber`, read from
+/// the settings), with the Settings page that changes it.
 struct RecordingDetailView: View {
     let model: AppModel
     /// The Catch-up tab's search field is shown (the header's magnifying glass); closing it clears the query.
@@ -218,11 +218,23 @@ struct RecordingDetailView: View {
             RecordingHeader(model: model)
             if let event = model.calendarSuggestion { suggestionRow(event) }
             let stacked = model.settings.stackedPanes
-            PaneSplit(vertical: stacked, firstMinimum: stacked ? 160 : 240, secondMinimum: stacked ? 200 : 300) {
+            let collapsed = model.recordingPanelCollapsed
+            PaneSplit(vertical: stacked, firstMinimum: stacked ? 160 : 240, secondMinimum: stacked ? 200 : 300,
+                      collapsedSecond: collapsed ? CollapsedPanel<AppModel.RecordingTab>.thickness : nil,
+                      setCollapsed: { model.recordingPanelCollapsed = $0 }) {
                 transcript
             } second: {
-                sidePanel
+                if collapsed {
+                    CollapsedPanel(stacked: stacked, tabs: Self.panelTabs, cornerRadius: 14, icon: Self.tabIcon,
+                                   title: Self.tabTitle) { tab in
+                        model.recordingTab = tab
+                        model.recordingPanelCollapsed = false
+                    }
+                } else {
+                    sidePanel
+                }
             }
+            .animation(reduceMotion ? nil : Motion.standard, value: collapsed)
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -293,6 +305,7 @@ struct RecordingDetailView: View {
                     .help("Search catch-ups")
                     .accessibilityLabel("Search catch-ups")
                 }
+                PanelCollapseButton(stacked: model.settings.stackedPanes) { model.recordingPanelCollapsed = true }
             }
         }
     }

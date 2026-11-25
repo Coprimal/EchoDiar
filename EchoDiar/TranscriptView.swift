@@ -62,7 +62,9 @@ struct TranscriptView: View {
     }
 
     var body: some View {
-        PaneSplit(vertical: stacked, firstMinimum: stacked ? 200 : 280, secondMinimum: stacked ? 200 : 300) {
+        PaneSplit(vertical: stacked, firstMinimum: stacked ? 200 : 280, secondMinimum: stacked ? 200 : 300,
+                  collapsedSecond: model.aiPanelCollapsed ? CollapsedPanel<AppModel.DetailTab>.thickness : nil,
+                  setCollapsed: { model.aiPanelCollapsed = $0 }) {
             // One card: the video, the transcript and the bar, a line between each two. Until the files are read, a
             // light pane (beside the video pane's placeholder when there is a video), so the click that opened the
             // conversation shows at once. Clipped to the card, as the video's picture would not be.
@@ -80,6 +82,7 @@ struct TranscriptView: View {
         } second: {
             AIPanelView(conversation: conversation, model: model, tab: shownTab, transition: tabTransition)
         }
+        .animation(reduceMotion ? nil : Motion.standard, value: model.aiPanelCollapsed)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -414,6 +417,7 @@ struct TranscriptView: View {
     /// and `startAIJob` does nothing while this conversation has a job (other conversations' jobs do not block it).
     private func summarize() {
         model.detailTab = .summary
+        model.aiPanelCollapsed = false
         guard !conversation.hasSummary, let transcript, let provider = model.currentAIProvider(for: .summary) else {
             return
         }
@@ -966,18 +970,25 @@ private struct SpeakerChipShape: ViewModifier {
 /// No divider line: unlike `HSplitView` and `VSplitView`, whose divider cannot be hidden, the cards' own edges
 /// separate them, and two short grip lines in the gap's middle show it resizes (a bit brighter on hover and while
 /// dragged). `lined`: two panes of one card (the video and the transcript), a line across the whole card in the gap's
-/// middle instead of the grip.
+/// middle instead of the grip. `collapsedSecond`: the second pane is that long (a `CollapsedPanel`) and the first takes
+/// the rest; the split comes back as it was once it is nil again. With `setCollapsed`, dragging the gap on past the
+/// second pane's minimum, until it would be less than half of it, collapses it, and dragging the collapsed pane out as
+/// far expands it, the pointer then resizing it as usual.
 struct PaneSplit<First: View, Second: View>: View {
     let vertical: Bool
     let firstMinimum: CGFloat
     let secondMinimum: CGFloat
     var lined = false
+    var collapsedSecond: CGFloat?
+    var setCollapsed: ((Bool) -> Void)?
     @ViewBuilder let first: First
     @ViewBuilder let second: Second
     /// The first pane's share of the space without the gap.
     @State private var fraction: CGFloat = 0.5
     /// The first pane's length when the drag began.
     @State private var dragStart: CGFloat?
+    /// `fraction` when the drag began: a drag that collapses the second pane leaves the split as it was before it.
+    @State private var dragStartFraction: CGFloat = 0.5
     /// The pointer is over the gap.
     @State private var hovered = false
 
@@ -988,28 +999,47 @@ struct PaneSplit<First: View, Second: View>: View {
         GeometryReader { geometry in
             let total = max((vertical ? geometry.size.height : geometry.size.width) - gap, 0)
             // Whole points, so the gap and its grip lines sit on the pixel grid and both lines draw alike.
-            let length = clamped(total * fraction, total: total).rounded()
+            let length = collapsedSecond.map { max(total - $0, 0) }
+                ?? clamped(total * fraction, total: total).rounded()
             let layout = vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
             layout {
                 first.frame(width: vertical ? nil : length, height: vertical ? length : nil)
-                Color.clear
-                    .frame(width: vertical ? nil : gap, height: vertical ? gap : nil)
-                    .contentShape(Rectangle())
-                    // Draws only: the gap keeps the drag and the resize pointer.
-                    .overlay { Group { if lined { line } else { grip } }.allowsHitTesting(false) }
-                    .pointerStyle(vertical ? .rowResize : .columnResize)
-                    .onHover { hovered = $0 }
-                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                        .onChanged { drag in
-                            let start = dragStart ?? length
-                            if dragStart == nil { dragStart = start }
-                            let moved = vertical ? drag.translation.height : drag.translation.width
-                            if total > 0 { fraction = clamped(start + moved, total: total) / total }
-                        }
-                        .onEnded { _ in dragStart = nil })
+                // The same gap collapsed or not, so a drag that collapses or expands the second pane goes on.
+                resizeGap(length: length, total: total)
                 second.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+
+    /// The gap that drags to resize the panes, with the resize pointer.
+    private func resizeGap(length: CGFloat, total: CGFloat) -> some View {
+        Color.clear
+            .frame(width: vertical ? nil : gap, height: vertical ? gap : nil)
+            .contentShape(Rectangle())
+            // Draws only: the gap keeps the drag and the resize pointer.
+            .overlay { Group { if lined { line } else { grip } }.allowsHitTesting(false) }
+            .pointerStyle(vertical ? .rowResize : .columnResize)
+            .onHover { hovered = $0 }
+            .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                .onChanged { drag in
+                    let start = dragStart ?? length
+                    if dragStart == nil {
+                        dragStart = start
+                        dragStartFraction = fraction
+                    }
+                    let moved = vertical ? drag.translation.height : drag.translation.width
+                    guard total > 0 else { return }
+                    if let setCollapsed {
+                        let collapse = total - (start + moved) < secondMinimum / 2
+                        if collapse != (collapsedSecond != nil) { setCollapsed(collapse) }
+                        if collapse {
+                            fraction = dragStartFraction
+                            return
+                        }
+                    }
+                    fraction = clamped(start + moved, total: total) / total
+                }
+                .onEnded { _ in dragStart = nil })
     }
 
     /// Two parallel lines across the gap's middle, along the edges it moves: vertical between columns, horizontal
@@ -1039,5 +1069,63 @@ struct PaneSplit<First: View, Second: View>: View {
     private func clamped(_ length: CGFloat, total: CGFloat) -> CGFloat {
         guard total >= firstMinimum + secondMinimum else { return total / 2 }
         return min(max(length, firstMinimum), total - secondMinimum)
+    }
+}
+
+/// The AI panel, or the recording's side panel, collapsed beside the transcript (under it with
+/// `AppSettings.stackedPanes`): a card one button wide (one button tall when stacked) with an icon button per tab,
+/// which opens the panel on that tab, and a chevron that opens it on the first tab, where the collapse button was (on
+/// top beside the transcript, at the trailing end under it).
+struct CollapsedPanel<Tab: Hashable>: View {
+    let stacked: Bool
+    let tabs: [Tab]
+    let cornerRadius: CGFloat
+    let icon: (Tab) -> Text
+    let title: (Tab) -> LocalizedStringKey
+    let open: (Tab) -> Void
+
+    /// Its width beside the transcript (its height under it): one header button and the header's padding.
+    static var thickness: CGFloat { MainView.headerHeight + 2 * MainView.headerPadding }
+
+    var body: some View {
+        let layout = stacked ? AnyLayout(HStackLayout(spacing: 8)) : AnyLayout(VStackLayout(spacing: 8))
+        layout {
+            if !stacked { expandButton }
+            ForEach(tabs, id: \.self) { tab in
+                Button { open(tab) } label: { icon(tab) }
+                    .buttonStyle(BottomBarButtonStyle(height: MainView.headerHeight, horizontalPadding: 0))
+                    .help(Text(title(tab)))
+            }
+            if stacked {
+                Spacer(minLength: 0)
+                expandButton
+            }
+        }
+        .padding(MainView.headerPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .modifier(GlassCard(cornerRadius: cornerRadius))
+    }
+
+    private var expandButton: some View {
+        Button { if let first = tabs.first { open(first) } } label: {
+            Label("Expand panel", systemImage: stacked ? "chevron.up" : "chevron.left").labelStyle(.iconOnly)
+        }
+        .buttonStyle(BottomBarButtonStyle(height: MainView.headerHeight, horizontalPadding: 0))
+        .help("Expand panel")
+    }
+}
+
+/// The last button of the AI panel's (the recording side panel's) header: collapses it to its `CollapsedPanel`, toward
+/// the trailing edge beside the transcript, toward the bottom under it.
+struct PanelCollapseButton: View {
+    let stacked: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("Collapse panel", systemImage: stacked ? "chevron.down" : "chevron.right").labelStyle(.iconOnly)
+        }
+        .buttonStyle(BottomBarButtonStyle(height: MainView.headerHeight, horizontalPadding: 0))
+        .help("Collapse panel")
     }
 }

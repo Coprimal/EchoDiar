@@ -46,6 +46,11 @@ final class AppModel {
     /// The recording page's right panel tab: `.catchUp` at start; the finished recording opens on the matching
     /// `DetailTab` when its page was showing at Stop.
     var recordingTab: RecordingTab = .catchUp
+    /// The open conversation's AI panel is collapsed to a rail of tab buttons beside (under) the transcript.
+    var aiPanelCollapsed = false
+    /// The recording page's Catch-up | Chat panel is collapsed to a rail; collapsed at each start, as there is nothing
+    /// in it yet.
+    var recordingPanelCollapsed = true
     /// Where Back leaves Settings to: the route Settings was opened from.
     private(set) var settingsReturnRoute: Route = .list
     /// Where Back leaves the Calendar page to: a library route, never Settings, so Back cannot cycle between the two.
@@ -651,6 +656,7 @@ final class AppModel {
         liveChatFlush = nil
         pendingLiveChatText = ""
         recordingTab = .catchUp
+        recordingPanelCollapsed = true
         if settings.endPromptNotification { requestNotificationAccess() }
         if bringForward {
             route = .recording
@@ -2451,6 +2457,7 @@ extension AppModel {
     /// The View menu's Chat: the open conversation's Chat tab, with the cursor in its question.
     func requestChat() {
         detailTab = .chat
+        aiPanelCollapsed = false
         chatFocusRequests += 1
     }
 

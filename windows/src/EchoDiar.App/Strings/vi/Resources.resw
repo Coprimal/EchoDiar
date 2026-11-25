@@ -754,6 +754,10 @@
     <value>Thu gọn</value>
     <comment>Collapse</comment>
   </data>
+  <data name="CollapsePanel" xml:space="preserve">
+    <value>Thu gọn khung</value>
+    <comment>Collapse panel</comment>
+  </data>
   <data name="Collapsed" xml:space="preserve">
     <value>Đã thu gọn</value>
     <comment>Collapsed</comment>
@@ -1409,6 +1413,10 @@
   <data name="Expand" xml:space="preserve">
     <value>Mở rộng</value>
     <comment>Expand</comment>
+  </data>
+  <data name="ExpandPanel" xml:space="preserve">
+    <value>Mở rộng khung</value>
+    <comment>Expand panel</comment>
   </data>
   <data name="Expanded" xml:space="preserve">
     <value>Đã mở rộng</value>
