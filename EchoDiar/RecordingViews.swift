@@ -271,7 +271,8 @@ struct RecordingDetailView: View {
                 // On the window, as the conversation's AI panel tabs: a track of the cards' color.
                 CapsuleTabs(selection: selection, tabs: Self.panelTabs,
                             title: { iconTabs ? Self.tabIcon($0) : Text(Self.tabTitle($0)) },
-                            drawsTrack: true, trackFill: Palette.surface)
+                            drawsTrack: true, trackFill: Palette.surface,
+                            help: iconTabs ? { Text(Self.tabTitle($0)) } : nil)
                     .fixedSize()
                 Spacer(minLength: 8)
                 let padding = iconTabs ? AIModelMenu.tightPadding : nil

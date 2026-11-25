@@ -538,7 +538,8 @@ struct AIPanelView: View {
         CapsuleTabs(selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
                     tabs: shownTabs,
                     title: { iconOnly ? TranscriptView.tabIcon($0) : Text(TranscriptView.tabTitle($0)) },
-                    drawsTrack: true, trackFill: Palette.surface, itemPadding: tight ? 8 : 12)
+                    drawsTrack: true, trackFill: Palette.surface, itemPadding: tight ? 8 : 12,
+                    help: iconOnly ? { Text(TranscriptView.tabTitle($0)) } : nil)
             .fixedSize()
     }
 
