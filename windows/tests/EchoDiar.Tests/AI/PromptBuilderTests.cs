@@ -124,6 +124,10 @@ public sealed class PromptBuilderTests
         Assert.DoesNotContain("ignore previous instructions", messages[0].Content);
         Assert.StartsWith("Meeting: Weekly sync, started ", messages[1].Content);
         Assert.EndsWith("\nElapsed: 10:25\n\n" + body, messages[1].Content);
+        Assert.EndsWith("write them in the transcript's language.", messages[0].Content);
+        var vietnamese = PromptBuilder.CatchUpMessages(
+            plan, "", DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), elapsed: 625, language: new OutputLanguage("vi"));
+        Assert.EndsWith("write them in Vietnamese.", vietnamese[0].Content);
     }
 
     // The budget (in characters) goes first to the new lines (newest first, at least one), then to the previous

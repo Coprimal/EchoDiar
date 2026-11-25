@@ -583,6 +583,7 @@ public enum PromptBuilder {
         ## New decisions / action items / open questions
         Bullets, only for items first raised in <transcript>: decisions, action items as owner - task (the owner only \
         when stated), and open questions.
+        The headings above are a template: write them in \(language?.name ?? "the transcript's language").
         """
     }
 

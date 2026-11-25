@@ -140,6 +140,11 @@ struct PromptBuilderTests {
         #expect(!messages[0].content.contains("ignore previous instructions"))
         #expect(messages[1].content.hasPrefix("Meeting: Weekly sync, started "))
         #expect(messages[1].content.hasSuffix("\nElapsed: 10:25\n\n" + body))
+        #expect(messages[0].content.hasSuffix("write them in the transcript's language."))
+        let vietnamese = PromptBuilder.catchUpMessages(
+            plan: plan, title: "", startedAt: Date(timeIntervalSince1970: 1_800_000_000), elapsed: 625,
+            language: OutputLanguage(code: "vi"))
+        #expect(vietnamese[0].content.hasSuffix("write them in Vietnamese."))
     }
 
     /// The budget (in characters) goes first to the new lines (newest first, at least one), then to the previous

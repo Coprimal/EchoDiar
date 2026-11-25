@@ -611,7 +611,8 @@ public static partial class PromptBuilder
                 + "## Right now\n"
                 + "What is being discussed in the last minute or two.\n")
         + "## New decisions / action items / open questions\n"
-        + "Bullets, only for items first raised in <transcript>: decisions, action items as owner - task (the owner only when stated), and open questions.";
+        + "Bullets, only for items first raised in <transcript>: decisions, action items as owner - task (the owner only when stated), and open questions.\n"
+        + $"The headings above are a template: write them in {language?.Name ?? "the transcript's language"}.";
 
     private static string MapInstructions(OutputLanguage language) =>
         "You take notes on one part of a long meeting.\n"
