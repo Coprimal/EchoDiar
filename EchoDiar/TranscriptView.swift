@@ -241,7 +241,7 @@ struct TranscriptView: View {
     }
 
     /// Where the video shows: left of the transcript, above it, or not at all; saved in the settings. A menu whose
-    /// button shows the current layout's icon, as compact as the version menu.
+    /// button shows the current layout's icon.
     private var layoutSwitch: some View {
         let current = model.settings.transcriptVideoLayout
         return Menu {
@@ -260,7 +260,8 @@ struct TranscriptView: View {
             }
             .accessibilityLabel(Self.layoutName(current))
         }
-        .modifier(CompactMenu(maxWidth: nil, height: Self.versionMenuHeight))
+        // As tall as the row's other buttons (Export video, Delete video, Copy).
+        .modifier(CompactMenu(maxWidth: nil, height: BottomBarButtonStyle.height, horizontalPadding: 10))
         .help("Video layout")
     }
 
