@@ -790,6 +790,10 @@
     <value>Réduire</value>
     <comment>Collapse</comment>
   </data>
+  <data name="CollapsePanel" xml:space="preserve">
+    <value>Replier le panneau</value>
+    <comment>Collapse panel</comment>
+  </data>
   <data name="Collapsed" xml:space="preserve">
     <value>Replié</value>
     <comment>Collapsed</comment>
@@ -1481,6 +1485,10 @@
   <data name="Expand" xml:space="preserve">
     <value>Développer</value>
     <comment>Expand</comment>
+  </data>
+  <data name="ExpandPanel" xml:space="preserve">
+    <value>Déplier le panneau</value>
+    <comment>Expand panel</comment>
   </data>
   <data name="Expanded" xml:space="preserve">
     <value>Développé</value>
@@ -2486,6 +2494,10 @@
     <value>Aucun modèle en direct installé. Téléchargez un modèle Whisper ou Parakeet dans Fournisseurs d’IA › IA locale.</value>
     <comment>No live model installed. Download a Whisper or Parakeet model in AI Providers › Local AI.</comment>
   </data>
+  <data name="NoMatchingChats" xml:space="preserve">
+    <value>Aucune discussion correspondante</value>
+    <comment>No matching chats</comment>
+  </data>
   <data name="NoModelChooseOneInSettings" xml:space="preserve">
     <value>Aucun modèle : choisissez-en un dans Réglages</value>
     <comment>No model: choose one in Settings</comment>
@@ -3409,6 +3421,10 @@
   <data name="SearchCatchUps" xml:space="preserve">
     <value>Rechercher dans les récapitulatifs</value>
     <comment>Search catch-ups</comment>
+  </data>
+  <data name="SearchChats" xml:space="preserve">
+    <value>Rechercher dans les discussions</value>
+    <comment>Search chats</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Rechercher dans les conversations</value>

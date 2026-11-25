@@ -21,10 +21,11 @@ struct CatchUpButton: View {
         .help(Text(reason ?? help))
     }
 
-    /// `recordingTab` is the right panel's Catch-up | Chat.
+    /// `recordingTab` is the right panel's Catch-up | Chat, expanded if collapsed.
     private func catchUp() {
         model.startCatchUp()
         model.recordingTab = .catchUp
+        model.recordingPanelCollapsed = false
     }
 
     /// What it does, the provider it runs on, and, as the AI pane's data notes, whether the data leaves this Mac and

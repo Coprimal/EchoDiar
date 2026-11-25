@@ -44,6 +44,12 @@ struct AIPanelView: View {
     @State private var archives: [ChatArchive.Entry] = []
     /// The History panel is open.
     @State private var showingHistory = false
+    /// The History panel's search field is shown; hidden (the query cleared) whenever the panel closes.
+    @State private var searchingHistory = false
+    @State private var historyQuery = ""
+    @State private var historySearchFocus = false
+    /// Each earlier chat's messages, by id, read while the search field shows.
+    @State private var archiveTexts: [UUID: String] = [:]
     /// The alert confirming that every earlier chat is deleted is open.
     @State private var confirmingClear = false
     /// The earlier chat under the pointer, which shows its Remove button.
@@ -59,41 +65,21 @@ struct AIPanelView: View {
     private static let chatEnd = "chatEnd"
     /// The height of a one-line question field, and of every control of the footer.
     private static let inputHeight = BottomBarButtonStyle.height
-    /// The header's controls and the summary's version menu: a bit smaller, as in the recording's side panel.
-    private static let menuHeight: CGFloat = 28
+    /// The header's menus and buttons: as tall as the tabs' track beside them, as in the recording's side panel.
+    private static let menuHeight = MainView.headerHeight
     /// The model badge and the round Copy under an answer.
     private static let answerFooterHeight: CGFloat = 22
 
     var body: some View {
-        VStack(spacing: MainView.headerGap) {
-            // On the window, above the card, as the sidebar's header (the two line up).
-            header
-            // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
-            // the click that opened the conversation shows at once.
-            VStack(spacing: 10) {
-                if loaded {
-                    ZStack {
-                        switch tab {
-                        case .chat: chatPane.transition(transition)
-                        case .catchUp: catchUpPane.transition(transition)
-                        case .summary: summaryPane.transition(transition)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    errorText
-                        .padding(.horizontal, 14)
-                    // The catch-ups are read-only: no footer.
-                    if tab != .catchUp { footer }
-                } else {
-                    DetailLoadingPane(framed: false)
-                }
+        // Collapsed, a rail stands in for the card; this view stays, so the chat, the question and the loads stay too.
+        Group {
+            if model.aiPanelCollapsed {
+                CollapsedPanel(stacked: model.settings.stackedPanes, tabs: shownTabs, cornerRadius: 20,
+                               icon: TranscriptView.tabIcon, title: TranscriptView.tabTitle, open: expand)
+            } else {
+                card
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .modifier(GlassCard(cornerRadius: 20))
-            .overlay(alignment: .bottom) { toastView }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .environment(\.openURL, OpenURLAction(handler: openLink))
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
@@ -125,6 +111,43 @@ struct AIPanelView: View {
                 showingHistory = false
             }
         }
+        .onChange(of: showingHistory) { _, shown in
+            if !shown { setHistorySearch(false) }
+        }
+    }
+
+    /// The open panel: one card, the header (lined up with the sidebar's), a line, then the tab.
+    private var card: some View {
+        VStack(spacing: 0) {
+            header
+                .padding(MainView.headerPadding)
+            Divider()
+            // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
+            // the click that opened the conversation shows at once.
+            VStack(spacing: 10) {
+                if loaded {
+                    ZStack {
+                        switch tab {
+                        case .chat: chatPane.transition(transition)
+                        case .catchUp: catchUpPane.transition(transition)
+                        case .summary: summaryPane.transition(transition)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    errorText
+                        .padding(.horizontal, 14)
+                    // The catch-ups are read-only: no footer.
+                    if tab != .catchUp { footer }
+                } else {
+                    DetailLoadingPane(framed: false)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .overlay(alignment: .bottom) { toastView }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(GlassCard(cornerRadius: 20))
     }
 
     private struct LoadKey: Equatable {
@@ -256,6 +279,13 @@ struct AIPanelView: View {
             HStack {
                 Text("History").font(.headline)
                 Spacer(minLength: 0)
+                Button { setHistorySearch(!searchingHistory) } label: {
+                    Label("Search chats", systemImage: "magnifyingglass").labelStyle(.iconOnly)
+                        .foregroundStyle(searchingHistory ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+                }
+                .buttonStyle(RowIconButtonStyle())
+                .help("Search chats")
+                .padding(.trailing, 6)
                 Button { confirmingClear = true } label: {
                     Label("Delete all earlier chats", systemImage: "trash").labelStyle(.iconOnly)
                 }
@@ -272,14 +302,29 @@ struct AIPanelView: View {
             }
             .padding(.horizontal, 14)
             .padding(.top, 12)
+            if searchingHistory {
+                ChatHistorySearchField(query: $historyQuery, focusRequest: $historySearchFocus) {
+                    setHistorySearch(false)
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 6)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
             ScrollView {
+                let query = searchingHistory ? historyQuery : ""
+                let shown = archives.filter { ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query) }
+                let currentShown = ChatArchive.matches(title: chatTitle ?? "", text: currentChatText(query), query: query)
                 VStack(spacing: 2) {
-                    currentChatRow
-                    ForEach(archives) { entry in historyRow(entry) }
-                    if archives.isEmpty {
-                        Text("No earlier chats")
+                    if currentShown { currentChatRow }
+                    ForEach(shown) { entry in historyRow(entry) }
+                    let noMatch = shown.isEmpty && !currentShown
+                    if noMatch || archives.isEmpty {
+                        // Inset as the header's title and the rows' text.
+                        (noMatch ? Text("No matching chats") : Text("No earlier chats"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 8)
                             .padding(.top, 8)
                     }
                 }
@@ -291,6 +336,8 @@ struct AIPanelView: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .modifier(GlassCard(cornerRadius: 14, raised: true))
         .padding(8)
+        // The earlier chats' messages, read off the main thread when the field shows and when the chats change.
+        .task(id: searchingHistory ? archives : nil) { await loadArchiveTexts() }
         .alert("Delete all earlier chats?", isPresented: $confirmingClear) {
             Button("Delete", role: .destructive) { model.clearChats(of: conversation) }
             Button("Cancel", role: .cancel) {}
@@ -357,6 +404,31 @@ struct AIPanelView: View {
 
     private func closeHistory() {
         withAnimation(Motion.standard) { showingHistory = false }
+    }
+
+    /// The open chat's messages on one string for the search; nil (not joined) while the query is blank.
+    private func currentChatText(_ query: String) -> String? {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? nil : chat.map(\.text).joined(separator: "\n")
+    }
+
+    /// Shows the History search field, focused, or hides it, clearing the query and the messages read for it.
+    private func setHistorySearch(_ shown: Bool) {
+        withAnimation(reduceMotion ? nil : Motion.standard) { searchingHistory = shown }
+        if shown {
+            historySearchFocus = true
+        } else {
+            historyQuery = ""
+            archiveTexts = [:]
+        }
+    }
+
+    private func loadArchiveTexts() async {
+        guard searchingHistory else { return }
+        let folder = conversation.folder
+        let texts = await Task.detached(priority: .userInitiated) { ChatArchive.searchTexts(in: folder) }.value
+        guard !Task.isCancelled else { return }
+        archiveTexts = texts
     }
 
     // MARK: - Summary
@@ -433,7 +505,7 @@ struct AIPanelView: View {
             AIMenuLabel(title: ([String(localized: "Version \(shown.number)")] + [versionModel(shown)].compactMap { $0 })
                 .joined(separator: " · "), systemImage: "clock.arrow.circlepath")
         }
-        .modifier(CompactMenu(maxWidth: 260, height: Self.menuHeight))
+        .modifier(CompactMenu(maxWidth: 260, height: MainView.headerControlHeight))
         .help("Earlier summaries of this conversation")
     }
 
@@ -524,7 +596,18 @@ struct AIPanelView: View {
                 } else {
                     headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight)
                 }
+                PanelCollapseButton(stacked: model.settings.stackedPanes) { model.aiPanelCollapsed = true }
             }
+        }
+    }
+
+    /// A button of the collapsed panel: opens it on `tab`; Chat as the View menu's Chat, with the cursor in the question.
+    private func expand(_ tab: AppModel.DetailTab) {
+        if tab == .chat {
+            model.requestChat()
+        } else {
+            model.detailTab = tab
+            model.aiPanelCollapsed = false
         }
     }
 
@@ -534,11 +617,13 @@ struct AIPanelView: View {
     }
 
     private func tabs(iconOnly: Bool, tight: Bool) -> some View {
-        // On the window, as the sidebar's tabs: a track of the cards' color.
+        // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
         CapsuleTabs(selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
                     tabs: shownTabs,
                     title: { iconOnly ? TranscriptView.tabIcon($0) : Text(TranscriptView.tabTitle($0)) },
-                    drawsTrack: true, trackFill: Palette.surface, itemPadding: tight ? 8 : 12)
+                    drawsTrack: true, trackFill: Palette.inputSurface, itemPadding: tight ? 8 : 12,
+                    itemHeight: MainView.headerControlHeight,
+                    help: iconOnly ? { Text(TranscriptView.tabTitle($0)) } : nil)
             .fixedSize()
     }
 
@@ -1085,16 +1170,52 @@ struct HistoryRowStyle: ButtonStyle {
     }
 }
 
+/// The History panels' search field (the conversation's, the library chat's), under their header: filters the earlier
+/// chats by title and messages as typed; Esc clears the query, then hides the field (`onHide`), as the catch-up search.
+struct ChatHistorySearchField: View {
+    @Binding var query: String
+    @Binding var focusRequest: Bool
+    let onHide: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            SearchTextField(text: $query, focusRequest: $focusRequest,
+                            accessibilityLabel: String(localized: "Search chats")) {
+                if query.isEmpty {
+                    onHide()
+                } else {
+                    query = ""
+                }
+            }
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: MainView.headerControlHeight + 4)
+        .modifier(InputCapsule())
+    }
+}
+
 /// A button of the AI panel's header and footer and of the transcript's bar: `height` tall (a circle for an icon, with
 /// no `horizontalPadding`), a capsule of the input color, or the accent color when `prominent`; lighter on hover,
 /// darker while pressed, dimmed when disabled.
 struct BottomBarButtonStyle: ButtonStyle {
     /// Every control of the bottom bars: buttons, menus, speaker chips and the one-line question field.
-    static let height: CGFloat = 34
+    static let height: CGFloat = 30
 
     var height = Self.height
     var prominent = false
-    var horizontalPadding: CGFloat = 14
+    var horizontalPadding: CGFloat = 12
     /// A menu's trigger: it stays pressed while its menu is open, and shows the hover look then, not the darker one.
     var menu = false
 
@@ -1114,7 +1235,7 @@ struct BottomBarButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.body.weight(prominent ? .semibold : .regular))
+                .font(.callout.weight(prominent ? .semibold : .regular))
                 .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 .padding(.horizontal, horizontalPadding)
                 .frame(minWidth: height, minHeight: height, maxHeight: height)
@@ -1146,7 +1267,7 @@ struct MenuChevron: View {
 struct CompactMenu: ViewModifier {
     let maxWidth: CGFloat?
     let height: CGFloat
-    /// nil: 12 for a short menu, 14 for a full-height one.
+    /// nil: 10 for a short menu, 12 for a full-height one.
     var horizontalPadding: CGFloat? = nil
 
     func body(content: Content) -> some View {
@@ -1154,7 +1275,7 @@ struct CompactMenu: ViewModifier {
             .menuStyle(.button)
             .buttonStyle(BottomBarButtonStyle(height: height,
                                               horizontalPadding: horizontalPadding
-                                                  ?? (height < BottomBarButtonStyle.height ? 12 : 14),
+                                                  ?? (height < BottomBarButtonStyle.height ? 10 : 12),
                                               menu: true))
         if let maxWidth {
             WidthCap(maxWidth: maxWidth) { menu }

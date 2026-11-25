@@ -766,6 +766,10 @@
     <value>折叠</value>
     <comment>Collapse</comment>
   </data>
+  <data name="CollapsePanel" xml:space="preserve">
+    <value>折叠面板</value>
+    <comment>Collapse panel</comment>
+  </data>
   <data name="Collapsed" xml:space="preserve">
     <value>已折叠</value>
     <comment>Collapsed</comment>
@@ -1429,6 +1433,10 @@
   <data name="Expand" xml:space="preserve">
     <value>展开</value>
     <comment>Expand</comment>
+  </data>
+  <data name="ExpandPanel" xml:space="preserve">
+    <value>展开面板</value>
+    <comment>Expand panel</comment>
   </data>
   <data name="Expanded" xml:space="preserve">
     <value>已展开</value>
@@ -2382,6 +2390,10 @@
     <value>未安装实时转写模型。请在“AI 提供商 › 本地 AI”中下载 Whisper 或 Parakeet 模型。</value>
     <comment>No live model installed. Download a Whisper or Parakeet model in AI Providers › Local AI.</comment>
   </data>
+  <data name="NoMatchingChats" xml:space="preserve">
+    <value>没有匹配的聊天</value>
+    <comment>No matching chats</comment>
+  </data>
   <data name="NoModelChooseOneInSettings" xml:space="preserve">
     <value>没有模型：请在设置中选择一个</value>
     <comment>No model: choose one in Settings</comment>
@@ -3305,6 +3317,10 @@
   <data name="SearchCatchUps" xml:space="preserve">
     <value>搜索回顾</value>
     <comment>Search catch-ups</comment>
+  </data>
+  <data name="SearchChats" xml:space="preserve">
+    <value>搜索聊天</value>
+    <comment>Search chats</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>搜索对话</value>

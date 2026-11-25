@@ -4,16 +4,12 @@ name: Windows
 # tests on x64 and ARM64, and packages a signed sideload MSIX per architecture for the QA VM
 # (artifact EchoDiar-win-<arch>).
 # Signing uses the dev certificate in the WINDOWS_DEV_CERT_PFX / WINDOWS_DEV_CERT_PASSWORD secrets of the
-# windows-dev-signing environment, which must allow the plan/* branches (deployment-branch rule), main and
-# windows-v* tags; pull requests do not use the environment and build an unsigned package.
+# windows-dev-signing environment, which must allow main (deployment-branch rule) and windows-v* tags.
+# Runs only on pushes to main; started by hand (workflow_dispatch) on another branch, it builds unsigned.
 
 on:
   push:
-    branches: ['plan/**', main]
-    paths:
-      - 'windows/**'
-      - '.github/workflows/windows.yml'
-  pull_request:
+    branches: [main]
     paths:
       - 'windows/**'
       - '.github/workflows/windows.yml'
@@ -169,8 +165,8 @@ jobs:
 
   package:
     runs-on: windows-latest
-    # Pull request refs are not allowed by the environment's deployment policy: they build unsigned without it.
-    environment: ${{ github.event_name != 'pull_request' && 'windows-dev-signing' || '' }}
+    # Only main may use the environment (deployment policy): a manual run on another branch builds unsigned.
+    environment: ${{ github.ref == 'refs/heads/main' && 'windows-dev-signing' || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -210,7 +206,7 @@ jobs:
           Select-String -Path $path -Pattern 'Version="0\.0\.' | ForEach-Object { $_.Line.Trim() }
 
       - name: Decode signing certificate
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main'
         env:
           PFX_BASE64: ${{ secrets.WINDOWS_DEV_CERT_PFX }}
         run: |
@@ -237,7 +233,7 @@ jobs:
             $props += "/p:PackageCertificateKeyFile=$env:PFX_PATH"
             $props += "/p:PackageCertificatePassword=$env:PFX_PASSWORD"
           } else {
-            Write-Host 'No signing certificate (pull request): building an unsigned package.'
+            Write-Host 'No signing certificate (not main): building an unsigned package.'
             $props += '/p:AppxPackageSigningEnabled=false'
           }
           msbuild windows/src/EchoDiar.App/EchoDiar.App.csproj /restore /nologo /v:minimal @props

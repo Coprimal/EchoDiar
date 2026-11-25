@@ -182,9 +182,9 @@ struct RecordingCard: View {
 
 /// The recording in the library page's detail: the header and the calendar suggestion if any, pinned on top, then the
 /// transcript beside a panel with its own Catch-up | Chat tabs (above it with `AppSettings.stackedPanes`), the gap
-/// between them dragging to resize them. The transcript is the live one, or the wave and why
-/// there is none (the conditions of `AppModel.startRecordingTranscriber`, read from the settings), with the Settings
-/// page that changes it.
+/// between them dragging to resize them; the panel collapses to a rail of tab buttons, as it starts. The transcript is
+/// the live one, or the wave and why there is none (the conditions of `AppModel.startRecordingTranscriber`, read from
+/// the settings), with the Settings page that changes it.
 struct RecordingDetailView: View {
     let model: AppModel
     /// The Catch-up tab's search field is shown (the header's magnifying glass); closing it clears the query.
@@ -196,7 +196,7 @@ struct RecordingDetailView: View {
     /// The right panel's tabs, in order.
     private static let panelTabs: [AppModel.RecordingTab] = [.catchUp, .chat]
     /// The panel header's menus: as tall as the conversation's AI panel header.
-    private static let menuHeight: CGFloat = 28
+    private static let menuHeight = MainView.headerHeight
 
     private static func tabTitle(_ tab: AppModel.RecordingTab) -> LocalizedStringKey {
         switch tab {
@@ -218,22 +218,34 @@ struct RecordingDetailView: View {
             RecordingHeader(model: model)
             if let event = model.calendarSuggestion { suggestionRow(event) }
             let stacked = model.settings.stackedPanes
-            PaneSplit(vertical: stacked, firstMinimum: stacked ? 160 : 240, secondMinimum: stacked ? 200 : 300) {
+            let collapsed = model.recordingPanelCollapsed
+            PaneSplit(vertical: stacked, firstMinimum: stacked ? 160 : 240, secondMinimum: stacked ? 200 : 300,
+                      collapsedSecond: collapsed ? CollapsedPanel<AppModel.RecordingTab>.thickness : nil,
+                      setCollapsed: { model.recordingPanelCollapsed = $0 }) {
                 transcript
             } second: {
-                sidePanel
+                if collapsed {
+                    CollapsedPanel(stacked: stacked, tabs: Self.panelTabs, cornerRadius: 14, icon: Self.tabIcon,
+                                   title: Self.tabTitle) { tab in
+                        model.recordingTab = tab
+                        model.recordingPanelCollapsed = false
+                    }
+                } else {
+                    sidePanel
+                }
             }
+            .animation(reduceMotion ? nil : Motion.standard, value: collapsed)
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// A header on the window, as the conversation's AI panel's (the Catch-up | Chat tabs, then the catch-up model,
-    /// which also answers the chat, the answer language and, on the Catch-up tab, Search), over one card with the
-    /// selected tab, whose own cards it replaces; the catch-up search field slides in at the card's top. Only the selected tab's view: a hidden chat would still take
-    /// the keyboard focus.
+    /// One card, as the conversation's AI panel: a header (the Catch-up | Chat tabs, then the catch-up model, which
+    /// also answers the chat, the answer language and, on the Catch-up tab, Search), a line, then the selected tab,
+    /// whose own cards it replaces; the catch-up search field slides in under the line. Only the selected tab's view: a
+    /// hidden chat would still take the keyboard focus.
     private var sidePanel: some View {
-        VStack(spacing: MainView.headerGap) {
+        VStack(spacing: 0) {
             // Narrower, the language menu shows only its globe, then the model menu only its chip, then the tabs only
             // their icons and the menus pad their sides less; the row never wraps and no menu is squeezed below its
             // content.
@@ -244,6 +256,8 @@ struct RecordingDetailView: View {
                 headerRow(iconTabs: true, modelLabel: false, languageLabel: false)
             }
             .frame(height: MainView.headerHeight)
+            .padding(MainView.headerPadding)
+            Divider()
             VStack(spacing: 0) {
                 if model.recordingTab == .catchUp && searchingCatchUps {
                     catchUpSearchField
@@ -256,9 +270,11 @@ struct RecordingDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .modifier(GlassCard(cornerRadius: 14))
+            // The search field slides in from under the line, not over the header.
+            .clipped()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(GlassCard(cornerRadius: 14))
     }
 
     private func headerRow(iconTabs: Bool, modelLabel: Bool, languageLabel: Bool) -> some View {
@@ -268,10 +284,12 @@ struct RecordingDetailView: View {
         // On Chat, measured with room for Catch-up's Search, so both tabs pick the same step.
         return ReservedWidth(extra: selection.wrappedValue == .catchUp ? 0 : Self.menuHeight + 8) {
             HStack(spacing: 8) {
-                // On the window, as the conversation's AI panel tabs: a track of the cards' color.
+                // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
                 CapsuleTabs(selection: selection, tabs: Self.panelTabs,
                             title: { iconTabs ? Self.tabIcon($0) : Text(Self.tabTitle($0)) },
-                            drawsTrack: true, trackFill: Palette.surface)
+                            drawsTrack: true, trackFill: Palette.inputSurface,
+                            itemHeight: MainView.headerControlHeight,
+                            help: iconTabs ? { Text(Self.tabTitle($0)) } : nil)
                     .fixedSize()
                 Spacer(minLength: 8)
                 let padding = iconTabs ? AIModelMenu.tightPadding : nil
@@ -287,6 +305,7 @@ struct RecordingDetailView: View {
                     .help("Search catch-ups")
                     .accessibilityLabel("Search catch-ups")
                 }
+                PanelCollapseButton(stacked: model.settings.stackedPanes) { model.recordingPanelCollapsed = true }
             }
         }
     }

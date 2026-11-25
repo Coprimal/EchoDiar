@@ -168,14 +168,18 @@ struct CapsuleTabs<Tab: Hashable>: View {
     var trackFill = Palette.surface
     /// Each tab's side padding; less for icon-only tabs in a narrow header.
     var itemPadding: CGFloat = 12
+    /// Each tab's height: a toolbar button's highlight, less in the panels' headers (`MainView.headerControlHeight`).
+    var itemHeight: CGFloat = 28
+    /// Each tab's tooltip, for icon-only tabs.
+    var help: ((Tab) -> Text)?
     @Namespace private var namespace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 2) {
             ForEach(tabs, id: \.self) { tab in
-                Item(tab: tab, title: title(tab), selected: tab == selection, namespace: namespace,
-                     padding: itemPadding) {
+                Item(tab: tab, title: title(tab), help: help?(tab), selected: tab == selection,
+                     namespace: namespace, padding: itemPadding, height: itemHeight) {
                     withAnimation(animation) { selection = tab }
                 }
             }
@@ -213,13 +217,13 @@ struct CapsuleTabs<Tab: Hashable>: View {
     private struct Item: View {
         let tab: Tab
         let title: Text
+        let help: Text?
         let selected: Bool
         let namespace: Namespace.ID
         let padding: CGFloat
+        let height: CGFloat
         let action: () -> Void
         @State private var hovered = false
-        /// A toolbar button's highlight.
-        static var height: CGFloat { 28 }
 
         var body: some View {
             Button(action: action) {
@@ -228,7 +232,7 @@ struct CapsuleTabs<Tab: Hashable>: View {
                     .lineLimit(1)
                     .foregroundStyle(selected ? Color.white : Color.secondary)
                     .padding(.horizontal, padding)
-                    .frame(height: Self.height)
+                    .frame(height: height)
                     .background {
                         if hovered && !selected { Capsule().fill(Palette.hoverFill) }
                     }
@@ -237,6 +241,8 @@ struct CapsuleTabs<Tab: Hashable>: View {
             }
             .buttonStyle(.plain)
             .onHover { hovered = $0 }
+            // An empty tooltip shows nothing.
+            .help(help ?? Text(verbatim: ""))
             .accessibilityAddTraits(selected ? .isSelected : [])
         }
     }

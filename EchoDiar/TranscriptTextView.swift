@@ -599,6 +599,10 @@ private final class TranscriptNSTextView: NSTextView {
 
     override func menu(for event: NSEvent) -> NSMenu? { readOnlyMenu(super.menu(for: event)) }
 
+    /// Overriding `scrollWheel(with:)` turns responsive scrolling off (wheel scrolls then stutter while TextKit 2 lays
+    /// out the text coming into view); the override only notes the scroll and calls super, so keep it on.
+    override class var isCompatibleWithResponsiveScrolling: Bool { true }
+
     override func scrollWheel(with event: NSEvent) {
         onUserScroll?()
         super.scrollWheel(with: event)

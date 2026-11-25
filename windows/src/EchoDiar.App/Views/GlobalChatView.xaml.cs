@@ -32,6 +32,10 @@ public sealed partial class GlobalChatView : UserControl
     private (IReadOnlyList<ChatLog.Message> Chat, bool HasJob, string? Question, string Sources)? _chatRendered;
     private string? _streamRendered;
     private string? _historyKey;
+    /// <summary>Each earlier chat's messages by id, read while the History search shows; null until read.</summary>
+    private Dictionary<Guid, string>? _archiveTexts;
+    /// <summary>The earlier chats <see cref="_archiveTexts"/> is (being) read for: other chats are read again.</summary>
+    private IReadOnlyList<ChatArchive.Entry>? _archiveTextsFor;
 
     /// <summary>The streamed answer at the end of the messages: its status row, or its text once the first arrives.</summary>
     private StackPanel? _streamSlot;
@@ -64,6 +68,9 @@ public sealed partial class GlobalChatView : UserControl
         HistoryButton.Click += (_, _) => ShowHistory(HistoryButton.IsChecked == true);
         CloseHistoryButton.Click += (_, _) => ShowHistory(false);
         ClearHistoryButton.Click += (_, _) => _ = ClearHistoryAsync();
+        HistorySearchButton.Click += (_, _) => SetHistorySearch(!SearchingHistory);
+        HistorySearchBox.TextChanged += (_, _) => UpdateHistory();
+        HistorySearchBox.AddHandler(KeyDownEvent, new KeyEventHandler(OnHistorySearchKeyDown), handledEventsToo: true);
         QuestionBox.PreviewKeyDown += OnQuestionKeyDown;
         QuestionBox.TextChanged += (_, _) => UpdateActions();
         MenusRow.SizeChanged += (_, _) => FitModelButton();
@@ -98,6 +105,8 @@ public sealed partial class GlobalChatView : UserControl
         _chatRendered = null;
         _streamRendered = null;
         _historyKey = null;
+        _archiveTexts = null;
+        _archiveTextsFor = null;
         _streamSlot = null;
     }
 
@@ -342,8 +351,60 @@ public sealed partial class GlobalChatView : UserControl
     /// <summary>Opens or closes the History panel.</summary>
     private void ShowHistory(bool show)
     {
+        if (!show && SearchingHistory) SetHistorySearch(false);
         HistoryPanel.Visibility = Shown(show);
         HistoryButton.IsChecked = show;
+    }
+
+    /// <summary>The History panel's search field shows.</summary>
+    private bool SearchingHistory => HistorySearchBox.Visibility == Visibility.Visible;
+
+    /// <summary>The History search's term, trimmed; empty while the field is hidden.</summary>
+    private string HistorySearchTerm => SearchingHistory ? HistorySearchBox.Text.Trim() : "";
+
+    /// <summary>
+    /// Shows the History search field, focused, or hides it, clearing the query and the messages read for it (macOS
+    /// <c>setHistorySearch</c>); the search button is accent-colored while it shows.
+    /// </summary>
+    private void SetHistorySearch(bool shown)
+    {
+        HistorySearchBox.Visibility = Shown(shown);
+        if (shown)
+        {
+            HistorySearchIcon.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+            DispatcherQueue.TryEnqueue(() => HistorySearchBox.Focus(FocusState.Programmatic));
+        }
+        else
+        {
+            HistorySearchIcon.ClearValue(IconElement.ForegroundProperty);
+            HistorySearchBox.Text = "";
+            _archiveTexts = null;
+            _archiveTextsFor = null;
+        }
+        UpdateHistory();
+    }
+
+    /// <summary>Esc clears the search, then hides it (as macOS).</summary>
+    private void OnHistorySearchKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Escape) return;
+        e.Handled = true;
+        if (HistorySearchBox.Text.Length > 0) HistorySearchBox.Text = "";
+        else SetHistorySearch(false);
+    }
+
+    /// <summary>
+    /// Each earlier chat's messages, read off the UI thread for the search (macOS <c>loadArchiveTexts</c>); dropped when
+    /// the chats changed or the search closed meanwhile.
+    /// </summary>
+    private async Task LoadArchiveTextsAsync(string folder, IReadOnlyList<ChatArchive.Entry> archives)
+    {
+        _archiveTextsFor = archives;
+        var texts = await Task.Run(() => ChatArchive.SearchTexts(folder));
+        if (!ReferenceEquals(archives, _archiveTextsFor) || !SearchingHistory) return;
+        _archiveTexts = texts;
+        _historyKey = null;
+        UpdateHistory();
     }
 
     /// <summary>Esc: closes the History panel when it is open; false when it was not.</summary>
@@ -361,15 +422,38 @@ public sealed partial class GlobalChatView : UserControl
     private void UpdateHistory()
     {
         if (_chat is null) return;
+        var term = HistorySearchTerm;
+        if (term.Length > 0 && !ReferenceEquals(_chat.Archives, _archiveTextsFor) && (string?)_model.GlobalChatFolder is { } folder)
+            _ = LoadArchiveTextsAsync(folder, _chat.Archives);
         var busy = _chat.RunningJob is not null || _model.ChatChanging;
         ClearHistoryButton.IsEnabled = _chat.Archives.Count > 0 && !busy;
         var title = _chat.ChatTitle ?? _chat.Chat.FirstOrDefault(m => m.Role == ChatRole.User)?.Text ?? Loc.T("New chat");
-        var key = string.Join("\u0001", new[] { title, _chat.Chat.Count.ToString(CultureInfo.InvariantCulture), busy.ToString() }
+        var key = string.Join("\u0001", new[] { title, _chat.Chat.Count.ToString(CultureInfo.InvariantCulture), busy.ToString(), term }
             .Concat(_chat.Archives.Select(a => $"{a.Id}\u0002{a.Title}\u0002{a.MessageCount}\u0002{a.ArchivedAt.ToUnixTimeSeconds()}")));
         if (key == _historyKey) return;
         _historyKey = key;
         HistoryList.Children.Clear();
 
+        // While searching, the chats whose title or messages contain the term, the open one too.
+        var shown = _chat.Archives.Where(a => ChatArchive.Matches(a.Title, _archiveTexts?.GetValueOrDefault(a.Id), term)).ToList();
+        var currentShown = ChatArchive.Matches(_chat.ChatTitle ?? "", term.Length == 0 ? null : string.Join("\n", _chat.Chat.Select(m => m.Text)), term);
+        if (currentShown) AddCurrentChatRow(title);
+        foreach (var entry in shown) HistoryList.Children.Add(HistoryRow(entry, busy));
+        if ((shown.Count == 0 && !currentShown) || _chat.Archives.Count == 0)
+        {
+            HistoryList.Children.Add(new TextBlock
+            {
+                Text = shown.Count == 0 && !currentShown ? Loc.T("No matching chats") : Loc.T("No earlier chats"), Style = (Style)Resources["CaptionStyle"],
+                // Inset as the header's title and the rows' text.
+                HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(8, 8, 8, 0),
+            });
+        }
+    }
+
+    /// <summary>The open chat, highlighted: its title, else its first question, "New chat" while empty.</summary>
+    private void AddCurrentChatRow(string title)
+    {
+        if (_chat is null) return;
         var current = new StackPanel { Spacing = 2 };
         // The title may come from a model: plain text, never Markdown.
         current.Children.Add(new TextBlock { Text = title, MaxLines = 2, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis });
@@ -380,16 +464,6 @@ public sealed partial class GlobalChatView : UserControl
             Style = (Style)Resources["CaptionStyle"],
         });
         HistoryList.Children.Add(new Border { Style = (Style)Resources["CurrentChatStyle"], Child = current });
-
-        foreach (var entry in _chat.Archives) HistoryList.Children.Add(HistoryRow(entry, busy));
-        if (_chat.Archives.Count == 0)
-        {
-            HistoryList.Children.Add(new TextBlock
-            {
-                Text = Loc.T("No earlier chats"), Style = (Style)Resources["CaptionStyle"],
-                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8, 0, 0),
-            });
-        }
     }
 
     /// <summary>An earlier chat: its title and when it was archived; Remove shows while the pointer or the focus is on it.</summary>

@@ -6149,6 +6149,34 @@
         }
       }
     },
+    "Collapse panel" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraer el panel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replier le panneau"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thu gọn khung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折叠面板"
+          }
+        }
+      }
+    },
     "Collapsed" : {
       "localizations" : {
         "es" : {
@@ -10661,6 +10689,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "展开"
+          }
+        }
+      }
+    },
+    "Expand panel" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expandir el panel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplier le panneau"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở rộng khung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展开面板"
           }
         }
       }
@@ -15689,6 +15745,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未安装实时转写模型。请在“AI 提供商 › 本地 AI”中下载 WhisperKit 或 Parakeet 模型。"
+          }
+        }
+      }
+    },
+    "No matching chats" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay chats que coincidan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune discussion correspondante"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có cuộc trò chuyện nào khớp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有匹配的聊天"
           }
         }
       }
@@ -21374,6 +21458,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索回顾"
+          }
+        }
+      }
+    },
+    "Search chats" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar en los chats"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher dans les discussions"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tìm trong các cuộc trò chuyện"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索聊天"
           }
         }
       }

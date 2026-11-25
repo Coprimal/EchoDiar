@@ -64,6 +64,26 @@ public static class ChatArchive
     public static List<ChatLog.Message> Messages(string folder) =>
         Entries(folder).SelectMany(entry => Log(entry.Id, folder)?.Messages ?? []).ToList();
 
+    /// <summary>Each archived chat's messages on one string, by id, for the History panel's search.</summary>
+    public static Dictionary<Guid, string> SearchTexts(string folder)
+    {
+        var texts = new Dictionary<Guid, string>();
+        foreach (var entry in Entries(folder))
+            texts.TryAdd(entry.Id, string.Join("\n", (Log(entry.Id, folder)?.Messages ?? []).Select(m => m.Text)));
+        return texts;
+    }
+
+    /// <summary>
+    /// True when <paramref name="query"/> is blank, or the chat's title or messages (<paramref name="text"/>, null while
+    /// not read yet) contain it, ignoring case and accents (macOS <c>matches(title:text:query:)</c>).
+    /// </summary>
+    public static bool Matches(string title, string? text, string query)
+    {
+        var term = query.Trim();
+        if (term.Length == 0) return true;
+        return SearchText.Contains(title, term) || (text is not null && SearchText.Contains(text, term));
+    }
+
     /// <summary>
     /// Moves <c>chat.json</c> into the archive; null when it has no messages. Its title, else its first question on one
     /// line, at most 60 characters.

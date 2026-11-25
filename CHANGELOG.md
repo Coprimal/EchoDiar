@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-11-25
+
+### Added
+
+- The History panels of the AI chat search earlier chats by title and content.
+- Tooltips on the icon-only tabs of the AI panel and the recording tabs (macOS).
+
+### Changed
+
+- Panel headers sit inside the cards, and the video, transcript and controls share one card. Header menus and buttons are as tall as the tabs track, and the panel header and bar controls are smaller (macOS).
+
+### Fixed
+
+- The transcript keeps responsive scrolling for mouse-wheel scrolls (macOS).
+
 ## [1.7.0] - 2026-11-25
 
 ### Added

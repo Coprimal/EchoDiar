@@ -42,6 +42,20 @@ struct ChatArchiveTests {
         #expect(!FileManager.default.fileExists(atPath: archived.path))
     }
 
+    @Test func searchFindsAChatByItsTitleOrMessagesIgnoringCaseAndAccents() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try writeChat(["Ngân sách quý tới?", "Tăng 10% so với quý này."], in: folder)
+        let entry = try #require(try ChatArchive.archive(in: folder)).entry
+        let text = ChatArchive.searchTexts(in: folder)[entry.id]
+
+        #expect(ChatArchive.matches(title: entry.title, text: text, query: "  "))
+        #expect(ChatArchive.matches(title: entry.title, text: text, query: "ngan sach"))
+        #expect(ChatArchive.matches(title: entry.title, text: text, query: " TĂNG 10% "))
+        #expect(!ChatArchive.matches(title: entry.title, text: nil, query: "tăng"))
+        #expect(!ChatArchive.matches(title: entry.title, text: text, query: "launch"))
+    }
+
     @Test func titledChatKeepsItsTitleAndEmptyChatIsNotArchived() throws {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
