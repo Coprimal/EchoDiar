@@ -44,6 +44,65 @@ struct ScreenCaptureCoreTests {
         #expect(abs(range.end.seconds - end.seconds) < 0.001)
     }
 
+    @Test func placeholderIsBlackWithCentredText() throws {
+        let frame = try #require(ScreenPlaceholder.frame(width: 640, height: 360, text: "Screen recording off"))
+        let image = try #require(frame.imageBuffer)
+        #expect(CVPixelBufferGetWidth(image) == 640)
+        #expect(CVPixelBufferGetHeight(image) == 360)
+        #expect(CVPixelBufferGetPixelFormatType(image) == kCVPixelFormatType_32BGRA)
+
+        CVPixelBufferLockBaseAddress(image, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(image, .readOnly) }
+        let base = try #require(CVPixelBufferGetBaseAddress(image)).assumingMemoryBound(to: UInt8.self)
+        let rowBytes = CVPixelBufferGetBytesPerRow(image)
+        func brightness(_ x: Int, _ y: Int) -> Int {
+            let pixel = base + y * rowBytes + x * 4
+            return (Int(pixel[0]) + Int(pixel[1]) + Int(pixel[2])) / 3
+        }
+        let band = (150..<210).flatMap { y in (0..<640).map { brightness($0, y) } }
+        #expect(band.contains { $0 > 200 })
+        #expect([(0, 0), (639, 0), (0, 359), (639, 359)].allSatisfy { brightness($0.0, $0.1) == 0 })
+    }
+
+    /// The off spans: a placeholder at 0 s and 4 s around real frames must give one file from 0 s to the end that
+    /// decodes, so the HEVC encoder takes the CPU-drawn frame mixed with captured ones.
+    @Test func placeholderAndFramesMakeOneFullLengthFile() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("EchoScreenTests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent(ScreenSource.videoFileName)
+        let writer = try ScreenVideoWriter(url: url, width: 640, height: 360, fps: 15, quality: 0.75, fileType: .mp4)
+        let placeholder = try #require(ScreenPlaceholder.frame(width: 640, height: 360, text: "Screen recording off"))
+
+        let frames: [(CMSampleBuffer, Double)] = [
+            (placeholder, 0), (try makeFrame(), 2.0), (try makeFrame(), 2.1), (try makeFrame(), 2.2), (placeholder, 4),
+        ]
+        for (sample, seconds) in frames {
+            #expect(writer.append(sample, fileTime: CMTime(seconds: seconds, preferredTimescale: 600)))
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        try await writer.finish(at: CMTime(seconds: 6, preferredTimescale: 600))
+
+        let asset = AVURLAsset(url: url)
+        #expect(abs(try await asset.load(.duration).seconds - 6) < 0.05)
+        let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
+        let segment = try #require(try await track.load(.segments).first { !$0.isEmpty })
+        #expect(segment.timeMapping.target.start.seconds == 0)
+
+        let reader = try AVAssetReader(asset: asset)
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+        ])
+        reader.add(output)
+        #expect(reader.startReading())
+        var decoded = 0
+        while let sample = output.copyNextSampleBuffer() {
+            if sample.numSamples > 0 { decoded += 1 }
+        }
+        #expect(reader.status == .completed, "\(String(describing: reader.error))")
+        #expect(decoded == 5)
+    }
+
     @Test func areaOnDisplayLeftOfPrimaryMapsToDisplayLocalPoints() {
         // A 1512x982 built-in display left of and above a taller primary (AppKit global, bottom-left origin).
         let display = CGRect(x: -1512, y: 300, width: 1512, height: 982)
