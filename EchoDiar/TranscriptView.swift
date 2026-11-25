@@ -9,7 +9,7 @@ extension Notification.Name {
 }
 
 /// One conversation inside the main window (its title, date, duration and size, its tabs and Reveal in Finder are in
-/// the toolbar). The Transcript tab ends with a bar of speakers (click to rename), actions and playback. The segments
+/// the toolbar). The Transcript tab ends with a bar of playback, actions and speakers (click to rename). The segments
 /// are one selectable text; a click on a segment's timestamp or name plays from its start; Space plays or pauses.
 /// Stays mounted across tabs, so playback goes on in Summary and Chat.
 struct TranscriptView: View {
@@ -138,7 +138,7 @@ struct TranscriptView: View {
 
     // MARK: - Bottom bar
 
-    /// Like the Summary and Chat tabs' bars: the transcription's state, then the speakers, actions and playback.
+    /// Like the Summary and Chat tabs' bars: the transcription's state, then playback, actions and the speakers.
     private var bottomBar: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Not wrapped in a row: its body is often empty, which then takes no space. A running job shows on
@@ -216,26 +216,27 @@ struct TranscriptView: View {
         .font(.caption)
     }
 
-    /// Speaker chips, then the actions and the transport at the trailing edge.
+    /// The transport first, then Re-transcribe and Summarize, the other buttons, and the speaker chips at the trailing
+    /// edge.
     private func controlRow(chips: Int) -> some View {
         HStack(spacing: 8) {
+            if conversation.hasAudio {
+                transport
+            } else if videoClip != nil {
+                // The video still plays.
+                transport
+                audioRemovedNote
+            } else {
+                audioRemovedNote
+            }
+            primaryActions
+            secondaryActions
+            Spacer(minLength: 8)
             if shownTranscript != nil && !speakers.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(speakers.prefix(chips), id: \.self, content: speakerChip)
                     if chips < speakers.count { moreSpeakersChip(Array(speakers.dropFirst(chips))) }
                 }
-            }
-            Spacer(minLength: 8)
-            if videoClip != nil { layoutSwitch }
-            actions
-            if conversation.hasAudio {
-                transport
-            } else if videoClip != nil {
-                // The video still plays.
-                audioRemovedNote
-                transport
-            } else {
-                audioRemovedNote
             }
         }
     }
@@ -288,12 +289,11 @@ struct TranscriptView: View {
 
     private static let maxSpeakerChips = 3
 
-    /// Export video and Delete video (round, with a video), Copy (round), Re-transcribe and Summarize, in the accent
-    /// color like Send; a spinner and "Transcribing…" in Re-transcribe's place while a job is queued or runs, with Stop
-    /// (round) beside it ("Stopping…" once clicked).
-    private var actions: some View {
+    /// The video layout menu, Export video and Delete video (with a video), and Copy, all round.
+    private var secondaryActions: some View {
         HStack(spacing: 6) {
             if videoClip != nil {
+                layoutSwitch
                 exportVideoButton
                 deleteVideoButton
             }
@@ -304,6 +304,13 @@ struct TranscriptView: View {
             .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
             .help("Copy transcript")
             .disabled(shownTranscript?.segments.isEmpty ?? true)
+        }
+    }
+
+    /// Re-transcribe and Summarize, in the accent color like Send; a spinner and "Transcribing…" in Re-transcribe's
+    /// place while a job is queued or runs, with Stop (round) beside it ("Stopping…" once clicked).
+    private var primaryActions: some View {
+        HStack(spacing: 6) {
             if model.isTranscribing(conversation.id) {
                 let stopping = model.stoppingTranscriptions.contains(conversation.id)
                 Button {} label: {

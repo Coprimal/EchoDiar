@@ -250,15 +250,23 @@
 
                 <views:PlaybackBar x:Name="Player" />
 
-                <!-- Speaker chips, then Copy, Re-transcribe and Summarize, then the note in place of playback once the audio is gone. -->
+                <!--
+                    As macOS: the note in place of playback once the audio is gone, Re-transcribe and Summarize, Copy, then
+                    the speaker chips at the trailing edge.
+                -->
                 <Grid x:Name="ControlRow" ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel x:Name="ChipsPanel" Orientation="Horizontal" Spacing="6">
+                    <StackPanel
+                        x:Name="ChipsPanel"
+                        Grid.Column="2"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal"
+                        Spacing="6">
                         <!-- The rename field of a chip: Enter saves, Esc or a click elsewhere cancels. -->
                         <FlyoutBase.AttachedFlyout>
                             <Flyout x:Name="RenameFlyout" Placement="Top">
@@ -284,17 +292,6 @@
                                 <StackPanel x:Name="MoreSpeakersList" MinWidth="180" Spacing="2" />
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
-                        <Button
-                            x:Name="CopyButton"
-                            Width="32"
-                            Height="32"
-                            Padding="0"
-                            Style="{StaticResource SubtleButtonStyle}"
-                            AutomationProperties.Name="{local:T Text='Copy transcript'}"
-                            IsEnabled="False"
-                            ToolTipService.ToolTip="{local:T Text='Copy transcript'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE8C8;" />
-                        </Button>
                         <!-- In place of Re-transcribe while a job is queued or runs, with Stop ("Stopping…" once clicked). -->
                         <StackPanel
                             x:Name="TranscribingPanel"
@@ -341,12 +338,22 @@
                                 <TextBlock x:Name="SummarizeText" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+                        <Button
+                            x:Name="CopyButton"
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            Style="{StaticResource SubtleButtonStyle}"
+                            AutomationProperties.Name="{local:T Text='Copy transcript'}"
+                            IsEnabled="False"
+                            ToolTipService.ToolTip="{local:T Text='Copy transcript'}">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE8C8;" />
+                        </Button>
                     </StackPanel>
 
                     <!-- In place of playback once the audio was moved to the Recycle Bin. -->
                     <StackPanel
                         x:Name="AudioRemovedNote"
-                        Grid.Column="2"
                         Orientation="Horizontal"
                         Spacing="6"
                         VerticalAlignment="Center"
