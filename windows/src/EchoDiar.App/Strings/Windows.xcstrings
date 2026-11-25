@@ -3188,7 +3188,7 @@
       }
     },
     "Reveal in Explorer" : {
-      "comment" : "Windows only: Views/ConversationCard.xaml.cs.",
+      "comment" : "Windows only: Views/ConversationCard.xaml.cs, Views/VideoExportDialog.xaml.cs.",
       "extractionState" : "manual",
       "localizations" : {
         "es" : {

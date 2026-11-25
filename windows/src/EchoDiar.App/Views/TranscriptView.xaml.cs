@@ -3,6 +3,7 @@ using System.Globalization;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Model;
 using EchoDiar.Core.Models;
+using EchoDiar.Core.Settings;
 using EchoDiar.Transcribe;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Text;
@@ -25,7 +26,7 @@ namespace EchoDiar.App.Views;
 /// <see cref="TranscriptViewModel"/> and the page's <see cref="PlaybackController"/>: the segments as one selectable
 /// text (macOS TranscriptTextView; a click on a start or a name plays from the segment; the one under the play head has
 /// a fill, and the text follows it while playing until the user scrolls), the version menu, the transcription's state, the speaker notes, playback, the
-/// speaker chips with their rename field, Copy, Re-transcribe and Summarize.
+/// speaker chips with their rename field, Show/Hide video, Copy, Re-transcribe and Summarize.
 /// </summary>
 public sealed partial class TranscriptView : UserControl
 {
@@ -103,6 +104,9 @@ public sealed partial class TranscriptView : UserControl
     private string? _retranscribeTip;
     private string? _transcribingTip;
     private string? _summarizeTip;
+    private string? _audioRemovedTip;
+    private string? _videoToggleTip;
+    private string? _deleteVideoTip;
 
     /// <summary>What <see cref="FitControlRow"/> last fitted: the width, the chips and the buttons' state.</summary>
     private object? _rowFitted;
@@ -142,6 +146,9 @@ public sealed partial class TranscriptView : UserControl
         RetryButton.Click += (_, _) => Transcribe(null);
         TranscribeButton.Click += (_, _) => Transcribe(null);
         CopyButton.Click += (_, _) => Copy();
+        VideoToggleButton.Click += (_, _) => ToggleVideo();
+        ExportVideoButton.Click += (_, _) => _ = ExportVideoAsync();
+        DeleteVideoButton.Click += (_, _) => _ = DeleteVideoAsync();
         StopTranscriptionButton.Click += (_, _) =>
         {
             if (_transcript is not null) _model?.StopTranscription(_transcript.ConversationId);
@@ -157,6 +164,9 @@ public sealed partial class TranscriptView : UserControl
         };
         RenameFlyout.Closed += (_, _) => _renaming = null;
     }
+
+    /// <summary>Shows a dialog through the window's dialog queue (Export video…, Delete video…); false when another is open.</summary>
+    internal Func<ContentDialog, Task<bool>>? ShowDialog { get; set; }
 
     /// <summary>Shows <paramref name="transcript"/> and plays with <paramref name="playback"/>; call when the page shows.</summary>
     public void Attach(AppViewModel model, TranscriptViewModel transcript, PlaybackController playback)
@@ -217,6 +227,9 @@ public sealed partial class TranscriptView : UserControl
             case nameof(AppViewModel.Conversations):
                 UpdateSummarize();
                 break;
+            case nameof(AppViewModel.Settings):
+                UpdateVideoToggle();
+                break;
         }
     }
 
@@ -256,9 +269,15 @@ public sealed partial class TranscriptView : UserControl
     /// <summary>The shown version has segments: Copy and Summarize show for it, the card shows the text (or a ring while it is built).</summary>
     private bool HasSegments => _document is { Entries.Count: > 0 };
 
-    /// <summary>The conversation has audio to play: not deleted, not being recorded or compressed (macOS TranscriptView <c>load</c>).</summary>
+    /// <summary>
+    /// Segment clicks and the transport play the audio, or the video without it (macOS <c>mediaPlayable</c>): audio not
+    /// deleted, not being recorded or compressed, or a video not being recorded (macOS TranscriptView <c>load</c>).
+    /// </summary>
     private bool Playable => _transcript?.Conversation is
-        { HasAudio: true, Status: not (ConversationStatus.Recording or ConversationStatus.Compressing) };
+        { HasAudio: true, Status: not (ConversationStatus.Recording or ConversationStatus.Compressing) } || HasVideo;
+
+    /// <summary>The conversation has a video to show and play: not while it is being recorded (macOS <c>videoPlayable</c>).</summary>
+    private bool HasVideo => _transcript?.Conversation is { HasVideo: true, Status: not ConversationStatus.Recording };
 
     /// <summary>
     /// The shown version's text (macOS TranscriptTextView <c>apply</c>). The same segments with other names (a speaker
@@ -840,8 +859,9 @@ public sealed partial class TranscriptView : UserControl
     }
 
     /// <summary>
-    /// Copy, Re-transcribe (or "Transcribing…" and Stop while a job runs, "Stopping…" once clicked), Summarize, playback
-    /// or the removed-audio note.
+    /// Copy, Re-transcribe (or "Transcribing…" and Stop while a job runs, "Stopping…" once clicked), Summarize, the
+    /// video toggle, and playback, the removed-audio note, or both (macOS <c>playbackControls</c>: the transport with
+    /// audio, the transport and the note with a video without audio, the note alone with neither).
     /// </summary>
     private void UpdateActions()
     {
@@ -858,9 +878,92 @@ public sealed partial class TranscriptView : UserControl
         RetranscribeButton.Visibility = Shown(!transcribing);
         RetranscribeButton.IsEnabled = _transcript.CanRetranscribe;
         SetTip(RetranscribeButton, Loc.T(hasAudio ? "Re-transcribe with another model or language" : "Audio has been removed"), ref _retranscribeTip);
-        Player.Visibility = Shown(hasAudio);
+        var hasVideo = HasVideo;
+        Player.Visibility = Shown(hasAudio || hasVideo);
         AudioRemovedNote.Visibility = Shown(!hasAudio && _transcript.Conversation is not null);
+        SetTip(AudioRemovedNote, Loc.T(hasVideo
+            ? "Re-transcribing is no longer possible. The video, transcript, summary and chat stay."
+            : "Playback and re-transcribing are no longer possible. The transcript, summary and chat stay."), ref _audioRemovedTip);
+        UpdateVideoToggle();
         UpdateSummarize();
+    }
+
+    /// <summary>
+    /// Show/Hide video with a video only (macOS <c>videoToggle</c>): "Hide video" with the video icon while its pane
+    /// shows, "Show video" with the icon struck through while "Hide video" hides it; On or Off for Narrator. Export
+    /// video… and Delete video… beside it (macOS <c>exportVideoButton</c>, <c>deleteVideoButton</c>): "Delete video"
+    /// without confirmation, both disabled while the conversation is recorded, compressed or transcribed.
+    /// </summary>
+    private void UpdateVideoToggle()
+    {
+        if (_model is null) return;
+        VideoToggleButton.Visibility = Shown(HasVideo);
+        ExportVideoButton.Visibility = Shown(HasVideo);
+        DeleteVideoButton.Visibility = Shown(HasVideo);
+        var canDelete = _transcript?.Conversation is { } conversation && _model.CanDelete(conversation);
+        ExportVideoButton.IsEnabled = canDelete;
+        DeleteVideoButton.IsEnabled = canDelete;
+        var deleteText = Loc.T(_model.Settings.DeleteWithoutConfirmation ? "Delete video" : "Delete video…");
+        AutomationProperties.SetName(DeleteVideoButton, deleteText);
+        SetTip(DeleteVideoButton, deleteText, ref _deleteVideoTip);
+        var shown = _model.Settings.TranscriptVideoLayout != TranscriptVideoLayout.Hidden;
+        var text = Loc.T(shown ? "Hide video" : "Show video");
+        VideoToggleSlash.Visibility = Shown(!shown);
+        AutomationProperties.SetName(VideoToggleButton, text);
+        AutomationProperties.SetItemStatus(VideoToggleButton, Loc.T(shown ? "On" : "Off"));
+        SetTip(VideoToggleButton, text, ref _videoToggleTip);
+        FitControlRow();
+    }
+
+    /// <summary>Shows or hides the video pane (it only does that), saved in the settings (macOS <c>videoToggle</c>).</summary>
+    private void ToggleVideo()
+    {
+        if (_model is null) return;
+        var shown = _model.Settings.TranscriptVideoLayout != TranscriptVideoLayout.Hidden;
+        _model.ApplySettings(_model.Settings with
+        {
+            TranscriptVideoLayout = shown ? TranscriptVideoLayout.Hidden : TranscriptVideoLayout.Stacked,
+        });
+    }
+
+    /// <summary>Opens the export dialog for the conversation's video (macOS <c>exportVideoButton</c>).</summary>
+    private async Task ExportVideoAsync()
+    {
+        if (_model is not { } model || ShowDialog is not { } show || XamlRoot is not { } root
+            || _transcript?.Conversation is not { HasVideo: true } conversation || !model.CanDelete(conversation)) return;
+        await show(new VideoExportDialog(conversation.Title, conversation.Folder) { XamlRoot = root });
+    }
+
+    /// <summary>
+    /// Moves the video to the Recycle Bin, asked first like Delete audio unless "Delete conversations without
+    /// confirmation" is on (macOS <c>DeleteMenuItems.delete(.video)</c>); the conversation then reloads without it, so the
+    /// pane and these buttons go. Checked again once the dialog closes: a job may have started meanwhile.
+    /// </summary>
+    private async Task DeleteVideoAsync()
+    {
+        if (_model is not { } model || _transcript?.Conversation is not { HasVideo: true } conversation
+            || !model.CanDelete(conversation)) return;
+        var id = conversation.Id;
+        if (!model.Settings.DeleteWithoutConfirmation)
+        {
+            if (ShowDialog is not { } show || XamlRoot is not { } root) return;
+            var dialog = new ContentDialog
+            {
+                XamlRoot = root,
+                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+                Title = Loc.Format("Delete the video of \"%@\"?", conversation.Title),
+                Content = Loc.T("The screen recording is moved to the Recycle Bin. Everything else in the conversation stays."),
+                PrimaryButtonText = Loc.T("Delete"),
+                CloseButtonText = Loc.T("Cancel"),
+                DefaultButton = ContentDialogButton.Close,
+            };
+            // The queue throws the result away: Delete is read from its click.
+            var confirmed = false;
+            dialog.PrimaryButtonClick += (_, _) => confirmed = true;
+            if (!await show(dialog) || !confirmed || model.IsClosing) return;
+            if (model.Conversations.FirstOrDefault(c => c.Id == id) is not { HasVideo: true } current || !model.CanDelete(current)) return;
+        }
+        await model.DeleteVideoAsync(id);
     }
 
     /// <summary>
@@ -897,7 +1000,7 @@ public sealed partial class TranscriptView : UserControl
         if (width <= 0) return;
         var key = (width, _chipSpeakers, ChipsPanel.Children.Count, TranscribingPanel.Visibility, TranscribingText.Text,
             RetranscribeButton.Visibility, (SummarizeButton.Visibility, SummarizeText.Text, SummarizingRing.Visibility,
-            StopTranscriptionButton.Visibility, AudioRemovedNote.Visibility));
+            StopTranscriptionButton.Visibility, AudioRemovedNote.Visibility, VideoToggleButton.Visibility));
         if (key.Equals(_rowFitted)) return;
         _rowFitted = key;
         var natural = new Size(double.PositiveInfinity, double.PositiveInfinity);

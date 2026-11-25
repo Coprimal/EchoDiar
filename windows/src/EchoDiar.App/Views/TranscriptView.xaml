@@ -2,7 +2,7 @@
 <!--
     The conversation's transcript, left of its AI panel (macOS TranscriptView.swift): the segments in a card, with the
     version menu pinned above them, then a bar with the transcription's state, the speaker notes, playback, the speaker
-    chips (click to rename), Copy and Re-transcribe.
+    chips (click to rename), Show/Hide video, Copy and Re-transcribe.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.TranscriptView"
@@ -345,6 +345,57 @@
                                     <TextBlock x:Name="SummarizeText" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
+                            <!--
+                                With a video (macOS videoToggle): shows or hides its pane, saved in the settings ("Hide
+                                video" while it shows, with the video icon; "Show video" with it struck through).
+                            -->
+                            <Button
+                                x:Name="VideoToggleButton"
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                Visibility="Collapsed">
+                                <Grid Width="16" Height="16">
+                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE714;" />
+                                    <Line
+                                        x:Name="VideoToggleSlash"
+                                        Stroke="{ThemeResource TextFillColorPrimaryBrush}"
+                                        StrokeEndLineCap="Round"
+                                        StrokeStartLineCap="Round"
+                                        StrokeThickness="1.5"
+                                        Visibility="Collapsed"
+                                        X1="1"
+                                        X2="15"
+                                        Y1="1"
+                                        Y2="15" />
+                                </Grid>
+                            </Button>
+                            <!--
+                                With a video (macOS exportVideoButton and deleteVideoButton): Export video… opens the export
+                                dialog; Delete video… ("Delete video" without confirmation) moves it to the Recycle Bin.
+                                Disabled while the conversation is recorded, compressed or transcribed.
+                            -->
+                            <Button
+                                x:Name="ExportVideoButton"
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Export video…'}"
+                                ToolTipService.ToolTip="{local:T Text='Export video…'}"
+                                Visibility="Collapsed">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE72D;" />
+                            </Button>
+                            <Button
+                                x:Name="DeleteVideoButton"
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                Visibility="Collapsed">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE74D;" />
+                            </Button>
                             <Button
                                 x:Name="CopyButton"
                                 Width="32"
@@ -358,13 +409,15 @@
                             </Button>
                         </StackPanel>
 
-                        <!-- In place of playback once the audio was moved to the Recycle Bin. -->
+                        <!--
+                            In place of playback once the audio was moved to the Recycle Bin, or under it while the video
+                            still plays (its tooltip set in code).
+                        -->
                         <StackPanel
                             x:Name="AudioRemovedNote"
                             Orientation="Horizontal"
                             Spacing="6"
                             VerticalAlignment="Center"
-                            ToolTipService.ToolTip="{local:T Text='Playback and re-transcribing are no longer possible. The transcript, summary and chat stay.'}"
                             Visibility="Collapsed">
                             <FontIcon
                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"

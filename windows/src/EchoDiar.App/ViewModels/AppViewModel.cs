@@ -668,8 +668,8 @@ public sealed partial class AppViewModel : ObservableObject
         conversation.Status is not (ConversationStatus.Recording or ConversationStatus.Compressing) && !IsTranscribing(conversation.Id);
 
     /// <summary>
-    /// Raised on the UI thread before a conversation's audio or folder is deleted: its open player must close the
-    /// file first, or the move to the Recycle Bin finds it in use.
+    /// Raised on the UI thread before a conversation's audio, video or folder is deleted: its open player and video pane
+    /// must close the files first, or the move to the Recycle Bin finds them in use.
     /// </summary>
     public event Action<Guid>? ReleasingAudio;
 
@@ -711,6 +711,24 @@ public sealed partial class AppViewModel : ObservableObject
         catch (Exception e)
         {
             Debug.WriteLine($"EchoDiar: could not delete the audio of conversation {id}: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Moves the conversation's video to the Recycle Bin; its audio, transcript, summary and chat stay (macOS
+    /// <c>deleteVideo</c>). Its open page lets go of the files first and, listed again without the video, reopens the
+    /// audio without the pane. The caller asks first.
+    /// </summary>
+    public async Task DeleteVideoAsync(Guid id)
+    {
+        ReleasingAudio?.Invoke(id);
+        try
+        {
+            await _services.Library.DeleteVideoAsync(id);
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"EchoDiar: could not delete the video of conversation {id}: {e}");
         }
     }
 
