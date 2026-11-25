@@ -333,7 +333,7 @@ struct TranscriptView: View {
                         if !compact { Text(status) }
                     }
                 }
-                .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 14))
+                .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 12))
                 .help(Text(status))
                 .accessibilityLabel(Text(status))
                 .fixedSize()
@@ -391,7 +391,7 @@ struct TranscriptView: View {
                     if !compact { Text("Summarizing…") }
                 }
             }
-            .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 14))
+            .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 12))
             .help("Summarizing…")
             .accessibilityLabel("Summarizing…")
             .fixedSize()
@@ -404,7 +404,7 @@ struct TranscriptView: View {
                     Text(title)
                 }
             }
-            .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 14))
+            .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 12))
             .help(Text(title))
             .fixedSize()
         }
@@ -727,7 +727,7 @@ struct TranscriptView: View {
     }
 
     /// As tall as the Summary tab's version menu.
-    private static let versionMenuHeight: CGFloat = 28
+    private static let versionMenuHeight = MainView.headerControlHeight
 
     private func versionDetails(_ transcript: Transcript) -> String {
         [model.transcriptEngineName(transcript), transcript.createdAt.formatted(date: .abbreviated, time: .shortened)]
@@ -953,7 +953,7 @@ private struct SpeakerChipShape: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.callout.weight(.medium))
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 10)
             .frame(height: BottomBarButtonStyle.height)
             .background(Palette.hoverFill, in: Capsule())
             .contentShape(Capsule())

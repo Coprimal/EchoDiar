@@ -60,7 +60,7 @@ struct AIPanelView: View {
     /// The height of a one-line question field, and of every control of the footer.
     private static let inputHeight = BottomBarButtonStyle.height
     /// The header's controls and the summary's version menu: a bit smaller, as in the recording's side panel.
-    private static let menuHeight: CGFloat = 28
+    private static let menuHeight = MainView.headerControlHeight
     /// The model badge and the round Copy under an answer.
     private static let answerFooterHeight: CGFloat = 22
 
@@ -541,6 +541,7 @@ struct AIPanelView: View {
                     tabs: shownTabs,
                     title: { iconOnly ? TranscriptView.tabIcon($0) : Text(TranscriptView.tabTitle($0)) },
                     drawsTrack: true, trackFill: Palette.inputSurface, itemPadding: tight ? 8 : 12,
+                    itemHeight: MainView.headerControlHeight,
                     help: iconOnly ? { Text(TranscriptView.tabTitle($0)) } : nil)
             .fixedSize()
     }
@@ -1093,11 +1094,11 @@ struct HistoryRowStyle: ButtonStyle {
 /// darker while pressed, dimmed when disabled.
 struct BottomBarButtonStyle: ButtonStyle {
     /// Every control of the bottom bars: buttons, menus, speaker chips and the one-line question field.
-    static let height: CGFloat = 34
+    static let height: CGFloat = 30
 
     var height = Self.height
     var prominent = false
-    var horizontalPadding: CGFloat = 14
+    var horizontalPadding: CGFloat = 12
     /// A menu's trigger: it stays pressed while its menu is open, and shows the hover look then, not the darker one.
     var menu = false
 
@@ -1117,7 +1118,7 @@ struct BottomBarButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.body.weight(prominent ? .semibold : .regular))
+                .font(.callout.weight(prominent ? .semibold : .regular))
                 .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 .padding(.horizontal, horizontalPadding)
                 .frame(minWidth: height, minHeight: height, maxHeight: height)
@@ -1149,7 +1150,7 @@ struct MenuChevron: View {
 struct CompactMenu: ViewModifier {
     let maxWidth: CGFloat?
     let height: CGFloat
-    /// nil: 12 for a short menu, 14 for a full-height one.
+    /// nil: 10 for a short menu, 12 for a full-height one.
     var horizontalPadding: CGFloat? = nil
 
     func body(content: Content) -> some View {
@@ -1157,7 +1158,7 @@ struct CompactMenu: ViewModifier {
             .menuStyle(.button)
             .buttonStyle(BottomBarButtonStyle(height: height,
                                               horizontalPadding: horizontalPadding
-                                                  ?? (height < BottomBarButtonStyle.height ? 12 : 14),
+                                                  ?? (height < BottomBarButtonStyle.height ? 10 : 12),
                                               menu: true))
         if let maxWidth {
             WidthCap(maxWidth: maxWidth) { menu }

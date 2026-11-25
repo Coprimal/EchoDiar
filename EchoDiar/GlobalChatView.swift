@@ -38,7 +38,7 @@ struct GlobalChatView: View {
     /// The height of a one-line question field.
     private static let inputHeight = BottomBarButtonStyle.height
     /// The menu row, above the question: a bit smaller.
-    private static let chatMenuHeight: CGFloat = 28
+    private static let chatMenuHeight = MainView.headerControlHeight
     /// The model badge and the round Copy under an answer.
     private static let answerFooterHeight: CGFloat = 22
 

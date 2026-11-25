@@ -196,7 +196,7 @@ struct RecordingDetailView: View {
     /// The right panel's tabs, in order.
     private static let panelTabs: [AppModel.RecordingTab] = [.catchUp, .chat]
     /// The panel header's menus: as tall as the conversation's AI panel header.
-    private static let menuHeight: CGFloat = 28
+    private static let menuHeight = MainView.headerControlHeight
 
     private static func tabTitle(_ tab: AppModel.RecordingTab) -> LocalizedStringKey {
         switch tab {
@@ -276,6 +276,7 @@ struct RecordingDetailView: View {
                 CapsuleTabs(selection: selection, tabs: Self.panelTabs,
                             title: { iconTabs ? Self.tabIcon($0) : Text(Self.tabTitle($0)) },
                             drawsTrack: true, trackFill: Palette.inputSurface,
+                            itemHeight: MainView.headerControlHeight,
                             help: iconTabs ? { Text(Self.tabTitle($0)) } : nil)
                     .fixedSize()
                 Spacer(minLength: 8)

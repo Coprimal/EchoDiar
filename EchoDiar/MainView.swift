@@ -700,9 +700,9 @@ struct MainView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    /// The tabs' items, as tall as the AI panel's.
-    private static let headerControlHeight: CGFloat = 28
-    /// The tabs with their track (28 pt items, 3 pt inset). The search button, the search field and its close button
+    /// The headers' tab items (the sidebar's, the AI panels'), as tall as the AI panels' header menus.
+    static let headerControlHeight: CGFloat = 24
+    /// The tabs with their track (24 pt items, 3 pt inset). The search button, the search field and its close button
     /// are as tall, so the cards under the header do not move when the field replaces the tabs. The AI panel's header
     /// is as tall.
     static let headerHeight: CGFloat = headerControlHeight + 6
@@ -730,7 +730,8 @@ struct MainView: View {
                     // `globalChatOpen` is the selected tab: false = Conversations, true = Chat.
                     CapsuleTabs(selection: Binding(get: { model.globalChatOpen }, set: { model.globalChatOpen = $0 }),
                                 tabs: [false, true], title: { $0 ? Text("Global Chat") : Text("Conversations") },
-                                drawsTrack: true, trackFill: Palette.inputSurface)
+                                drawsTrack: true, trackFill: Palette.inputSurface,
+                                itemHeight: Self.headerControlHeight)
                         .fixedSize()
                     Spacer(minLength: 8)
                     // From the Chat tab it shows Conversations first: the search filters the cards.
