@@ -700,7 +700,7 @@ struct MainView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    /// The headers' tab items (the sidebar's, the AI panels'), as tall as the AI panels' header menus.
+    /// The headers' tab items (the sidebar's, the AI panels').
     static let headerControlHeight: CGFloat = 24
     /// The tabs with their track (24 pt items, 3 pt inset). The search button, the search field and its close button
     /// are as tall, so the cards under the header do not move when the field replaces the tabs. The AI panel's header

@@ -196,7 +196,7 @@ struct RecordingDetailView: View {
     /// The right panel's tabs, in order.
     private static let panelTabs: [AppModel.RecordingTab] = [.catchUp, .chat]
     /// The panel header's menus: as tall as the conversation's AI panel header.
-    private static let menuHeight = MainView.headerControlHeight
+    private static let menuHeight = MainView.headerHeight
 
     private static func tabTitle(_ tab: AppModel.RecordingTab) -> LocalizedStringKey {
         switch tab {

@@ -59,8 +59,8 @@ struct AIPanelView: View {
     private static let chatEnd = "chatEnd"
     /// The height of a one-line question field, and of every control of the footer.
     private static let inputHeight = BottomBarButtonStyle.height
-    /// The header's controls and the summary's version menu: a bit smaller, as in the recording's side panel.
-    private static let menuHeight = MainView.headerControlHeight
+    /// The header's menus and buttons: as tall as the tabs' track beside them, as in the recording's side panel.
+    private static let menuHeight = MainView.headerHeight
     /// The model badge and the round Copy under an answer.
     private static let answerFooterHeight: CGFloat = 22
 
@@ -435,7 +435,7 @@ struct AIPanelView: View {
             AIMenuLabel(title: ([String(localized: "Version \(shown.number)")] + [versionModel(shown)].compactMap { $0 })
                 .joined(separator: " · "), systemImage: "clock.arrow.circlepath")
         }
-        .modifier(CompactMenu(maxWidth: 260, height: Self.menuHeight))
+        .modifier(CompactMenu(maxWidth: 260, height: MainView.headerControlHeight))
         .help("Earlier summaries of this conversation")
     }
 
