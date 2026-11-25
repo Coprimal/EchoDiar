@@ -106,6 +106,7 @@ public sealed class SettingsTests : IDisposable
         """{"sourceInactiveSeconds":25,"callEndedSeconds":60,"silenceMinutes":1,"maxDurationMinutes":1440}""")]
     [InlineData("""{"playbackChannels":"surround"}""", "playbackChannels", "\"mixed\"")]
     [InlineData("""{"autoDeleteMode":"shred"}""", "autoDeleteMode", "\"audioOnly\"")]
+    [InlineData("""{"autoDeleteMode":"videoOnly"}""", "autoDeleteMode", "\"videoOnly\"")]
     [InlineData("""{"pillSize":"huge"}""", "pillSize", "\"medium\"")]
     [InlineData("""{"catchUpLength":"tiny"}""", "catchUpLength", "\"concise\"")]
     [InlineData("""{"chatLength":"full"}""", "chatLength", "\"full\"")]

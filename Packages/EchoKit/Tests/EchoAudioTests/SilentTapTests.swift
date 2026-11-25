@@ -14,13 +14,20 @@ struct SilentTapTests {
         #expect(try silentTapSuspected(soundFrames: 16_000) == false)
     }
 
-    /// Writes `soundFrames` of a 440 Hz tone then 6 s of zeros to the system channel while the target reports output.
-    private func silentTapSuspected(soundFrames: Int) throws -> Bool {
+    /// A recording with no system audio (`RecordingEngine.start(systemAudio: false)`) sets no output check: its
+    /// all-zero system channel is never suspected.
+    @Test func zerosWithoutAnOutputCheckAreNotSuspected() throws {
+        #expect(try silentTapSuspected(soundFrames: 0, targetPlaying: nil) == false)
+    }
+
+    /// Writes `soundFrames` of a 440 Hz tone then 6 s of zeros to the system channel while `targetPlaying` reports
+    /// output (nil: no output check set).
+    private func silentTapSuspected(soundFrames: Int, targetPlaying: Bool? = true) throws -> Bool {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).caf")
         defer { try? FileManager.default.removeItem(at: url) }
         let frames = soundFrames + 6 * 16_000
         let writer = try ChannelWriter(fileURL: url)
-        writer.isTargetPlayingOutput = { true }
+        if let targetPlaying { writer.isTargetPlayingOutput = { targetPlaying } }
         let mic = RingBuffer(capacityFrames: frames, sampleRate: 16_000)
         let system = RingBuffer(capacityFrames: frames, sampleRate: 16_000)
         let format = ChannelWriter.SourceFormat(sampleRate: 16_000, channels: 1)

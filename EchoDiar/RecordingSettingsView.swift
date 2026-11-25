@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import CoreAudio
 import EchoAI
 import EchoCore
@@ -8,11 +9,16 @@ import SwiftUI
 import UserNotifications
 
 /// The Recording tab, one inner tab per section: the microphone, meeting detection and per-app behavior with the
-/// floating pill's anchor, auto-stop, and what happens after a recording stops.
+/// floating pill's anchor, auto-stop, what happens after a recording stops, and screen recordings.
 struct RecordingSettingsView: View {
     let model: AppModel
     @State private var microphones: [InputDevice] = []
     @State private var accessibilityTrusted = WindowAnchor.isTrusted
+    @State private var cameraStatus = CameraBubbleController.authorizationStatus
+    @State private var keyAccess = KeyStrokeHUDController.access
+    @State private var screenAccess = CGPreflightScreenCaptureAccess()
+    /// 60 fps was picked: the confirmation is up, the stored frame rate is unchanged until "Use 60 fps".
+    @State private var confirming60FPS = false
 
     /// One row per app the user sees (FaceTime's daemon is listed as FaceTime).
     private static let meetingApps: [MeetingApp] = {
@@ -22,7 +28,7 @@ struct RecordingSettingsView: View {
 
     /// Ids in `SettingsTab.recording.subTabs`; picked in the toolbar.
     private enum Tab: String {
-        case microphone, meetings, autoStop, afterRecording
+        case microphone, meetings, autoStop, afterRecording, screen
     }
 
     private var tab: Tab { model.settingsSubTab(.recording).flatMap(Tab.init) ?? .microphone }
@@ -34,6 +40,7 @@ struct RecordingSettingsView: View {
             case .meetings: meetingsSection
             case .autoStop: autoStopSection
             case .afterRecording: afterRecordingSection
+            case .screen: screenSection
             }
         }
         .formStyle(.grouped)
@@ -47,10 +54,13 @@ struct RecordingSettingsView: View {
             // Back from System Settings.
             accessibilityTrusted = WindowAnchor.isTrusted
             model.refreshNotificationStatus()
+            refreshScreenPermissions()
+            // A permission granted during a running video brings its overlay up.
+            model.screenRecording.setOverlays(model.settings)
         }
     }
 
-    private var microphoneSection: some View {
+    @ViewBuilder private var microphoneSection: some View {
         Section {
             Picker("Microphone", selection: model.setting(\.micDeviceUID)) {
                 Text("System default").tag(String?.none)
@@ -70,6 +80,13 @@ struct RecordingSettingsView: View {
                 case .continue: Text("Recording switches to the default input.")
                 case .stop: Text("Recording stops at once.")
                 }
+            }
+        }
+        Section {
+            Picker("Menu bar while recording", selection: model.setting(\.menuBarRecordingInfo)) {
+                Text("Icon only").tag(MenuBarRecordingInfo.iconOnly)
+                Text("Elapsed time").tag(MenuBarRecordingInfo.elapsedTime)
+                Text("File size").tag(MenuBarRecordingInfo.fileSize)
             }
         }
     }
@@ -151,11 +168,249 @@ struct RecordingSettingsView: View {
         }
     }
 
+    @ViewBuilder private var screenSection: some View {
+        Section {
+            Picker("Frame rate", selection: frameRate) {
+                ForEach(AppSettings.screenFPSOptions, id: \.self) { Text("\($0) fps").tag($0) }
+            }
+            .alert("Record at 60 frames per second?", isPresented: $confirming60FPS) {
+                Button("Use 60 fps") { model.updateSettings { $0.screenFPS = 60 } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Files can be several times larger. In a meeting-like test, a window recording took about \(ScreenSize.fps60) MB per minute at 60 fps, against \(ScreenSize.fps15) MB per minute at 15 fps.")
+            }
+            Picker(selection: quality) {
+                ForEach(ScreenQuality.presets, id: \.value) { preset in
+                    Text("\(String(localized: preset.title)) (~\(preset.megabytesPerMinute) MB/min)").tag(preset.value)
+                }
+            } label: {
+                Text("Quality")
+                Text("Sizes measured in a meeting-like window recording at 15 fps. More motion or a higher frame rate makes larger files.")
+            }
+        }
+        Section {
+            Toggle(isOn: model.setting(\.screenTranscribes)) {
+                Text("Transcribe screen recordings")
+                Text("Off: screen and sound only. No transcript, summary or chat until you transcribe it later.")
+            }
+        }
+        Section {
+            Toggle("Show the cursor", isOn: model.setting(\.screenShowsCursor))
+            Toggle("Highlight clicks", isOn: model.setting(\.screenShowsClicks))
+        }
+        Section {
+            Toggle(isOn: Binding(get: { model.settings.screenCamera }, set: { setCamera($0) })) {
+                Text("Camera bubble")
+                Text("Shows your camera in a round bubble on screen.")
+            }
+            Toggle(isOn: Binding(
+                get: { model.settings.screenCameraBlur },
+                set: { on in
+                    model.updateSettings { $0.screenCameraBlur = on }
+                    model.screenRecording.setOverlays(model.settings)
+                }
+            )) {
+                Text("Blur background")
+                Text("Blurs everything behind you in the camera bubble.")
+            }
+            .disabled(!model.settings.screenCamera)
+            // The row style does not dim a disabled row by itself; make it visibly inactive.
+            .opacity(model.settings.screenCamera ? 1 : 0.45)
+            Toggle(isOn: Binding(get: { model.settings.screenKeyStrokes }, set: { setKeyStrokes($0) })) {
+                Text("Key presses")
+                Text("Shows shortcuts such as ⌘K at the bottom of the screen.")
+            }
+            Toggle(isOn: Binding(
+                get: { model.settings.screenAllKeys },
+                set: { on in
+                    model.updateSettings { $0.screenAllKeys = on }
+                    model.screenRecording.setOverlays(model.settings)
+                }
+            )) {
+                Text("Show all keys")
+                Text("Everything you type becomes visible in the video")
+            }
+            .disabled(!model.settings.screenKeyStrokes)
+            // The row style does not dim a disabled row by itself; make it visibly inactive.
+            .opacity(model.settings.screenKeyStrokes ? 1 : 0.45)
+        }
+        permissionsSection
+    }
+
+    /// The permissions the screen features use, each with its state and the action that state needs: Screen Recording
+    /// always, Camera with the camera bubble on, Input Monitoring with key presses on. "Allow…" shows the system prompt
+    /// (only while not determined; Screen Recording's only the first time); a refused permission points to System
+    /// Settings. Screen Recording and Input Monitoring apply once EchoDiar is reopened.
+    private var permissionsSection: some View {
+        Section("Permissions") {
+            PermissionRow(title: "Screen Recording", granted: screenAccess) {
+                Text("Records the screen.")
+                if !screenAccess { Text("After allowing it, quit and reopen EchoDiar.") }
+            } actions: {
+                Button("Allow…") { requestScreen() }
+                Button("Open System Settings") { PrivacySettings.openScreenRecording() }
+            }
+            if model.settings.screenCamera {
+                PermissionRow(title: "Camera", granted: cameraStatus == .authorized) {
+                    Text("Shows the camera bubble.")
+                } actions: {
+                    if cameraStatus == .notDetermined {
+                        Button("Allow…") { requestCamera() }
+                    } else {
+                        Button("Open System Settings") { PrivacySettings.openCamera() }
+                    }
+                }
+            }
+            if model.settings.screenKeyStrokes {
+                PermissionRow(title: "Input Monitoring", granted: keyAccess == .granted) {
+                    Text("Shows key presses.")
+                    if keyAccess != .granted { Text("After allowing it, quit and reopen EchoDiar.") }
+                } actions: {
+                    if keyAccess == .notDetermined {
+                        Button("Allow…") { requestKeyAccess() }
+                    } else {
+                        Button("Open System Settings") { PrivacySettings.openInputMonitoring() }
+                    }
+                }
+            }
+        }
+        // Also changed from the record capsule's menu while this page was not shown.
+        .onAppear { refreshScreenPermissions() }
+    }
+
+    /// Picking 60 fps asks first (much larger files); the other rates apply at once.
+    private var frameRate: Binding<Int> {
+        Binding(
+            get: { model.settings.screenFPS },
+            set: { fps in
+                if fps == 60 && model.settings.screenFPS != 60 {
+                    confirming60FPS = true
+                } else {
+                    model.updateSettings { $0.screenFPS = fps }
+                }
+            })
+    }
+
+    /// The preset nearest the stored quality, which stays as it is until a preset is picked.
+    private var quality: Binding<Double> {
+        Binding(
+            get: { ScreenQuality.nearest(to: model.settings.screenQuality).value },
+            set: { value in model.updateSettings { $0.screenQuality = value } })
+    }
+
+    /// Switching on asks for Camera access when not determined yet; a grant during a running video shows the bubble.
+    private func setCamera(_ on: Bool) {
+        model.updateSettings { $0.screenCamera = on }
+        model.screenRecording.setOverlays(model.settings)
+        cameraStatus = CameraBubbleController.authorizationStatus
+        guard on, cameraStatus == .notDetermined else { return }
+        requestCamera()
+    }
+
+    /// Asks for Camera access, then refreshes its Permissions row; a grant during a running video shows the bubble.
+    private func requestCamera() {
+        Task {
+            _ = await CameraBubbleController.requestAccess()
+            cameraStatus = CameraBubbleController.authorizationStatus
+            model.screenRecording.setOverlays(model.settings)
+        }
+    }
+
+    /// Switching on asks for Input Monitoring when EchoDiar does not have it; the Permissions row shows the result.
+    private func setKeyStrokes(_ on: Bool) {
+        model.updateSettings { $0.screenKeyStrokes = on }
+        keyAccess = on && !KeyStrokeHUDController.hasAccess
+            ? KeyStrokeHUDController.requestAccess() : KeyStrokeHUDController.access
+        model.screenRecording.setOverlays(model.settings)
+    }
+
+    /// "Allow…" of Input Monitoring.
+    private func requestKeyAccess() {
+        keyAccess = KeyStrokeHUDController.requestAccess()
+        model.screenRecording.setOverlays(model.settings)
+    }
+
+    /// "Allow…" of Screen Recording: the system prompt shows the first time only.
+    private func requestScreen() {
+        screenAccess = CGRequestScreenCaptureAccess() || CGPreflightScreenCaptureAccess()
+    }
+
+    /// Reads the three permissions again (back from System Settings, or the page shown again). Never prompts.
+    private func refreshScreenPermissions() {
+        screenAccess = CGPreflightScreenCaptureAccess()
+        cameraStatus = CameraBubbleController.authorizationStatus
+        keyAccess = KeyStrokeHUDController.access
+    }
+
     /// "Ask" is stored as no entry, the default.
     private func behavior(_ app: MeetingApp) -> Binding<MeetingBehavior> {
         Binding(
             get: { model.settings.perAppBehavior[app.appBundleID] ?? .ask },
             set: { value in model.updateSettings { $0.perAppBehavior[app.appBundleID] = value == .ask ? nil : value } })
+    }
+}
+
+/// A permission of Recording › Screen: its name and what it is for (`note`) on the left, then "Allowed" in green, or
+/// "Not allowed" in orange followed by `actions`.
+private struct PermissionRow<Note: View, Actions: View>: View {
+    let title: LocalizedStringKey
+    let granted: Bool
+    @ViewBuilder let note: Note
+    @ViewBuilder let actions: Actions
+
+    var body: some View {
+        LabeledContent {
+            HStack(spacing: 8) {
+                if granted {
+                    Label("Allowed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                } else {
+                    Label("Not allowed", systemImage: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                    actions
+                }
+            }
+        } label: {
+            Text(title)
+            note
+        }
+    }
+}
+
+/// Measured screen recording sizes, MB per minute: the Phase 1 gate's meeting-like scenario, window mode, MacBook
+/// Retina display (docs/qa/2026-11-23-screen-recording.md, Phase 1 gate run 1).
+private enum ScreenSize {
+    /// 15 fps at quality 0.60, 0.75 (the default) and 0.85.
+    static let quality060 = 2.35
+    static let quality075 = 4.87
+    static let quality085 = 8.42
+    /// 60 fps at quality 0.75.
+    static let fps60At075 = 13.24
+
+    /// "13.24" and "4.87", for the 60 fps confirmation.
+    static var fps60: String { fps60At075.formatted(.number.precision(.fractionLength(2))) }
+    static var fps15: String { quality075.formatted(.number.precision(.fractionLength(2))) }
+}
+
+/// The quality presets of Recording › Screen.
+private struct ScreenQuality {
+    let value: Double
+    let title: LocalizedStringResource
+    /// The measured size at 15 fps, rounded to one decimal ("4.9").
+    let megabytesPerMinute: String
+
+    static let presets = [
+        ScreenQuality(value: 0.60, title: "Smaller", size: ScreenSize.quality060),
+        ScreenQuality(value: 0.75, title: "Balanced", size: ScreenSize.quality075),
+        ScreenQuality(value: 0.85, title: "Sharper", size: ScreenSize.quality085),
+    ]
+
+    init(value: Double, title: LocalizedStringResource, size: Double) {
+        self.value = value
+        self.title = title
+        megabytesPerMinute = size.formatted(.number.precision(.fractionLength(1)))
+    }
+
+    static func nearest(to quality: Double) -> ScreenQuality {
+        presets.min { abs($0.value - quality) < abs($1.value - quality) }!
     }
 }
 

@@ -33,6 +33,19 @@ struct SettingsStoreTests {
             #expect(store.load().rememberRecordingLanguage == false)
             #expect(store.load().lastRecordingLanguage == nil)
             #expect(store.load().libraryPageSize == 100)
+            #expect(store.load().screenFPS == 15)
+            #expect(store.load().screenQuality == 0.75)
+            #expect(store.load().screenShowsCursor)
+            #expect(!store.load().screenShowsClicks)
+            #expect(store.load().screenTranscribes)
+            #expect(store.load().screenSource == nil)
+            #expect(store.load().transcriptVideoLayout == .sideBySide)
+            #expect(!store.load().screenCamera)
+            #expect(!store.load().screenKeyStrokes)
+            #expect(!store.load().screenAllKeys)
+            #expect(!store.load().screenRecordingEnabled)
+            #expect(store.load().screenCameraBlur)
+            #expect(store.load().menuBarRecordingInfo == .fileSize)
             #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         }
     }
@@ -111,6 +124,27 @@ struct SettingsStoreTests {
         #expect(settings.modelIdleMinutes == read)
     }
 
+    /// A hand-edited frame rate outside the offered ones falls back to 15; quality stays in the encoder's useful range.
+    @Test(arguments: [
+        (#"{"screenFPS":25}"#, 15, 0.75), (#"{"screenFPS":30}"#, 30, 0.75),
+        (#"{"screenQuality":0.2}"#, 15, 0.4), (#"{"screenQuality":1.0}"#, 15, 0.95),
+    ])
+    func screenFPSAndQualityAreNormalized(json: String, fps: Int, quality: Double) throws {
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.screenFPS == fps)
+        #expect(settings.screenQuality == quality)
+    }
+
+    /// The remembered screen source keeps its display and, when picked, its area.
+    @Test(arguments: [nil, CGRect(x: 10, y: 20, width: 640, height: 360)])
+    func screenSourceRoundTrips(area: CGRect?) throws {
+        try withTemporaryStore { store in
+            let settings = AppSettings(screenSource: RememberedScreenSource(displayID: 69_734_208, area: area))
+            try store.save(settings)
+            #expect(store.load().screenSource == settings.screenSource)
+        }
+    }
+
     /// Playback plays both voices in both ears unless the user asked to split them.
     @Test(arguments: [#"{}"#, #"{"playbackChannels":"surround"}"#])
     func playbackChannelsDefaultsToMixed(json: String) throws {
@@ -142,6 +176,45 @@ struct SettingsStoreTests {
             AppSettings(summaryLength: .concise, chatLength: .full, catchUpLength: .concise))
         let settings = try JSONDecoder().decode(AppSettings.self, from: data)
         #expect([settings.summaryLength, settings.chatLength, settings.catchUpLength] == [.concise, .full, .concise])
+    }
+
+    /// "Video only" auto-delete is stored as `videoOnly`, not read back as the `audioOnly` fallback.
+    @Test func autoDeleteModeVideoOnlyLoadsBack() throws {
+        try withTemporaryStore { store in
+            try Data(#"{"autoDeleteMode":"videoOnly"}"#.utf8).write(to: store.fileURL)
+            #expect(store.load().autoDeleteMode.rawValue == "videoOnly")
+        }
+    }
+
+    /// The transcript shows the video beside the text unless the user picked another layout.
+    @Test func transcriptVideoLayoutUnknownValueIsSideBySide() throws {
+        let json = #"{"transcriptVideoLayout":"diagonal"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.transcriptVideoLayout == .sideBySide)
+    }
+
+    @Test func transcriptVideoLayoutStackedRoundTrips() throws {
+        let data = try JSONEncoder().encode(AppSettings(transcriptVideoLayout: .stacked))
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data).transcriptVideoLayout == .stacked)
+    }
+
+    /// The menu bar shows the file size while recording unless the user picked the icon alone or the elapsed time.
+    @Test func menuBarRecordingInfoUnknownValueIsFileSize() throws {
+        let json = #"{"menuBarRecordingDetail":"bitrate"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.menuBarRecordingInfo == .fileSize)
+    }
+
+    /// Development builds wrote the old key with "iconOnly" before the default became the file size; it is ignored.
+    @Test func menuBarRecordingInfoIgnoresTheOldKey() throws {
+        let json = #"{"menuBarRecordingInfo":"iconOnly"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.menuBarRecordingInfo == .fileSize)
+    }
+
+    @Test func menuBarRecordingInfoIconOnlyRoundTrips() throws {
+        let data = try JSONEncoder().encode(AppSettings(menuBarRecordingInfo: .iconOnly))
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data).menuBarRecordingInfo == .iconOnly)
     }
 
     @Test func pillSizeLargeRoundTrips() throws {

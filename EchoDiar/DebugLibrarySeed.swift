@@ -1,9 +1,12 @@
 #if DEBUG
 import EchoCore
+import EchoScreen
 import Foundation
 
 /// DEBUG launch arg `--seed-library`: adds three transcribed conversations to the real library (VM layout, tab and
 /// search checks); ones already present, matched by title, are skipped. Not a harness arg: the app keeps running.
+/// `~/EchoDiarQA/two-voice.m4a` is copied as each one's audio, and `~/EchoDiarQA/screen-sample.mp4` as the first one's
+/// video (video pane checks), when they exist.
 enum DebugLibrarySeed {
     static let argument = "--seed-library"
 
@@ -25,16 +28,16 @@ enum DebugLibrarySeed {
         let existing = Set(((try? FileManager.default.contentsOfDirectory(
             at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? [])
             .compactMap { try? Conversation.read(from: $0).title })
-        for entry in entries where !existing.contains(entry.title) {
+        for (index, entry) in entries.enumerated() where !existing.contains(entry.title) {
             do {
-                try write(entry, root: root)
+                try write(entry, root: root, withVideo: index == 0)
             } catch {
                 NSLog("EchoDiar: could not seed \"\(entry.title)\": \(error)")
             }
         }
     }
 
-    private static func write(_ entry: Entry, root: URL) throws {
+    private static func write(_ entry: Entry, root: URL, withVideo: Bool) throws {
         let session = RecordingSession(
             state: .stopped,
             startedAt: Date().addingTimeInterval(-entry.hoursAgo * 3_600),
@@ -43,10 +46,14 @@ enum DebugLibrarySeed {
             audioFileName: "audio.m4a")
         let folder = session.folder(in: root)
         try session.write(to: folder)
-        let fixture = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("EchoDiarQA/two-voice.m4a")
+        let fixtures = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("EchoDiarQA")
+        let fixture = fixtures.appendingPathComponent("two-voice.m4a")
         if FileManager.default.fileExists(atPath: fixture.path) {
             try FileManager.default.copyItem(at: fixture, to: folder.appendingPathComponent(session.audioFileName))
+        }
+        let video = fixtures.appendingPathComponent("screen-sample.mp4")
+        if withVideo, FileManager.default.fileExists(atPath: video.path) {
+            try FileManager.default.copyItem(at: video, to: folder.appendingPathComponent(ScreenSource.videoFileName))
         }
         try Transcript(segments: entry.segments, speakerNames: entry.speakerNames).write(to: folder)
         var conversation = Conversation(

@@ -1666,6 +1666,169 @@ kbd {
   display: none;
 }
 
+/* Screen recording: a screen with the recorded area outlined, a camera bubble and key presses */
+.screen {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 8rem;
+  border: 1px solid var(--app-rule);
+  border-radius: 0.5rem;
+  background: var(--app-surface);
+  overflow: hidden;
+}
+
+.screen__bar {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.35rem 0.45rem;
+  border-bottom: 1px solid var(--app-rule);
+}
+
+.screen__bar i {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--app-surface-2);
+}
+
+.screen__area {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  margin: 0.55rem 0.7rem 0.9rem;
+  padding: 0.55rem;
+  border: 1.5px dashed oklch(64% 0.21 25 / 0.85);
+  border-radius: 0.35rem;
+}
+
+.screen__keys {
+  position: absolute;
+  bottom: 0.45rem;
+  left: 0.55rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.3rem;
+  background: oklch(15% 0.01 165 / 0.8);
+  color: var(--app-ink);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+.screen__cam {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.45rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 2px solid var(--app-ink);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, oklch(74% 0.06 60) 0 22%, transparent 23%),
+    radial-gradient(ellipse at 50% 100%, oklch(60% 0.05 255) 0 45%, transparent 46%), var(--app-surface-2);
+}
+
+/* Screen on and off: the record capsule above a video time line with a "Screen recording off" span */
+.art-toggle {
+  gap: 0.9rem;
+}
+
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.capsule b {
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--app-surface-2);
+  color: var(--app-ink);
+  font-weight: 500;
+}
+
+.capsule__stop::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 0.1rem;
+  background: var(--rec);
+}
+
+.capsule b.capsule__video {
+  background: oklch(64% 0.21 25 / 0.85);
+  color: var(--app-ink);
+}
+
+.capsule .rec-pill {
+  margin-left: auto;
+}
+
+.timeline {
+  display: flex;
+  gap: 2px;
+  height: 2.6rem;
+}
+
+.timeline__on,
+.timeline__off {
+  width: var(--w);
+  border-radius: 0.3rem;
+}
+
+.timeline__on {
+  background: linear-gradient(var(--app-surface-2) 0 30%, var(--app-surface) 30%);
+}
+
+.timeline__off {
+  display: grid;
+  place-items: center;
+  padding: 0 0.25rem;
+  background: oklch(8% 0 0);
+  color: var(--app-ink);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+
+/* Watch it back: the video beside the transcript */
+.art-watch {
+  grid-template-columns: 45% minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.watch__video {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--app-rule);
+  border-radius: 0.45rem;
+  background: linear-gradient(var(--app-surface-2) 0 22%, var(--app-surface) 22%);
+}
+
+.watch__play {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: oklch(0% 0 0 / 0.55);
+  clip-path: circle(50%);
+  position: relative;
+}
+
+.watch__play::after {
+  content: "";
+  position: absolute;
+  inset: 0.45rem 0.4rem 0.45rem 0.6rem;
+  background: var(--app-ink);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.watch__lines {
+  display: grid;
+  gap: 0.45rem;
+}
+
 /* Calendar event */
 .event {
   display: grid;

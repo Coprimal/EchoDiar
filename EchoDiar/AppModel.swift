@@ -5,6 +5,7 @@ import EchoAI
 import EchoAudio
 import EchoCore
 import EchoLocalLLM
+import EchoScreen
 import EchoTranscribe
 import EventKit
 import Foundation
@@ -33,7 +34,7 @@ final class AppModel {
 
     /// DEBUG harness launch args handled here; they skip onboarding and auto-queued work.
     static let harnessArguments: Set<String> = [
-        "--transcribe", "--download-model", "--delete-model", "--measure",
+        "--transcribe", "--download-model", "--delete-model", "--measure", "--measure-screen",
     ]
 
     private(set) var settings = AppSettings()
@@ -52,8 +53,15 @@ final class AppModel {
     private(set) var conversations: [Conversation] = []
     /// The last snapshot published by the engine.
     private(set) var snapshot: RecordingEngine.Snapshot
+    /// The size of the current recording's files on disk so far, read every 2 s while it runs or is paused
+    /// (`syncLiveSize`); nil when idle and until the first read is back.
+    private(set) var liveRecordingBytes: Int64?
     /// What ⌘R and the menu bar record.
     var selectedTarget: CaptureTarget = .global
+    /// "No system audio" in the Record menu, offered only with "Record the screen too" on (switching it off clears
+    /// this): a screen recording then captures the microphone only (`startPickedScreen`). Every other start records
+    /// `selectedTarget`. Memory-only, as `selectedTarget`.
+    var systemAudioOff = false
     /// Apps with running audio input or output, for the Record target menu.
     private(set) var targetGroups: [AudioProcessGroup] = []
     private(set) var isStarting = false
@@ -106,6 +114,9 @@ final class AppModel {
     /// Captions of the current recording's transcriber (see `startRecordingTranscriber`), kept until its Stop
     /// sequence ends; nil when no transcriber runs.
     private(set) var recordingCaptions: RecordingTranscriber.Snapshot?
+    /// The current recording is marked "screen only" (`RecordingSession.skipsTranscription`): no live transcript, no
+    /// transcription after Stop. Set by `startRecording` before the engine creates the session, cleared at its end.
+    private(set) var currentRecordingSkipsTranscription = false
     /// Apple Speech locales reserved by EchoDiar (BCP-47), read with the installed models.
     private(set) var appleSpeechReservedLocales: [String] = []
     /// The running summaries and questions, at most one per conversation id; the library chat (LibraryChatModel.swift)
@@ -349,7 +360,9 @@ final class AppModel {
     /// Its `currentLevels()` has a single consumer: `levels`.
     @ObservationIgnored let engine: RecordingEngine
     @ObservationIgnored let levels: LevelFeed
-    @ObservationIgnored let library = LibraryStore()
+    /// The current recording's screen video and the source chooser's request; observable itself.
+    @ObservationIgnored let screenRecording: ScreenRecordingController
+    @ObservationIgnored let library: LibraryStore
     /// Created with the model so FluidAudio's offline mode is set before any model load.
     @ObservationIgnored let modelStore: ModelStore
     /// The single "one heavy model at a time" lock, shared by the pipeline and the recording transcriber.
@@ -357,8 +370,7 @@ final class AppModel {
     @ObservationIgnored let pipeline: TranscriptionPipeline
     @ObservationIgnored let aiService: AIService
     /// The RAG index, in a folder of its own beside the conversations: it deletes the other folders inside it.
-    @ObservationIgnored let libraryIndex = LibraryIndex(
-        root: RecordingSession.conversationsRoot.deletingLastPathComponent().appendingPathComponent("RAG", isDirectory: true))
+    @ObservationIgnored let libraryIndex: LibraryIndex
     /// The running `syncLibraryIndex()` pass; another pass asked for meanwhile runs once it ends.
     @ObservationIgnored var libraryIndexTask: Task<Void, Never>?
     @ObservationIgnored var libraryIndexPending = false
@@ -373,6 +385,9 @@ final class AppModel {
     @ObservationIgnored private var recovery: Task<[RecoveredResult], Never>?
     /// Folder of the session being recorded; compressed when the engine reports the end.
     @ObservationIgnored private var activeFolder: URL?
+    /// Reads `liveRecordingBytes` for `liveSizeFolder`, one read at a time; nil when idle.
+    @ObservationIgnored private var liveSizeTask: Task<Void, Never>?
+    @ObservationIgnored private var liveSizeFolder: URL?
     /// Folder of the recording that ended on its page; opened once the library lists it, dropped if the list is left.
     @ObservationIgnored private var pendingOpenFolder: URL?
     /// The tab `pendingOpenFolder` opens on: the recording page's tab at Stop.
@@ -419,17 +434,41 @@ final class AppModel {
     @ObservationIgnored private var dismissedSuggestionIDs: Set<String> = []
     /// Created on the normal launch path only (not for the DEBUG harnesses).
     @ObservationIgnored private var hotKey: GlobalHotKey?
+    #if DEBUG
+    /// `--measure-screen --via-model`: `startRecording` records into this root (as a probe session) with no live
+    /// transcriber, and the snapshot consumer finishes the video, then calls `harnessRecordingEnded` instead of
+    /// `finishRecording` (nothing compressed or transcribed).
+    @ObservationIgnored var harnessRecordingRoot: URL?
+    @ObservationIgnored var harnessRecordingEnded: (@MainActor (_ folder: URL?, _ video: ScreenRecordingController.Outcome?) -> Void)?
+    /// A recording transcriber was attached since launch (`recordingTranscriber` is cleared when a recording ends).
+    @ObservationIgnored private(set) var harnessTranscriberAttached = false
+    #endif
     @ObservationIgnored private var pauseHotKey: GlobalHotKey?
     /// The Shortcuts tab is recording a new shortcut: the current ones are unregistered meanwhile.
     private var hotKeyCapturing = false
     /// The Shortcuts tab is recording a new shortcut: the main window's Esc and Space go to it.
     var isCapturingHotKey: Bool { hotKeyCapturing }
 
-    init(store: SettingsStore = SettingsStore()) {
-        self.store = store
+    /// `store` nil: the real settings file. The DEBUG `--measure-screen` harness keeps its settings, library and index
+    /// in its `--out` folder instead (it exits 8 before any store is built when `--out` is unusable).
+    init(store: SettingsStore? = nil) {
+        var store = store
+        var libraryRoot = RecordingSession.conversationsRoot
+        var indexRoot = libraryRoot.deletingLastPathComponent().appendingPathComponent("RAG", isDirectory: true)
+        #if DEBUG
+        if let out = ScreenHarness.isolatedDirectory() {
+            store = SettingsStore(directory: out)
+            libraryRoot = out
+            indexRoot = out.appendingPathComponent("RAG", isDirectory: true)
+        }
+        #endif
+        self.store = store ?? SettingsStore()
+        library = LibraryStore(root: libraryRoot)
+        libraryIndex = LibraryIndex(root: indexRoot)
         let engine = RecordingEngine()
         self.engine = engine
         levels = LevelFeed(engine: engine)
+        screenRecording = ScreenRecordingController(engine: engine)
         snapshot = engine.currentSnapshot()
         let modelStore = ModelStore()
         self.modelStore = modelStore
@@ -447,8 +486,10 @@ final class AppModel {
         observeSnapshots()
         terminateObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: nil
-        ) { [engine] _ in
+        ) { [engine, screenRecording] _ in
             engine.stop(reason: .user)
+            // Posted on the main thread: removes the key tap and releases the camera explicitly.
+            MainActor.assumeIsolated { screenRecording.hideOverlays() }
         }
         StatusItemController.controls = RecordingMenuControls(
             elapsed: { [weak self] in self?.engine.currentSnapshot().elapsed ?? 0 },
@@ -458,6 +499,13 @@ final class AppModel {
             micMuted: { [weak self] in self?.micMuted ?? false },
             systemMicMuted: { [weak self] in self?.systemMicMuted ?? false },
             toggleMicMute: { [weak self] in self?.toggleMicMute() },
+            screenOn: { [weak self] in self?.screenRecording.isOn ?? false },
+            screenAvailable: { [weak self] in
+                guard let screen = self?.screenRecording else { return false }
+                return screen.isOn || screen.canStartDuringRecording
+            },
+            toggleScreen: { [weak self] in self?.toggleScreenRecording() },
+            recordingBytes: { [weak self] in self?.liveRecordingBytes },
             stop: { [weak self] in self?.stopRecording() },
             language: { [weak self] in self?.recordingLanguage ?? LanguageOptions.auto },
             languageGroups: { [weak self] in
@@ -473,6 +521,10 @@ final class AppModel {
 
         #if DEBUG
         if runMeasureHarness() || runTranscribeHarness() || runModelHarness() { return }
+        if runScreenHarness(settingsDirectory: store.directory, transcriberStarted: { [weak self] in
+            guard let self else { return false }
+            return recordingTranscriber != nil || harnessTranscriberAttached
+        }) { return }
         DebugLibrarySeed.run()
         #endif
         guard ProcessInfo.processInfo.arguments.allSatisfy({ !Self.harnessArguments.contains($0) }) else { return }
@@ -519,8 +571,52 @@ final class AppModel {
 
     // MARK: - Recording
 
+    /// Record, ⌘R, the global hotkey, the status menu and the welcome pane: stops a running recording; else records
+    /// `selectedTarget`, or with "Record the screen too" on opens the screen source chooser on Record first (the pick
+    /// starts the recording, `startPickedScreen`). Nothing while a recording starts.
     func toggleRecording() {
-        if isRecording { stopRecording() } else { startRecording(target: selectedTarget) }
+        if isRecording {
+            stopRecording()
+        } else if isStarting {
+            return
+        } else if settings.screenRecordingEnabled {
+            requestScreenChooser(.newRecording)
+        } else {
+            startRecording(target: selectedTarget)
+        }
+    }
+
+    /// A source picked in the chooser opened for `request`, checked against the state at the pick: a new recording of
+    /// `selectedTarget` (the microphone only with `systemAudioOff`) with it (marked "screen only" when "Transcribe this
+    /// recording" is off), or the screen of the running recording turned on (not paused, the screen off and the video
+    /// not ended on an error). Dropped when the state no longer fits, e.g. a recording started from the calendar while
+    /// the chooser was open. A display is remembered for the chooser's "Last used".
+    func startPickedScreen(
+        _ source: ScreenSource, for request: ScreenRecordingController.ChooserRequest, bringForward: Bool = true
+    ) {
+        switch request {
+        case .newRecording:
+            guard !isRecording, !isStarting else { return }
+            startRecording(
+                target: systemAudioOff ? .global : selectedTarget, bringForward: bringForward,
+                skipsTranscription: !settings.screenTranscribes, screen: source, systemAudio: !systemAudioOff)
+        case .duringRecording:
+            guard let folder = activeFolder, engine.currentSnapshot().state == .recording,
+                  screenRecording.canStartDuringRecording else { return }
+            screenRecording.startDuringRecording(
+                source, folder: folder, settings: settings, skipsTranscription: currentRecordingSkipsTranscription,
+                excludingWindowIDs: pill?.captureExcludedWindowID.map { [$0] } ?? [])
+        }
+        if case .display(let id) = source, settings.screenSource != RememberedScreenSource(displayID: id) {
+            updateSettings { $0.screenSource = RememberedScreenSource(displayID: id) }
+        }
+    }
+
+    /// Brings the main window forward and asks the chooser's control to open it (the toolbar's Record, or its camera
+    /// button while recording, both shown on every page) once the window shows; the page stays as it is.
+    private func requestScreenChooser(_ request: ScreenRecordingController.ChooserRequest) {
+        (NSApp.delegate as? AppDelegate)?.showMainWindow()
+        screenRecording.chooserRequest = request
     }
 
     /// Waits for launch recovery, then starts the engine off the main thread. `event`: the calendar event recorded,
@@ -528,11 +624,19 @@ final class AppModel {
     /// The recording page shows at once ("Starting…" until it runs). A start from EchoDiar's own windows, shortcuts or
     /// menus brings the main window forward on it; without `bringForward` (the pill's Record and Join, automatic
     /// starts) it is only selected in an open window, so the meeting app keeps the focus.
-    func startRecording(target: CaptureTarget, event: CalendarEvent? = nil, bringForward: Bool = true) {
+    /// `skipsTranscription` marks the recording "screen only": never transcribed automatically. `screen` is also
+    /// recorded once the engine runs; a video that cannot start leaves the mark and the sound as they are.
+    /// `systemAudio` false records the microphone only (see `RecordingEngine.start`).
+    func startRecording(
+        target: CaptureTarget, event: CalendarEvent? = nil, bringForward: Bool = true, skipsTranscription: Bool = false,
+        screen: ScreenSource? = nil, systemAudio: Bool = true
+    ) {
         guard !isRecording, !isStarting else { return }
         isStarting = true
+        screenRecording.chooserRequest = nil
         // Before the engine starts, so the recording page and card show it from their first frame.
         recordingTitle = Self.trimmedTitle(event?.title)
+        currentRecordingSkipsTranscription = skipsTranscription
         // A catch-up still writing for the previous recording finishes and saves in its folder, out of sight.
         catchUpRun = nil
         recordingCatchUps = []
@@ -550,12 +654,18 @@ final class AppModel {
             route = .recording
         }
         let language = recordingLanguage
+        #if DEBUG
+        let harnessRoot = harnessRecordingRoot
+        #else
+        let harnessRoot: URL? = nil
+        #endif
         Task {
             _ = await recovery?.value
             // Before the engine starts: it reads the sink once at start, and the model loads meanwhile. Same
             // `language` as the engine's first marker, so the prior's engine is the one the Stop job resolves to.
             // A previous recording's captions, kept while its Stop sequence runs, are not this one's.
-            if let (transcriber, placeholder) = startRecordingTranscriber(language: language) {
+            if harnessRoot == nil, let (transcriber, placeholder) = startRecordingTranscriber(
+                language: language, skipsTranscription: skipsTranscription) {
                 attach(transcriber, placeholder: placeholder)
             } else {
                 recordingCaptions = nil
@@ -565,10 +675,19 @@ final class AppModel {
                     [engine, uid = settings.micDeviceUID, title = event?.title] in
                     let resolved = Self.resolved(target)
                     return (
-                        try engine.start(target: resolved, language: language, micDeviceUID: uid, title: title),
+                        try engine.start(
+                            target: resolved, language: language, micDeviceUID: uid,
+                            root: harnessRoot ?? RecordingSession.conversationsRoot, probe: harnessRoot != nil,
+                            title: title, skipsTranscription: skipsTranscription, systemAudio: systemAudio),
                         resolved)
                 }.value
                 activeFolder = folder
+                syncLiveSize()
+                if let screen {
+                    screenRecording.start(
+                        source: screen, folder: folder, settings: settings, skipsTranscription: skipsTranscription,
+                        excludingWindowIDs: pill?.captureExcludedWindowID.map { [$0] } ?? [])
+                }
                 recordingEvent = event
                 beginEndWatch(target: resolved)
                 loadLiveChat(folder)
@@ -582,6 +701,7 @@ final class AppModel {
                 autoStartedAppName = nil
                 recordingEvent = nil
                 recordingTitle = nil
+                currentRecordingSkipsTranscription = false
                 recordingError = Self.captureFailureMessage(error, action: .start)
                 // The recording page opened before the start; nothing to show there now.
                 if route == .recording { route = .list }
@@ -613,6 +733,9 @@ final class AppModel {
     private func attach(_ transcriber: RecordingTranscriber, placeholder: RecordingTranscriber.Snapshot) {
         engine.liveSink = { transcriber.append(interleaved: $0, frames: $1, channels: $2) }
         recordingTranscriber = transcriber
+        #if DEBUG
+        harnessTranscriberAttached = true
+        #endif
         recordingCaptions = placeholder
         Task { [weak self] in
             for await snapshot in transcriber.updates {
@@ -623,8 +746,8 @@ final class AppModel {
     }
 
     /// A started transcriber for a recording in `language` ("auto" or a code; the language markers once the engine
-    /// runs), its model loading meanwhile, and the snapshot to show until its first one; nil unless auto-transcribe
-    /// and "Transcribe while recording" are on and either
+    /// runs), its model loading meanwhile, and the snapshot to show until its first one; nil for a recording marked
+    /// `skipsTranscription`, else nil unless auto-transcribe and "Transcribe while recording" are on and either
     /// - the default engines are local and the engine the Stop job resolves to (as `submitTranscription` does) is an
     ///   installed WhisperKit or Parakeet entry, or Apple Speech on macOS 26+ (its folder is the models root, unused);
     /// - or the default ASR is a cloud engine (confirmed or not: nothing leaves the Mac) with the live source "local
@@ -636,9 +759,10 @@ final class AppModel {
     /// The caller sets `engine.liveSink` to its `append` before `engine.start` (the writer reads the sink once), calls
     /// `flush()` after a pause and `finish()` after the `.idle` snapshot.
     func startRecordingTranscriber(
-        language: String
+        language: String, skipsTranscription: Bool = false
     ) -> (transcriber: RecordingTranscriber, placeholder: RecordingTranscriber.Snapshot)? {
-        guard settings.autoTranscribe, settings.transcribeWhileRecording else { return nil }
+        guard RecordingSession.autoTranscribes(skips: skipsTranscription, settings: settings),
+              settings.transcribeWhileRecording else { return nil }
         let isUsable = { [modelStore] (entry: ModelEntry) in TranscriptionPipeline.isUsable(entry, in: modelStore) }
         let found: ModelEntry?
         let displayOnly: Bool
@@ -733,10 +857,11 @@ final class AppModel {
 
     /// Why the next (or current) recording has no cloud live transcript although the default ASR is a cloud engine,
     /// auto-transcribe and "Transcribe while recording" are on, and a live source is picked; nil when it runs, when
-    /// the source is "off", or when the default engines are local. The same checks as `startRecordingTranscriber`,
-    /// with the current settings.
+    /// the source is "off", when the default engines are local, or when the current recording is marked
+    /// `skipsTranscription`. The same checks as `startRecordingTranscriber`, with the current settings.
     var cloudLiveBlock: CloudLiveBlock? {
-        guard settings.autoTranscribe, settings.transcribeWhileRecording, let config = defaultCloudConfig else {
+        guard RecordingSession.autoTranscribes(skips: currentRecordingSkipsTranscription, settings: settings),
+              settings.transcribeWhileRecording, let config = defaultCloudConfig else {
             return nil
         }
         switch settings.cloudLiveSource {
@@ -859,6 +984,8 @@ final class AppModel {
         guard state != .idle else { return }
         let transcriber = recordingTranscriber
         Task {
+            // The video pauses before the sound and resumes after it, so it never runs past the audio file's clock.
+            if state == .recording { await screenRecording.pause() }
             let failure: (any Error)? = await Task.detached(priority: .userInitiated) { [engine] in
                 if state == .recording {
                     engine.pause()
@@ -876,7 +1003,25 @@ final class AppModel {
             if let failure {
                 NSLog("EchoDiar: could not resume recording: \(failure)")
                 recordingError = Self.captureFailureMessage(failure, action: .resume)
+            } else if state == .paused {
+                await screenRecording.resume()
             }
+        }
+    }
+
+    /// The screen toggle of the toolbar's camera button, the pill and the status menu, any number of times in a
+    /// recording. On: the main window comes forward and the camera button opens the source chooser; the pick turns the
+    /// screen on. Not while paused, nor once the video ended on an error. Off: the screen is off from the audio file's
+    /// current time; the video goes on with the "Screen recording off" frame.
+    func toggleScreenRecording() {
+        guard activeFolder != nil else { return }
+        let screen = screenRecording
+        if screen.isOn {
+            // The frames' clock: the written audio (`elapsed`) lags it while recording, and would cut the last frames.
+            screen.screenOff(
+                at: engine.fileTime(atHostTime: mach_absolute_time()) ?? engine.currentSnapshot().elapsed)
+        } else if screen.canStartDuringRecording, engine.currentSnapshot().state == .recording {
+            requestScreenChooser(.duringRecording)
         }
     }
 
@@ -967,13 +1112,17 @@ final class AppModel {
                 guard let self else { return }
                 let wasRecording = isRecording
                 self.snapshot = snapshot
+                syncLiveSize()
+                // A chooser asked for before the recording started or ended is not for this state.
+                if wasRecording != isRecording { screenRecording.chooserRequest = nil }
                 // A start navigates in `startRecording`. An end on the recording page shows the list, then the
                 // finished entry once the library lists it; Settings opened from that page returns to the list.
                 if wasRecording && !isRecording {
                     if route == .recording {
                         pendingOpenFolder = activeFolder
+                        // The transcript first; a chat going on during the recording carries on in Chat.
                         pendingOpenTab = switch recordingTab {
-                        case .catchUp: .summary
+                        case .catchUp: .transcript
                         case .chat: .chat
                         }
                         route = .list
@@ -989,8 +1138,12 @@ final class AppModel {
                     if let message = Self.stopMessage(reason) { recordingError = message }
                     let folder = activeFolder
                     activeFolder = nil
+                    syncLiveSize()
+                    // Taken at once (a next recording starts its own video); its file ends at the audio file's length.
+                    let video = screenRecording.finish(at: snapshot.elapsed)
                     recordingEvent = nil
                     recordingTitle = nil
+                    currentRecordingSkipsTranscription = false
                     calendarSuggestion = nil
                     dismissedSuggestionIDs = []
                     // Bookkeeping only: the writer copied the sink at start and flushed its last frames before `.idle`.
@@ -998,6 +1151,14 @@ final class AppModel {
                     let transcriber = recordingTranscriber
                     recordingTranscriber = nil
                     Task {
+                        let outcome = await video?.value
+                        if let error = outcome?.finishError { NSLog("EchoDiar: could not finish the screen video: \(error)") }
+                        #if DEBUG
+                        if self.harnessRecordingRoot != nil {
+                            self.harnessRecordingEnded?(folder, outcome)
+                            return
+                        }
+                        #endif
                         if let transcriber {
                             // The drain counts as processing; `finishRecording` keeps its own count.
                             self.compressionJobs += 1
@@ -1014,6 +1175,28 @@ final class AppModel {
                         if self.recordingTranscriber == nil { self.recordingCaptions = nil }
                     }
                 }
+            }
+        }
+    }
+
+    /// Polls the size of the recording's folder while a recording runs or is paused and has its folder: one read off
+    /// the main thread, then 2 s, then the next. A read for another folder, or one back after the recording ended, is
+    /// dropped. Idle: stops and clears `liveRecordingBytes`. Called whenever the state or the folder may have changed.
+    private func syncLiveSize() {
+        let folder = isRecording ? activeFolder : nil
+        guard folder != liveSizeFolder else { return }
+        liveSizeTask?.cancel()
+        liveSizeTask = nil
+        liveSizeFolder = folder
+        liveRecordingBytes = nil
+        guard let folder else { return }
+        liveSizeTask = Task { [weak self] in
+            while !Task.isCancelled {
+                let bytes = await Task.detached(priority: .utility) { LibraryStore.sizeOnDisk(of: folder) }.value
+                guard let self, !Task.isCancelled, liveSizeFolder == folder else { return }
+                // Unchanged (paused) values are not written, so the views reading it are not invalidated.
+                if liveRecordingBytes != bytes { liveRecordingBytes = bytes }
+                try? await Task.sleep(for: .seconds(2))
             }
         }
     }
@@ -1178,13 +1361,14 @@ final class AppModel {
         return result
     }
 
-    /// Whether `finishRecording` transcribes the CAF before compressing it: auto-transcribe is on, the recording is
-    /// usable and not transcribed (or failed) yet, its CAF has frames, the Mac is not constrained while "wait" is on
-    /// (unless `prior` needs no model: the transcript watched during the recording is saved before compression),
+    /// Whether `finishRecording` transcribes the CAF before compressing it: the recording is transcribed
+    /// automatically (`autoTranscribes(with:)`), usable and not transcribed (or failed) yet, its CAF has frames, the
+    /// Mac is not constrained while "wait" is on (unless `prior` needs no model: the transcript watched during the
+    /// recording is saved before compression),
     /// and no cloud confirmation is pending (an alert can hold the run for long; the CAF should not wait for it).
     private func transcribesFirst(_ folder: URL, prior: PriorTranscription?) -> Bool {
-        guard settings.autoTranscribe,
-              let session = try? RecordingSession.read(from: folder), !session.probe, session.state != .failed
+        guard let session = try? RecordingSession.read(from: folder), session.autoTranscribes(with: settings),
+              !session.probe, session.state != .failed
         else { return false }
         let conversation = try? Conversation.read(from: folder)
         guard conversation?.hasTranscript != true, conversation?.status != .transcriptionFailed,
@@ -1247,14 +1431,16 @@ final class AppModel {
 
     // MARK: - Transcription
 
-    /// Queues the folder once compression is done, when "auto-transcribe after stop" is on; a failed compression
-    /// leaves the CAF, which is used instead.
+    /// Queues the folder once compression is done, when "auto-transcribe after stop" is on and the recording is not
+    /// marked `skipsTranscription` (`autoTranscribes(with:)`); a failed compression leaves the CAF, which is used
+    /// instead.
     /// Skipped when the folder has no usable audio or session, already has a transcript, or its last transcription
     /// failed (a compression that keeps failing is retried at every launch; the card's "Failed — Retry" retries).
     /// Returns the submitted job, nil when none was.
     @discardableResult
     private func transcribe(after result: CompressionResult, prior: PriorTranscription? = nil) -> Task<Bool, Never>? {
-        guard settings.autoTranscribe else { return nil }
+        guard let session = try? RecordingSession.read(from: result.folder), session.autoTranscribes(with: settings)
+        else { return nil }
         switch result.failure {
         case .sessionUnreadable?, .stillRecording?, .unsafeAudioFileName?, .sourceUnreadable?: return nil
         default: break
@@ -1759,6 +1945,12 @@ final class AppModel {
         Task { await library.reload(id: id) }
     }
 
+    /// The open conversation's video file is gone (deleted outside the app): lists it again, so it shows without video
+    /// (no video pane, no layout switch).
+    func videoMissing(_ id: UUID) {
+        Task { await library.reload(id: id) }
+    }
+
     /// Moves the conversation's audio to the Trash; its transcript, summary and chat stay.
     func deleteAudio(of id: UUID) async {
         do {
@@ -1768,10 +1960,19 @@ final class AppModel {
         }
     }
 
+    /// Moves the conversation's video to the Trash; its audio, transcript, summary and chat stay.
+    func deleteVideo(of id: UUID) async {
+        do {
+            try await library.deleteVideo(id: id)
+        } catch {
+            NSLog("EchoDiar: could not delete the video of conversation \(id): \(error)")
+        }
+    }
+
     // MARK: - Auto-delete
 
     /// Conversations auto-delete would move to the Trash now with `settings` (Storage tab preview), from the cached
-    /// library (no rescan); off the main thread, since audio only lists each candidate's folder.
+    /// library (no rescan); off the main thread, since "Video only" and "Audio and video" list each candidate's folder.
     func retentionPreview(settings: AppSettings) async -> [RetentionPolicy.Deletion] {
         let busy = busyConversationIDs
         let candidates = conversations.filter { !busy.contains($0.id) }
@@ -1825,11 +2026,16 @@ final class AppModel {
         for id in ids where !isBusy(id) { await deleteAudio(of: id) }
     }
 
+    /// Storage tab: moves the video of these conversations to the Trash, skipping any that got a job meanwhile.
+    func deleteVideo(of ids: [UUID]) async {
+        for id in ids where !isBusy(id) { await deleteVideo(of: id) }
+    }
+
     /// Storage tab: moves the transcripts, summaries and chats of these conversations to the Trash (the whole
-    /// conversation when its audio is gone), skipping any that got a job meanwhile.
+    /// conversation when its audio and video are gone), skipping any that got a job meanwhile.
     func deleteTranscriptsAndAI(of ids: [UUID]) async {
         for id in ids where !isBusy(id) {
-            let whole = conversations.first { $0.id == id }?.hasAudio == false
+            let whole = conversations.first { $0.id == id }.map { !$0.hasAudio && !$0.hasVideo } ?? false
             if whole, route == .conversation(id) { route = .list }
             do {
                 try await library.deleteTranscriptsAndAI(id: id)
@@ -1927,6 +2133,7 @@ final class AppModel {
             // An edit of the API embedder's `embeddingModel` changes `providers`.
             || (updated.embeddingModelID.hasPrefix(Self.apiEmbedderPrefix) && updated.providers != settings.providers)
         settings = updated
+        if !updated.screenRecordingEnabled { systemAudioOff = false }
         do {
             try store.save(updated)
         } catch {
@@ -1988,6 +2195,9 @@ final class AppModel {
 
     /// Shows the conversation on `tab`.
     func open(_ id: UUID, tab: DetailTab = .transcript) {
+        #if DEBUG
+        DetailTiming.open(id)
+        #endif
         detailTab = tab
         route = .conversation(id)
     }

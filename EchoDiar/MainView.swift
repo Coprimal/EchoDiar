@@ -33,6 +33,8 @@ struct MainView: View {
     /// The toolbar title's rename popover is open, with `titleDraft` in its field.
     @State private var renamingTitle = false
     @State private var titleDraft = ""
+    /// The record capsule's options popover (the chevron) is open.
+    @State private var showsOptions = false
 
     private struct SearchDocument {
         let size: Int64
@@ -203,10 +205,11 @@ struct MainView: View {
     }
 
     /// On the library page the sidebar button in its own capsule, then Back in its own capsule (not on the list without
-    /// the library chat), the record capsule, then a conversation's title. The record capsule: while idle Record and a
-    /// chevron menu that picks the target and the language; while recording, Stop (red, pulsing unless paused or Reduce
-    /// Motion) and Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the other buttons go to the
-    /// overflow menu first.
+    /// the library chat), the record capsule, then a conversation's title. The record capsule: while idle Record (with
+    /// "Record the screen too" on, it opens the screen source chooser first) and a chevron popover: screen options,
+    /// the target and the language; while recording, Stop (red, pulsing unless paused or Reduce Motion) and
+    /// Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the other buttons go to the overflow menu
+    /// first.
     @ToolbarContentBuilder private var leadingItems: some ToolbarContent {
         if Page(model.route) == .library {
             ToolbarItem(placement: leadingPlacement) {
@@ -256,42 +259,76 @@ struct MainView: View {
             }
             .disabled(model.isStarting)
             .help("Stop recording (⌘R)")
+            // Filled while the screen is recorded; off, it opens the source chooser on itself, whose pick turns it on.
+            let screen = model.screenRecording
+            let screenOn = screen.isOn
+            Button(action: model.toggleScreenRecording) {
+                Label {
+                    Text(screenOn ? "Stop recording the screen" : "Record the screen")
+                } icon: {
+                    Image(systemName: screenOn ? "video.fill" : "video")
+                        .foregroundStyle(screenOn ? AnyShapeStyle(Palette.screenRecording) : AnyShapeStyle(.primary))
+                }
+            }
+            .disabled(!screenOn && (paused || !screen.canStartDuringRecording))
+            .help(screenOn ? "Stop recording the screen"
+                  : !screen.canStartDuringRecording ? "The screen recording stopped on an error"
+                  : paused ? "Resume the recording to record the screen" : "Record the screen from now on")
+            .modifier(ScreenChooserHost(model: model, request: .duringRecording))
+            // Shows the camera bubble setting (also for later recordings); it only applies while the screen is recorded.
+            let camera = model.settings.screenCamera
+            Button { ScreenOptionActions.setCamera(!camera, model: model) } label: {
+                Label {
+                    Text(camera ? "Hide the camera bubble" : "Show the camera bubble")
+                } icon: {
+                    Image(systemName: camera ? "web.camera.fill" : "web.camera")
+                        // Tinted only while it applies: a set colour would not dim with the disabled button.
+                        .foregroundStyle(camera && screenOn
+                                         ? AnyShapeStyle(Palette.screenRecording) : AnyShapeStyle(.primary))
+                }
+            }
+            .disabled(!screenOn)
+            .help(!screenOn ? "Record the screen to show the camera bubble"
+                  : camera ? "Hide the camera bubble" : "Show the camera bubble")
             Button(action: model.togglePause) {
                 Label(paused ? "Resume" : "Pause", systemImage: paused ? "play.circle" : "pause.circle")
             }
             .help(paused ? "Resume recording (⇧⌘P)" : "Pause recording (⇧⌘P)")
+            // As the sidebar's recording card: yellow while muted, here or in system settings (a no-op then).
+            let muted = model.micMuted
+            let systemMuted = model.systemMicMuted
+            Button(action: model.toggleMicMute) {
+                Label {
+                    Text(muted ? "Unmute microphone" : "Mute microphone")
+                } icon: {
+                    Image(systemName: muted || systemMuted ? "mic.slash" : "mic")
+                        .foregroundStyle(muted || systemMuted ? AnyShapeStyle(.yellow) : AnyShapeStyle(.primary))
+                }
+            }
+            .help(systemMuted ? "Microphone muted in system settings"
+                  : muted ? "Unmute microphone" : "Mute microphone")
         } else {
-            // A plain Record button and a chevron-only menu, not a `Menu(primaryAction:)` split button: the split
-            // control had its own, lighter hover than the toolbar's other buttons.
+            // A plain Record button and a chevron-only button with the options popover, not a `Menu(primaryAction:)`
+            // split button: the split control had its own, lighter hover than the toolbar's other buttons. A popover,
+            // not a menu, so it stays open while several options are changed.
+            let screen = model.settings.screenRecordingEnabled
             Button(action: model.toggleRecording) {
-                Label("Record", systemImage: "record.circle")
+                Label("Record", systemImage: screen ? "rectangle.dashed.badge.record" : "record.circle")
             }
             .disabled(model.isStarting)
-            .help("Record \(targetName) (⌘R)")
-            Menu {
-                Toggle("All system audio", isOn: targetBinding(.global))
-                    // Menu content is built when the menu opens: apps that started playing since show up.
-                    .onAppear { model.refreshTargets() }
-                if !model.targetGroups.isEmpty {
-                    Divider()
-                    ForEach(model.targetGroups, id: \.bundleID) { group in
-                        Toggle(isOn: targetBinding(.app(group))) {
-                            if group.needsGlobalTap {
-                                Text("\(group.name) (records all system audio)")
-                            } else {
-                                Text(verbatim: group.name)
-                            }
-                        }
-                    }
-                }
-                Divider()
-                LanguagePicker(title: "Language", selection: languageBinding, model: model)
-            } label: {
+            .help(screen && model.systemAudioOff ? "Record the screen and the microphone (⌘R)"
+                  : screen ? "Record the screen and \(targetName) (⌘R)" : "Record \(targetName) (⌘R)")
+            .modifier(ScreenChooserHost(model: model, request: .newRecording))
+            Button { showsOptions.toggle() } label: {
                 Label("Recording options", systemImage: "chevron.down")
             }
-            .menuIndicator(.hidden)
             .disabled(model.isStarting)
             .help("Choose what to record and the language")
+            .popover(isPresented: $showsOptions, arrowEdge: .bottom) {
+                RecordingOptionsPopover(model: model, isPresented: $showsOptions)
+            }
+            // Recording with ⌘R while it is open removes the button: it must not reopen after Stop.
+            .onDisappear { showsOptions = false }
         }
     }
 
@@ -358,12 +395,19 @@ struct MainView: View {
     /// Only the date truncates when the line is too long.
     private func toolbarDetails(_ conversation: Conversation) -> some View {
         HStack(spacing: 8) {
+            if conversation.hasVideo {
+                Image(systemName: "video.fill")
+                    .help("Screen recording")
+                    .accessibilityLabel("Screen recording")
+            }
             Text(conversation.createdAt.formatted(date: .abbreviated, time: .shortened))
             if conversation.duration > 0 {
                 Text(ConversationCard.durationText(conversation.duration)).monospacedDigit().fixedSize()
             }
             if conversation.sizeBytes > 0 {
-                Text(ByteCountFormatter.string(fromByteCount: conversation.sizeBytes, countStyle: .file)).fixedSize()
+                Text(ConversationCard.sizeText(conversation.sizeBytes))
+                    .foregroundStyle(ConversationCard.sizeStyle(conversation.sizeBytes))
+                    .fixedSize()
             }
             if let badge = StatusBadge(status: conversation.status) { badge.fixedSize() }
         }
@@ -389,12 +433,16 @@ struct MainView: View {
     private static let trailingButtonsWidth: CGFloat = 244
 
     private var updateWidth: CGFloat { showsUpdate ? 52 : 0 }
+    /// The record capsule's screen, camera bubble and microphone buttons, there only while recording (a conversation
+    /// can be open meanwhile).
+    private var recordingButtonsWidth: CGFloat { model.isRecording ? 36 + 36 + 36 : 0 }
 
     /// What the toolbar's other items leave of the window, at most `titleMaxWidth`: the title truncates instead of
     /// pushing buttons into the overflow menu.
     private var titleWidth: CGFloat {
         min(Self.titleMaxWidth,
-            windowWidth - Self.leadingWidth - Self.tabsWidth - Self.trailingButtonsWidth - updateWidth)
+            windowWidth - Self.leadingWidth - Self.tabsWidth - Self.trailingButtonsWidth - updateWidth
+                - recordingButtonsWidth)
     }
 
     /// Too short a title is left out.
@@ -417,7 +465,7 @@ struct MainView: View {
                     Label("Delete", systemImage: "trash")
                 }
                 .disabled(!DeleteMenuItems.canDelete(conversation, model))
-                .help("Delete the audio or the whole conversation")
+                .help("Delete the audio, the video or the whole conversation")
             }
             fixedSpacer
         }
@@ -479,23 +527,6 @@ struct MainView: View {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-    }
-
-    /// Checked when `target` is the selected one; matched by app, since process lists change.
-    private func targetBinding(_ target: CaptureTarget) -> Binding<Bool> {
-        Binding(
-            get: { Self.targetID(model.selectedTarget) == Self.targetID(target) },
-            set: { if $0 { model.selectedTarget = target } }
-        )
-    }
-
-    private var languageBinding: Binding<String> {
-        Binding(get: { model.recordingLanguage }, set: { model.setRecordingLanguage($0) })
-    }
-
-    private static func targetID(_ target: CaptureTarget) -> String? {
-        if case .app(let group) = target { return group.bundleID }
-        return nil
     }
 
     private var targetName: String {

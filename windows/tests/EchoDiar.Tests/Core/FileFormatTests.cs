@@ -266,6 +266,15 @@ public sealed class FileFormatTests : IDisposable
 
         Assert.Equal(Fixtures().Keys.Order(StringComparer.Ordinal), macos.Select(p => p.Key).Order(StringComparer.Ordinal));
         Assert.Contains(ChatLog.Decode(Encoding.UTF8.GetBytes(macos[ChatLog.FileName]!.ToJsonString())).Messages, m => m.Live == true);
+        // Keys Windows does not model (the screen recording, "screen only") and one neither app knows yet survive.
+        Assert.NotNull(macos[RecordingSession.FileName]!["video"]);
+        Assert.True(macos[RecordingSession.FileName]!["skipsTranscription"]!.GetValue<bool>());
+        Assert.True(macos[Conversation.FileName]!["skipsTranscription"]!.GetValue<bool>());
+        // A conversation.json Windows builds from a marked session (missing file) keeps the mark, as on macOS.
+        var markedSession = SwiftJson.Deserialize<RecordingSession>(
+            Encoding.UTF8.GetBytes(macos[RecordingSession.FileName]!.ToJsonString()));
+        Assert.True(Conversation.FromSession(markedSession, "folder", 1).SkipsTranscription);
+        macos[RecordingSession.FileName]!["futureKey"] = JsonNode.Parse("""{"a":1,"b":[null,"ü/"]}""");
         foreach (var (name, json) in macos)
         {
             var bytes = Encoding.UTF8.GetBytes(json!.ToJsonString());

@@ -5,6 +5,8 @@
 	<!-- Partial Info.plist: merged with the generated one (GENERATE_INFOPLIST_FILE=YES). -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>EchoDiar records your voice during meetings. The audio is recorded and stored locally on this Mac.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>EchoDiar shows your camera in a bubble on screen while you record the screen. The picture is recorded and stored locally on this Mac.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>EchoDiar records the audio of your meeting apps. The audio is recorded and stored locally on this Mac.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>

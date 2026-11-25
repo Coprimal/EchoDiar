@@ -16,19 +16,41 @@ struct RetentionPolicyTests {
         #expect(deletions.first?.items == [old.folder])
     }
 
-    /// Audio only trashes just what `audioFiles` lists (tested on a real folder in `LibraryStoreAudioFilesTests`),
-    /// never the folder; a conversation with no audio left is skipped.
-    @Test func audioOnlyTrashesOnlyTheListedAudioAndSkipsConversationsWithout() throws {
-        let withAudio = conversation(ageDays: 120)
-        let withoutAudio = conversation(ageDays: 120)
+    /// Audio and video trashes just what `audioFiles` and `videoFiles` list (tested on real folders in
+    /// `LibraryStoreAudioFilesTests` and `LibraryStoreVideoTests`), never the folder; a conversation with neither left
+    /// is skipped.
+    @Test func audioAndVideoTrashesBothListedKindsAndSkipsConversationsWithNeither() throws {
+        let both = conversation(ageDays: 120)
+        let audioOnly = conversation(ageDays: 120)
+        let videoOnly = conversation(ageDays: 120)
+        let neither = conversation(ageDays: 120)
         let deletions = RetentionPolicy.select(
-            conversations: [withAudio, withoutAudio], now: now, settings: settings(.audioOnly, days: 90),
-            audioFiles: { $0.id == withAudio.id ? audio($0) : [] })
+            conversations: [both, audioOnly, videoOnly, neither], now: now, settings: settings(.audioOnly, days: 90),
+            audioFiles: { [both.id, audioOnly.id].contains($0.id) ? audio($0) : [] },
+            videoFiles: { [both.id, videoOnly.id].contains($0.id) ? video($0) : [] })
+        #expect(deletions.map(\.conversationID) == [both.id, audioOnly.id, videoOnly.id])
+        #expect(deletions.allSatisfy { $0.mode == .audioOnly })
+        #expect(deletions.map(\.items) == [audio(both) + video(both), audio(audioOnly), video(videoOnly)])
+    }
+
+    /// Video only never lists an audio file; a conversation with no video left is skipped.
+    @Test func videoOnlyTrashesOnlyTheListedVideoAndSkipsConversationsWithout() throws {
+        let withVideo = conversation(ageDays: 120)
+        let withoutVideo = conversation(ageDays: 120)
+        let deletions = RetentionPolicy.select(
+            conversations: [withVideo, withoutVideo], now: now, settings: settings(.videoOnly, days: 90),
+            audioFiles: audio, videoFiles: { $0.id == withVideo.id ? video($0) : [] })
         let deletion = try #require(deletions.first)
         #expect(deletions.count == 1)
-        #expect(deletion.conversationID == withAudio.id)
-        #expect(deletion.mode == .audioOnly)
-        #expect(deletion.items == audio(withAudio))
+        #expect(deletion.conversationID == withVideo.id)
+        #expect(deletion.mode == .videoOnly)
+        #expect(deletion.items == video(withVideo))
+    }
+
+    /// Task 2.4 warns before a change to a mode that deletes more.
+    @Test func ranksOrderModesByHowMuchTheyDelete() {
+        #expect(RetentionMode.videoOnly.rank < RetentionMode.audioOnly.rank)
+        #expect(RetentionMode.audioOnly.rank < RetentionMode.wholeConversation.rank)
     }
 
     @Test(arguments: [
@@ -37,9 +59,10 @@ struct RetentionPolicyTests {
     ])
     func busyOrUntranscribedConversationsAreNeverSelected(status: Conversation.Status) {
         let old = conversation(ageDays: 400, status: status)
-        for mode in [RetentionMode.audioOnly, .wholeConversation] {
+        for mode in [RetentionMode.videoOnly, .audioOnly, .wholeConversation] {
             #expect(RetentionPolicy.select(
-                conversations: [old], now: now, settings: settings(mode, days: 1), audioFiles: audio).isEmpty)
+                conversations: [old], now: now, settings: settings(mode, days: 1), audioFiles: audio,
+                videoFiles: video).isEmpty)
         }
     }
 
@@ -65,5 +88,10 @@ struct RetentionPolicyTests {
     /// The audio files the policy is told the folder holds.
     private func audio(_ conversation: Conversation) -> [URL] {
         [conversation.folder.appendingPathComponent("audio.m4a"), conversation.folder.appendingPathComponent("audio.caf")]
+    }
+
+    /// The video files the policy is told the folder holds.
+    private func video(_ conversation: Conversation) -> [URL] {
+        [conversation.folder.appendingPathComponent("screen.mp4")]
     }
 }

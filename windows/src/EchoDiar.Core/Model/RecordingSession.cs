@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using EchoDiar.Core.Json;
 
@@ -105,6 +106,11 @@ public sealed record RecordingSession
     /// conversation built from this session takes it as a custom title.
     /// </summary>
     [JsonPropertyName("title")] public string? Title { get; set; }
+    /// <summary>
+    /// Keys not modeled here (macOS <c>video</c> and <c>skipsTranscription</c>, keys of later builds), written back as
+    /// read so a rewrite on Windows keeps them. Null when there are none.
+    /// </summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
 
     /// <summary><c>&lt;yyyy-MM-dd_HHmmss&gt;-&lt;id8&gt;</c>: <see cref="StartedAt"/> in local time, then the first 8 characters of <see cref="Id"/>, lowercased.</summary>
     [JsonIgnore]

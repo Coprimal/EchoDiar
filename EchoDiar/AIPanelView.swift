@@ -1082,11 +1082,15 @@ struct MenuChevron: View {
 struct CompactMenu: ViewModifier {
     let maxWidth: CGFloat?
     let height: CGFloat
+    /// nil: 12 for a short menu, 14 for a full-height one.
+    var horizontalPadding: CGFloat? = nil
 
     func body(content: Content) -> some View {
         let menu = content
             .menuStyle(.button)
-            .buttonStyle(BottomBarButtonStyle(height: height, horizontalPadding: height < BottomBarButtonStyle.height ? 12 : 14,
+            .buttonStyle(BottomBarButtonStyle(height: height,
+                                              horizontalPadding: horizontalPadding
+                                                  ?? (height < BottomBarButtonStyle.height ? 12 : 14),
                                               menu: true))
         if let maxWidth {
             WidthCap(maxWidth: maxWidth) { menu }

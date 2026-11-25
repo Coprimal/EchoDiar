@@ -59,8 +59,8 @@ struct ConversationListView: View {
             }
             .safeAreaInset(edge: .top, spacing: 0) {
                 if !selection.isEmpty {
-                    SelectionBar(conversations: selectedConversations, model: model, onDelete: { audioOnly in
-                        if DeleteMenuItems.delete(audioOnly: audioOnly, selectedConversations, model) { selection.clear() }
+                    SelectionBar(conversations: selectedConversations, model: model, onDelete: { part in
+                        if DeleteMenuItems.delete(part, selectedConversations, model) { selection.clear() }
                     }, cancel: { selection.clear() })
                         .padding(.horizontal, 12)
                         .padding(.top, 12)
@@ -114,13 +114,13 @@ struct ConversationListView: View {
             // Before the delete, which goes back to the list at once. The next card opens only from there: not over a
             // page the route went to while the alert was up (a recording stopped, …), as on Windows.
             let next = openID.flatMap { deleting.contains($0) ? neighbour(of: $0, skipping: deleting) : nil }
-            guard DeleteMenuItems.delete(audioOnly: false, targets, model) else { return }
+            guard DeleteMenuItems.delete(.conversation, targets, model) else { return }
             selection.clear()
             if let next, model.route == .list { model.open(next, tab: model.detailTab) }
         } else if let openID, let conversation = model.conversations.first(where: { $0.id == openID }),
                   DeleteMenuItems.canDelete(conversation, model) {
             let next = neighbour(of: openID, skipping: [openID])
-            guard DeleteMenuItems.delete(audioOnly: false, conversation, model) else { return }
+            guard DeleteMenuItems.delete(.conversation, conversation, model) else { return }
             if let next, model.route == .list { model.open(next, tab: model.detailTab) }
         }
     }
@@ -159,13 +159,12 @@ struct ConversationListView: View {
     }
 }
 
-/// The selection's count, a Delete menu (the audio only or the conversations; `onDelete` gets whether audio only;
-/// each disabled when no selected conversation it applies to can be deleted now) and Cancel (also Esc), on a raised
-/// card.
+/// The selection's count, a Delete menu (the audio only, the video or the conversations; `onDelete` gets which; each
+/// disabled when no selected conversation it applies to can be deleted now) and Cancel (also Esc), on a raised card.
 private struct SelectionBar: View {
     let conversations: [Conversation]
     let model: AppModel
-    let onDelete: (_ audioOnly: Bool) -> Void
+    let onDelete: (DeleteMenuItems.Part) -> Void
     let cancel: () -> Void
 
     /// Like the chat tab's bottom bar menus.
@@ -175,6 +174,7 @@ private struct SelectionBar: View {
         let asks = !model.settings.deleteWithoutConfirmation
         let deletable = conversations.filter { DeleteMenuItems.canDelete($0, model) }
         let withAudio = deletable.contains(where: \.hasAudio)
+        let withVideo = deletable.contains(where: \.hasVideo)
         HStack(spacing: 12) {
             Text("\(conversations.count) selected")
                 .font(.subheadline.weight(.semibold))
@@ -182,9 +182,11 @@ private struct SelectionBar: View {
                 .fixedSize()
             Spacer()
             Menu {
-                Button(asks ? "Delete audio only…" : "Delete audio only") { onDelete(true) }
+                Button(asks ? "Delete audio only…" : "Delete audio only") { onDelete(.audio) }
                     .disabled(!withAudio)
-                Button(asks ? "Delete conversations…" : "Delete conversations") { onDelete(false) }
+                Button(asks ? "Delete video…" : "Delete video") { onDelete(.video) }
+                    .disabled(!withVideo)
+                Button(asks ? "Delete conversations…" : "Delete conversations") { onDelete(.conversation) }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "trash").accessibilityLabel("Delete")
@@ -196,7 +198,7 @@ private struct SelectionBar: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .disabled(deletable.isEmpty)
-            .help("Delete the audio or the selected conversations")
+            .help("Delete the audio, the video or the selected conversations")
             Button(action: cancel) {
                 Label("Cancel", systemImage: "xmark").labelStyle(.iconOnly)
             }

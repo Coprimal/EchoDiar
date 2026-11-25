@@ -32,10 +32,14 @@ public struct Conversation: Codable, Equatable, Identifiable, Sendable {
     public var hasSummary: Bool
     /// Size on disk of the whole folder when last measured.
     public var sizeBytes: Int64
+    /// "Screen only", copied from the session: never transcribed automatically (`RecordingSession.skipsTranscription`).
+    public var skipsTranscription = false
     /// The recording folder; not stored in the file.
     public var folder: URL
     /// The folder still has audio files; not stored in the file, set by `LibraryStore`.
     public var hasAudio = true
+    /// The folder has video files (a screen recording); not stored in the file, set by `LibraryStore`.
+    public var hasVideo = false
 
     public init(
         id: UUID,
@@ -87,6 +91,7 @@ public struct Conversation: Codable, Equatable, Identifiable, Sendable {
             status: status,
             folder: folder
         )
+        skipsTranscription = session.skipsTranscription
     }
 
     /// `"<Source app> call · 18 Oct 2026, 14:05"`, or `"Recording · …"` without a source app (global tap).
@@ -101,7 +106,7 @@ public struct Conversation: Codable, Equatable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, customTitle, createdAt, duration, sourceAppName, sourceBundleID, status
-        case hasTranscript, hasSummary, sizeBytes
+        case hasTranscript, hasSummary, sizeBytes, skipsTranscription
     }
 
     /// Decoding needs the folder: use `read(from:)`. A bare decode leaves `folder` empty.
@@ -120,6 +125,7 @@ public struct Conversation: Codable, Equatable, Identifiable, Sendable {
         hasTranscript = try c.decodeIfPresent(Bool.self, forKey: .hasTranscript) ?? false
         hasSummary = try c.decodeIfPresent(Bool.self, forKey: .hasSummary) ?? false
         sizeBytes = try c.decodeIfPresent(Int64.self, forKey: .sizeBytes) ?? 0
+        skipsTranscription = try c.decodeIfPresent(Bool.self, forKey: .skipsTranscription) ?? false
         folder = URL(fileURLWithPath: "/")
     }
 

@@ -35,9 +35,10 @@ final class FloatingPillController {
 
     init(model: AppModel) {
         self.model = model
+        // Not deferred: its window ID exists before it first shows, so a screen recording can leave it out.
         panel = PillPanel(
             contentRect: NSRect(x: 0, y: 0, width: 1, height: 1),
-            styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: true)
+            styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isFloatingPanel = true
@@ -99,6 +100,13 @@ final class FloatingPillController {
         let indicator = model.isRecording && showPill && !(settings.hidePillWhenAppActive && ownWindowKey)
         let show = model.pillPrompt != nil || indicator
         return (show, show && settings.attachPillToWindow ? model.pillAppBundleID : nil)
+    }
+
+    /// The pill's window, for a display or area screen recording to leave out; nil while "Show in screenshots and
+    /// screen recordings" is on.
+    var captureExcludedWindowID: CGWindowID? {
+        guard !model.settings.showPillInScreenCaptures, panel.windowNumber > 0 else { return nil }
+        return CGWindowID(panel.windowNumber)
     }
 
     private func apply(_ wanted: (show: Bool, anchorBundleID: String?)) {

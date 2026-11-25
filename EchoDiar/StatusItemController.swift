@@ -33,6 +33,13 @@ struct RecordingMenuControls {
     var micMuted: @MainActor () -> Bool
     var systemMicMuted: @MainActor () -> Bool
     var toggleMicMute: @MainActor () -> Void
+    /// The recording's screen video is starting or running.
+    var screenOn: @MainActor () -> Bool
+    /// The screen toggle can act: the screen is on, or off without the video ended on an error.
+    var screenAvailable: @MainActor () -> Bool
+    var toggleScreen: @MainActor () -> Void
+    /// The size of the recording's files so far (`AppModel.liveRecordingBytes`); nil until its first read is back.
+    var recordingBytes: @MainActor () -> Int64?
     var stop: @MainActor () -> Void
     var language: @MainActor () -> String
     /// `LanguageOptions.groups` for the current language.
@@ -54,6 +61,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     static var controls: RecordingMenuControls?
 
     var state: IndicatorState = .idle { didSet { updateIcon() } }
+    /// What shows next to the icon while a recording runs (recording or paused).
+    var info: MenuBarRecordingInfo = .iconOnly { didSet { if info != oldValue { syncInfo() } } }
     /// Enables Start/Stop Recording.
     var recordingEnabled = true
 
@@ -68,6 +77,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// The processing badge, over the logo's knockout: `NSStatusBarButton` exposes no image view to run a symbol
     /// effect on.
     private var effectView: NSImageView?
+    /// Refreshes the text next to the icon once per second while it shows.
+    private var infoTimer: Timer?
 
     init(onOpenMain: @escaping () -> Void, onOpenSettings: @escaping () -> Void,
          onToggleRecording: @escaping () -> Void, onAbout: @escaping () -> Void, updater: Updater) {
@@ -93,6 +104,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let update = state == .idle && updater.updateAvailable
         button.setAccessibilityLabel(
             update ? String(localized: "EchoDiar, update available") : state.accessibilityLabel)
+        // First: the processing badge is placed from the button's bounds, which the title changes.
+        syncInfo()
         switch state {
         case .idle:
             stopEffect()
@@ -107,6 +120,62 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             button.image = Self.processingLogo
             startEffect(in: button)
         }
+    }
+
+    // MARK: - Elapsed time or size
+
+    /// Runs the once-per-second refresh while a recording runs and `info` shows text; otherwise stops it and shows the
+    /// icon alone.
+    private func syncInfo() {
+        let shows = (state == .recording || state == .paused) && info != .iconOnly
+        if shows, infoTimer == nil {
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateInfo() }
+            }
+            // `.common`: it keeps ticking while the menu is open.
+            RunLoop.main.add(timer, forMode: .common)
+            infoTimer = timer
+        } else if !shows {
+            infoTimer?.invalidate()
+            infoTimer = nil
+        }
+        updateInfo()
+    }
+
+    /// The elapsed time (m:ss, h:mm:ss) or the size of the recording's files so far, tinted by `SizeLevel`, after the
+    /// icon; no title (a square item) otherwise. The size shows once the model's first read is back; the model reads it
+    /// every 2 s, and this tick picks it up. Called inside the app delegate's observation of the indicator state, so a
+    /// new size also re-arms that observation and shows at once.
+    private func updateInfo() {
+        guard let button = statusItem.button else { return }
+        var text: (String, NSColor?)?
+        if infoTimer != nil, let controls = Self.controls {
+            switch info {
+            case .iconOnly: break
+            case .elapsedTime: text = (ConversationCard.durationText(controls.elapsed()), nil)
+            case .fileSize:
+                if let bytes = controls.recordingBytes() {
+                    text = (ConversationCard.sizeText(bytes), SizeLevel(bytes: bytes).nsColor)
+                }
+            }
+        }
+        guard let text else {
+            if statusItem.length != NSStatusItem.squareLength {
+                button.attributedTitle = NSAttributedString()
+                button.imagePosition = .imageOnly
+                statusItem.length = NSStatusItem.squareLength
+            }
+            return
+        }
+        // Monospaced digits keep the width steady as the numbers change. No colour at the normal level, so the text
+        // follows the menu bar's appearance.
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .regular)
+        ]
+        if let color = text.1 { attributes[.foregroundColor] = color }
+        button.attributedTitle = NSAttributedString(string: text.0, attributes: attributes)
+        button.imagePosition = .imageLeading
+        if statusItem.length != NSStatusItem.variableLength { statusItem.length = NSStatusItem.variableLength }
     }
 
     /// The idle icon: `logo_white` on a dark menu bar, `logo_black` on a light one. Drawn per appearance, so it
@@ -264,8 +333,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(quit)
     }
 
-    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Stop, Language and the silent-tap fix. The values are read
-    /// when the menu opens.
+    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Record Screen/Stop Recording Screen, Stop, Language and the
+    /// silent-tap fix. The values are read when the menu opens.
     private func addRecordingItems(_ controls: RecordingMenuControls) {
         let elapsed = controls.elapsed()
         let pattern: Duration.TimeFormatStyle.Pattern = elapsed >= 3_600 ? .hourMinuteSecond : .minuteSecond
@@ -284,6 +353,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let muteItem = item(mute, #selector(toggleMicMute))
         muteItem.isEnabled = !systemMuted
         menu.addItem(muteItem)
+        menu.addItem(screenItem(controls))
         let stop = item(String(localized: "Stop Recording"), #selector(stopRecording))
         stop.isEnabled = recordingEnabled
         menu.addItem(stop)
@@ -292,6 +362,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.addItem(item(String(localized: "System audio is silent — Fix…"), #selector(fixSilentTap)))
         }
         menu.addItem(.separator())
+    }
+
+    /// The screen toggle with a static glyph (a record badge while the video runs); Record Screen opens the screen
+    /// source chooser in the main window. Turning the screen on is not offered while paused, nor once the video ended
+    /// on an error.
+    private func screenItem(_ controls: RecordingMenuControls) -> NSMenuItem {
+        let on = controls.screenOn()
+        let screen = item(on ? String(localized: "Stop Recording Screen") : String(localized: "Record Screen"),
+                          #selector(toggleScreen))
+        screen.isEnabled = controls.screenAvailable() && (on || state != .paused)
+        screen.image = NSImage(systemSymbolName: on ? "rectangle.dashed.badge.record" : "rectangle.dashed",
+                               accessibilityDescription: nil)
+        return screen
     }
 
     /// Up to 3 events in progress or starting within 12 h, as "14:00 Weekly sync"; one with a link opens it.
@@ -346,6 +429,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
     @objc private func togglePause() { Self.controls?.togglePause() }
     @objc private func toggleMicMute() { Self.controls?.toggleMicMute() }
+    @objc private func toggleScreen() { Self.controls?.toggleScreen() }
     @objc private func stopRecording() { Self.controls?.stop() }
     @objc private func setLanguage(_ sender: NSMenuItem) {
         if let code = sender.representedObject as? String { Self.controls?.setLanguage(code) }

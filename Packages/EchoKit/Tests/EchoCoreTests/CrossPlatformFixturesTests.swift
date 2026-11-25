@@ -76,10 +76,12 @@ struct CrossPlatformFixturesTests {
     }
 
     private static func conversation(folder: URL) -> Conversation {
-        Conversation(
+        var conversation = Conversation(
             id: conversationID, title: vietnamese, customTitle: true, createdAt: at, duration: 61.5,
             sourceAppName: "Zoom", sourceBundleID: "us.zoom.xos", status: .transcribed, hasTranscript: true,
             hasSummary: true, sizeBytes: 1_234_567, folder: folder)
+        conversation.skipsTranscription = true
+        return conversation
     }
 
     private static let transcript = Transcript(
@@ -103,6 +105,8 @@ struct CrossPlatformFixturesTests {
         session.pauses = [.init(fileTime: 12.5, start: at.addingTimeInterval(-30), end: at)]
         session.endReason = "user"
         session.title = vietnamese
+        session.video = .init(fileName: "video.mp4", source: .window, fps: 30, quality: 0.75, width: 2880, height: 1800)
+        session.skipsTranscription = true
         return session
     }
 

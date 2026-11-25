@@ -69,6 +69,37 @@ public struct RecordingSession: Codable, Equatable, Sendable {
         }
     }
 
+    /// The screen recording of this session (written once its first frame is in the file); nil = audio only.
+    public struct Video: Codable, Equatable, Sendable {
+        public enum Source: String, Codable, Sendable {
+            case display, window, area
+            /// An unrecognized raw value. Written back as "unknown".
+            case unknown
+
+            public init(from decoder: Decoder) throws {
+                self = Source(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .unknown
+            }
+        }
+
+        public var fileName: String
+        public var source: Source
+        public var fps: Int
+        /// The constant-quality setting of the encoder, 0...1.
+        public var quality: Double
+        /// Pixels.
+        public var width: Int
+        public var height: Int
+
+        public init(fileName: String, source: Source, fps: Int, quality: Double, width: Int, height: Int) {
+            self.fileName = fileName
+            self.source = source
+            self.fps = fps
+            self.quality = quality
+            self.width = width
+            self.height = height
+        }
+    }
+
     public static let fileName = "session.json"
 
     public var version = 1
@@ -97,6 +128,10 @@ public struct RecordingSession: Codable, Equatable, Sendable {
     /// The recording's title, typed while recording or from its calendar event; nil = the default title. The
     /// conversation built from this session takes it as a custom title.
     public var title: String?
+    public var video: Video?
+    /// "Screen only": never transcribed automatically (live or after Stop), whatever the settings say; a manual
+    /// transcription still works. See `autoTranscribes(with:)`.
+    public var skipsTranscription: Bool
 
     public init(
         id: UUID = UUID(),
@@ -111,7 +146,8 @@ public struct RecordingSession: Codable, Equatable, Sendable {
         languageMarkers: [LanguageMarker] = [],
         audioFileName: String = "audio.caf",
         probe: Bool = false,
-        title: String? = nil
+        title: String? = nil,
+        skipsTranscription: Bool = false
     ) {
         self.id = id
         self.pid = pid
@@ -131,11 +167,13 @@ public struct RecordingSession: Codable, Equatable, Sendable {
         self.audioFileName = audioFileName
         self.probe = probe
         self.title = title
+        self.skipsTranscription = skipsTranscription
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, id, pid, state, startedAt, sourceApps, tapMode, globalTapFallback, micDeviceName, outputDeviceName
         case channels, sampleRate, sampleFormat, pauses, languageMarkers, endReason, audioFileName, probe, title
+        case video, skipsTranscription
     }
 
     public init(from decoder: Decoder) throws {
@@ -159,6 +197,21 @@ public struct RecordingSession: Codable, Equatable, Sendable {
         audioFileName = try c.decodeIfPresent(String.self, forKey: .audioFileName) ?? "audio.caf"
         probe = try c.decodeIfPresent(Bool.self, forKey: .probe) ?? false
         title = try c.decodeIfPresent(String.self, forKey: .title)
+        // Lenient: a malformed or partial block reads as no video, so the audio is not lost with the whole session.
+        video = (try? c.decodeIfPresent(Video.self, forKey: .video)) ?? nil
+        skipsTranscription = try c.decodeIfPresent(Bool.self, forKey: .skipsTranscription) ?? false
+    }
+
+    // MARK: - Transcription
+
+    /// Whether a recording is transcribed automatically (live and after Stop): "Transcribe automatically" is on and
+    /// the recording is not marked `skipsTranscription`. Callable before the session exists.
+    public static func autoTranscribes(skips: Bool, settings: AppSettings) -> Bool {
+        settings.autoTranscribe && !skips
+    }
+
+    public func autoTranscribes(with settings: AppSettings) -> Bool {
+        Self.autoTranscribes(skips: skipsTranscription, settings: settings)
     }
 
     // MARK: - Storage

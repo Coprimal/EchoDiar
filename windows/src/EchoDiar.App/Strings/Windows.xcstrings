@@ -289,7 +289,7 @@
         }
       }
     },
-    "%lld conversations without audio would be left empty: they are moved to the Recycle Bin entirely." : {
+    "%lld conversations without audio or video would be left empty: they are moved to the Recycle Bin entirely." : {
       "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
       "extractionState" : "manual",
       "localizations" : {
@@ -299,13 +299,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld conversation without audio would be left empty: it is moved to the Recycle Bin entirely."
+                  "value" : "%lld conversation without audio or video would be left empty: it is moved to the Recycle Bin entirely."
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld conversations without audio would be left empty: they are moved to the Recycle Bin entirely."
+                  "value" : "%lld conversations without audio or video would be left empty: they are moved to the Recycle Bin entirely."
                 }
               }
             }
@@ -314,16 +314,22 @@
         "es" : {
           "variations" : {
             "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld conversaciones sin audio ni vídeo quedarían vacías: se trasladan enteras a la Papelera de reciclaje."
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld conversación sin audio quedaría vacía: se traslada entera a la Papelera de reciclaje."
+                  "value" : "%lld conversación sin audio ni vídeo quedaría vacía: se traslada entera a la Papelera de reciclaje."
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld conversaciones sin audio quedarían vacías: se trasladan enteras a la Papelera de reciclaje."
+                  "value" : "%lld conversaciones sin audio ni vídeo quedarían vacías: se trasladan enteras a la Papelera de reciclaje."
                 }
               }
             }
@@ -334,20 +340,20 @@
             "plural" : {
               "many" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld conversations sans audio seraient vides : elles sont placées entièrement dans la Corbeille."
+                  "state" : "translated",
+                  "value" : "%lld conversations sans audio ni vidéo seraient vides : elles sont placées entièrement dans la Corbeille."
                 }
               },
               "one" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld conversation sans audio serait vide : elle est placée entièrement dans la Corbeille."
+                  "state" : "translated",
+                  "value" : "%lld conversation sans audio ni vidéo serait vide : elle est placée entièrement dans la Corbeille."
                 }
               },
               "other" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld conversations sans audio seraient vides : elles sont placées entièrement dans la Corbeille."
+                  "state" : "translated",
+                  "value" : "%lld conversations sans audio ni vidéo seraient vides : elles sont placées entièrement dans la Corbeille."
                 }
               }
             }
@@ -355,14 +361,14 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%lld cuộc hội thoại không có âm thanh sẽ trở nên trống: chúng được chuyển toàn bộ vào Thùng rác."
+            "state" : "translated",
+            "value" : "%lld cuộc hội thoại không có âm thanh hoặc video sẽ trở nên trống: chúng được chuyển toàn bộ vào Thùng rác."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld 个没有音频的对话将变为空：它们会被整个移到回收站。"
+            "value" : "%lld 个没有音频或视频的对话将变为空：它们会被整个移到回收站。"
           }
         }
       }
@@ -3211,6 +3217,258 @@
         }
       }
     },
+    "The audio and video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):" : {
+      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversation will be moved to the Recycle Bin at the next run (at launch or within a day):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversación se trasladarán a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversation seront placés dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ở lần chạy tới (khi khởi động hoặc trong vòng một ngày):"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的音频和视频将在下次运行时（启动时或一天内）移到回收站："
+          }
+        }
+      }
+    },
+    "The audio and video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:" : {
+      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversation will be moved to the Recycle Bin now, then daily for older ones:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera de reciclaje ahora y, después, a diario los de las más antiguas:"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversación se trasladarán a la Papelera de reciclaje ahora y, después, a diario los de las más antiguas:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de %lld conversaciones se trasladarán a la Papelera de reciclaje ahora y, después, a diario los de las más antiguas:"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversation seront placés dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo de %lld conversations seront placés dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ngay bây giờ, sau đó hằng ngày với các cuộc cũ hơn:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的音频和视频将立即移到回收站，之后每天处理更旧的对话："
+          }
+        }
+      }
+    },
+    "The audio and video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now." : {
+      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of transcribed conversations older than %lld day will be moved to the Recycle Bin once a day. Nothing matches now."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The audio and video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de las conversaciones transcritas con más de %lld días se trasladarán a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de las conversaciones transcritas con más de %lld día se trasladarán a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El audio y el vídeo de las conversaciones transcritas con más de %lld días se trasladarán a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo des conversations transcrites de plus de %lld jours seront placés dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo des conversations transcrites de plus de %lld jour seront placés dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "L’audio et la vidéo des conversations transcrites de plus de %lld jours seront placés dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Âm thanh và video của các cuộc hội thoại đã chép lời cũ hơn %lld ngày sẽ được chuyển vào Thùng rác mỗi ngày một lần. Hiện không có gì khớp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超过 %lld 天的已转写对话的音频和视频将每天移到回收站一次。目前没有匹配项。"
+          }
+        }
+      }
+    },
     "The audio files are moved to the Recycle Bin. Transcripts, summaries and chats stay." : {
       "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
       "extractionState" : "manual",
@@ -3297,240 +3555,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音频会移到回收站。转写文本、摘要和聊天会保留；将无法再播放和重新转写。"
-          }
-        }
-      }
-    },
-    "The audio of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):" : {
-      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "The audio of %lld conversation will be moved to the Recycle Bin at the next run (at launch or within a day):"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "The audio of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "El audio de %lld conversación se trasladará a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "El audio de %lld conversaciones se trasladará a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio de %lld conversations sera placé dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio de %lld conversation sera placé dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio de %lld conversations sera placé dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
-                }
-              }
-            }
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Âm thanh của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ở lần chạy tới (khi khởi động hoặc trong vòng một ngày):"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个对话的音频将在下次运行时（启动时或一天内）移到回收站："
-          }
-        }
-      }
-    },
-    "The audio of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:" : {
-      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "The audio of %lld conversation will be moved to the Recycle Bin now, then daily for older ones:"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "The audio of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "El audio de %lld conversación se trasladará a la Papelera de reciclaje ahora y, después, a diario el de las más antiguas:"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "El audio de %lld conversaciones se trasladará a la Papelera de reciclaje ahora y, después, a diario el de las más antiguas:"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio de %lld conversations sera placé dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio de %lld conversation sera placé dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio de %lld conversations sera placé dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
-                }
-              }
-            }
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Âm thanh của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ngay bây giờ, sau đó hằng ngày với các cuộc cũ hơn:"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个对话的音频将立即移到回收站，之后每天处理更旧的对话："
-          }
-        }
-      }
-    },
-    "The audio of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now." : {
-      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "The audio of transcribed conversations older than %lld day will be moved to the Recycle Bin once a day. Nothing matches now."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "The audio of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now."
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "El audio de las conversaciones transcritas con más de %lld día se trasladará a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "El audio de las conversaciones transcritas con más de %lld días se trasladará a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio des conversations transcrites de plus de %lld jours sera placé dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio des conversations transcrites de plus de %lld jour sera placé dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "L’audio des conversations transcrites de plus de %lld jours sera placé dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
-                }
-              }
-            }
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Âm thanh của các cuộc hội thoại đã chép lời cũ hơn %lld ngày sẽ được chuyển vào Thùng rác mỗi ngày một lần. Hiện không có gì khớp."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "超过 %lld 天的已转写对话的音频将每天移到回收站一次。目前没有匹配项。"
           }
         }
       }
@@ -3711,6 +3735,258 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "转写模型、说话人模型和 AI 模型会从这台电脑上移除（不会移到回收站）。可在“设置 › AI 提供商 › 本地 AI”中重新下载。"
+          }
+        }
+      }
+    },
+    "The video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):" : {
+      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversation will be moved to the Recycle Bin at the next run (at launch or within a day):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversación se trasladará a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera de reciclaje en la próxima ejecución (al iniciar o en un plazo de un día):"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversation sera placée dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille au prochain passage (au lancement ou dans la journée) :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ở lần chạy tới (khi khởi động hoặc trong vòng một ngày):"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的视频将在下次运行时（启动时或一天内）移到回收站："
+          }
+        }
+      }
+    },
+    "The video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:" : {
+      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversation will be moved to the Recycle Bin now, then daily for older ones:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera de reciclaje ahora y, después, a diario el de las más antiguas:"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversación se trasladará a la Papelera de reciclaje ahora y, después, a diario el de las más antiguas:"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de %lld conversaciones se trasladará a la Papelera de reciclaje ahora y, después, a diario el de las más antiguas:"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversation sera placée dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo de %lld conversations sera placée dans la Corbeille maintenant, puis chaque jour pour les plus anciennes :"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video của %lld cuộc hội thoại sẽ được chuyển vào Thùng rác ngay bây giờ, sau đó hằng ngày với các cuộc cũ hơn:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个对话的视频将立即移到回收站，之后每天处理更旧的对话："
+          }
+        }
+      }
+    },
+    "The video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now." : {
+      "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of transcribed conversations older than %lld day will be moved to the Recycle Bin once a day. Nothing matches now."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de las conversaciones transcritas con más de %lld días se trasladará a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de las conversaciones transcritas con más de %lld día se trasladará a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "El vídeo de las conversaciones transcritas con más de %lld días se trasladará a la Papelera de reciclaje una vez al día. Ahora no hay coincidencias."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo des conversations transcrites de plus de %lld jours sera placée dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo des conversations transcrites de plus de %lld jour sera placée dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "La vidéo des conversations transcrites de plus de %lld jours sera placée dans la Corbeille une fois par jour. Rien ne correspond pour l’instant."
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video của các cuộc hội thoại đã chép lời cũ hơn %lld ngày sẽ được chuyển vào Thùng rác mỗi ngày một lần. Hiện không có gì khớp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超过 %lld 天的已转写对话的视频将每天移到回收站一次。目前没有匹配项。"
           }
         }
       }

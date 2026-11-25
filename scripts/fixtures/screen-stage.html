@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;height:100%;font:15px/1.55 -apple-system,Helvetica;color:#1d1d1f;background:#fff;overflow:hidden}
+#doc{padding:28px 56px;max-width:1100px}
+h1{font-size:30px;margin:.2em 0}h2{font-size:21px;margin:1.2em 0 .3em;color:#0a5}
+pre{background:#1e1e22;color:#d6deeb;padding:14px 18px;border-radius:8px;font:13px/1.5 Menlo,monospace}
+table{border-collapse:collapse;margin:12px 0}td,th{border:1px solid #ccd;padding:5px 12px;font-size:13px}
+.slide{position:absolute;inset:0;padding:60px 80px;display:none}
+.slide h1{font-size:54px}.slide li{font-size:26px;margin:14px 0}
+.bar{display:inline-block;width:70px;margin:0 10px;vertical-align:bottom;border-radius:6px 6px 0 0}
+#tile{position:absolute;right:16px;top:16px;width:30%;border-radius:10px}
+#full{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+#mark{position:fixed;inset:0;background:#000;z-index:2147483647;display:none}
+</style></head><body><div id="root"></div><div id="mark"></div><script>
+// Stage of the DEBUG `--measure-screen` harness (EchoDiar/ScreenHarness.swift), from the spike's stage.html.
+// ?mode=static|slides|scroll|meeting|video picks the content; the clip is `clip.mp4` beside this page.
+// ?marks=1 enables sync marks, which only start when the harness calls startMarks() (at recording start): the whole
+// page turns black for 100 ms and a beep plays in the same callback, first 2 s after startMarks() and then every 10 s.
+const params=new URLSearchParams(location.search);
+const mode=params.get('mode')||'static';
+const marks=params.get('marks')==='1';
+// Instrument. It adds no rAF loop of its own while the harness records, so it cannot change what is captured: the
+// scroll loop counts its own callbacks and the scroll distance it really made; stageStats() (called after the
+// recording) then counts rAF callbacks for 0.5 s.
+const stats={t0:performance.now(),raf:0,lastY:0,yDelta:0,ySteps:0};
+function tick(y){stats.raf++;if(y!==stats.lastY){stats.yDelta+=Math.abs(y-stats.lastY);stats.ySteps++;stats.lastY=y}}
+const W=("recording transcript speaker meeting summary latency buffer channel frame encoder bitrate keyframe quality window display capture "+
+"pipeline segment diarization model provider session retention storage export timeline playback sync cursor region audio system microphone").split(' ');
+let seed=7;const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+const words=n=>Array.from({length:n},()=>W[Math.floor(rnd()*W.length)]).join(' ');
+function doc(sections){let h='<div id="doc"><h1>EchoDiar screen recording benchmark</h1>';
+ for(let i=0;i<sections;i++){h+=`<h2>${i+1}. ${words(4)}</h2><p>${words(90)}.</p>`;
+  if(i%2==0)h+=`<pre>func encode(frame: CVPixelBuffer, at time: CMTime) throws {\n    guard status == .complete else { return }   // ${words(5)}\n    let ${W[i%W.length]} = try session.${W[(i+3)%W.length]}(frame, pts: time)\n    writer.append(${W[i%W.length]})\n}</pre>`;
+  else{h+='<table><tr><th>fps</th><th>scale</th><th>MB/min</th><th>note</th></tr>';for(let r=0;r<5;r++)h+=`<tr><td>${5*(r+1)}</td><td>${r%2+1}x</td><td>${(rnd()*20).toFixed(2)}</td><td>${words(6)}</td></tr>`;h+='</table>';}
+  h+=`<p>${words(70)}.</p>`}return h+'</div>'}
+function slide(i){const c=['#0a84ff','#30d158','#ff9f0a','#bf5af2','#ff375f'][i%5];let b='';for(let k=0;k<7;k++)b+=`<span class="bar" style="height:${40+Math.floor(rnd()*220)}px;background:${c}"></span>`;
+ return `<div class="slide" id="s${i}" style="background:linear-gradient(135deg,#fff,${c}22)"><h1 style="color:${c}">Slide ${i+1}: ${words(3)}</h1><ul><li>${words(8)}</li><li>${words(9)}</li><li>${words(7)}</li></ul><div style="margin-top:30px">${b}</div></div>`}
+function slides(){let h='';for(let i=0;i<8;i++)h+=slide(i);return h}
+const root=document.getElementById('root');
+if(mode==='static'){root.innerHTML=doc(4)}
+// The body is the scroll container (html has overflow:hidden, so window.scrollTo has no range): scroll the body.
+else if(mode==='scroll'){root.innerHTML=doc(60);const b=document.body;b.style.overflow='auto';
+ document.head.insertAdjacentHTML('beforeend','<style>body::-webkit-scrollbar{display:none}</style>');let y=0,d=1,t0=performance.now();
+ (function f(t){const dt=(t-t0)/1000;t0=t;y+=d*320*dt;const max=b.scrollHeight-innerHeight;if(y>max){y=max;d=-1}if(y<0){y=0;d=1}b.scrollTop=y;tick(b.scrollTop);requestAnimationFrame(f)})(t0)}
+else if(mode==='slides'||mode==='meeting'){root.innerHTML=slides();let i=0;const show=()=>{document.querySelectorAll('.slide').forEach(e=>e.style.display='none');document.getElementById('s'+(i%8)).style.display='block';i++};show();setInterval(show,4000);
+ if(mode==='meeting'){root.insertAdjacentHTML('beforeend','<video id="tile" src="clip.mp4" autoplay muted loop playsinline></video>')}}
+else if(mode==='video'){root.innerHTML='<video id="full" src="clip.mp4" autoplay muted loop playsinline></video>'}
+
+// Harness hooks (called with callAsyncJavaScript).
+let ctx=null,markTimers=[];
+function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)();return ctx}
+function tone(){const c=audio(),o=c.createOscillator(),g=c.createGain();o.frequency.value=1000;g.gain.value=0.5;
+ o.connect(g);g.connect(c.destination);const t=c.currentTime;o.start(t);o.stop(t+0.1)}
+// One beep now; returns the AudioContext state ("running" when it can play).
+async function beep(){const c=audio();await c.resume();tone();return c.state}
+function mark(){const m=document.getElementById('mark');m.style.display='block';tone();setTimeout(()=>{m.style.display='none'},100)}
+// (Re)starts the mark schedule from now; "off" without ?marks=1, else the AudioContext state.
+async function startMarks(){if(!marks)return 'off';markTimers.forEach(clearTimeout);markTimers=[];const c=audio();await c.resume();
+ markTimers.push(setTimeout(()=>{mark();markTimers.push(setInterval(mark,10000))},2000));return c.state}
+// A page that does not render (hidden, display asleep) answers after 2 x ms with a low rate instead of never.
+async function rafPerSecond(ms){let k=0;const t0=performance.now();
+ await new Promise(done=>{setTimeout(done,2*ms);const c=t=>{k++;if(t-t0<ms)requestAnimationFrame(c);else done()};requestAnimationFrame(c)});
+ return k*1000/(performance.now()-t0)}
+// rafCount, scrollYDelta (total px) and scrollSteps (callbacks that moved) come from the scroll loop since the page
+// loaded (0 in the other modes); rafPerSecondNow is measured when called.
+async function stageStats(){const seconds=(performance.now()-stats.t0)/1000;
+ return {rafCount:stats.raf,seconds,scrollYDelta:stats.yDelta,scrollSteps:stats.ySteps,rafPerSecondNow:await rafPerSecond(500),
+  visibilityState:document.visibilityState,hasFocus:document.hasFocus()}}
+function clipState(){const v=document.querySelector('video');return v?{width:v.videoWidth,time:v.currentTime,paused:v.paused}:null}
+</script></body></html>

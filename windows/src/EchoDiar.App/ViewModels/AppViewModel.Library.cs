@@ -433,7 +433,7 @@ public sealed partial class AppViewModel
 
     /// <summary>
     /// Moves the transcripts, summaries and chats of these conversations to the Recycle Bin (the whole conversation when
-    /// its audio is gone, whose page then goes back to the list), skipping any that got a job meanwhile.
+    /// its audio and video are gone, whose page then goes back to the list), skipping any that got a job meanwhile.
     /// </summary>
     public async Task DeleteTranscriptsAndAIAsync(IReadOnlyList<Guid> ids)
     {
@@ -441,7 +441,7 @@ public sealed partial class AppViewModel
         {
             if (_closing) return;
             if (IsBusy(id)) continue;
-            if (Conversations.FirstOrDefault(c => c.Id == id) is { HasAudio: false } && Route.ConversationId == id) Route = Route.List;
+            if (Conversations.FirstOrDefault(c => c.Id == id) is { HasAudio: false, HasVideo: false } && Route.ConversationId == id) Route = Route.List;
             try
             {
                 await _services.Library.DeleteTranscriptsAndAIAsync(id);

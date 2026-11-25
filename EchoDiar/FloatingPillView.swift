@@ -9,8 +9,8 @@ final class PillHover {
     var isHovering = false
 }
 
-/// The pill's content: the recording indicator (dot, elapsed time, level meter, a muted mic's glyph; Pause/Resume,
-/// Mute/Unmute, Stop and Language on hover) or a prompt. Created each time the pill shows, so its clock and meter run
+/// The pill's content: the recording indicator (dot, elapsed time, level meter, a muted mic's glyph, a recorded
+/// screen's glyph; Pause/Resume, Mute/Unmute, the screen toggle, Stop and Language on hover) or a prompt. Created each time the pill shows, so its clock and meter run
 /// only while it is visible.
 struct FloatingPillView: View {
     let model: AppModel
@@ -84,6 +84,13 @@ struct FloatingPillView: View {
                     .foregroundStyle(.yellow)
                     .accessibilityLabel("Microphone muted")
             }
+            // Static; expanded, the screen toggle shows it.
+            if model.screenRecording.isOn && !expanded {
+                Image(systemName: "rectangle.dashed.badge.record")
+                    .font(.system(size: 11 * scale))
+                    .foregroundStyle(Palette.screenRecording)
+                    .accessibilityLabel("Screen recorded")
+            }
             if expanded {
                 controls(paused: paused)
                     .transition(.opacity)
@@ -114,6 +121,7 @@ struct FloatingPillView: View {
             // Not `.disabled`, as in `RecordingCard`: the toggle is a no-op while the system mutes the mic.
             .help(model.systemMicMuted ? "Microphone muted in system settings"
                   : model.micMuted ? "Unmute microphone" : "Mute microphone")
+            screenToggle(paused: paused)
             Button(action: model.stopRecording) {
                 Label("Stop", systemImage: "stop.fill")
             }
@@ -144,6 +152,21 @@ struct FloatingPillView: View {
         .labelStyle(.iconOnly)
         .font(.system(size: 13 * scale))
         .buttonStyle(RowIconButtonStyle())
+    }
+
+    /// Opens the screen source chooser in the main window, whose pick turns the screen on, or turns it off; any number
+    /// of times, not while paused, nor once the video ended on an error.
+    private func screenToggle(paused: Bool) -> some View {
+        let screen = model.screenRecording
+        let on = screen.isOn
+        return Button(action: model.toggleScreenRecording) {
+            Label(on ? "Stop recording the screen" : "Record the screen",
+                  systemImage: on ? "rectangle.dashed.badge.record" : "rectangle.dashed")
+        }
+        .disabled(!on && (paused || !screen.canStartDuringRecording))
+        .help(on ? "Stop recording the screen"
+              : !screen.canStartDuringRecording ? "The screen recording stopped on an error"
+              : paused ? "Resume the recording to record the screen" : "Record the screen from now on")
     }
 
     // MARK: - Prompts

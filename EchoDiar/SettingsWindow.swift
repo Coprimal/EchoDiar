@@ -30,7 +30,8 @@ enum SettingsTab: CaseIterable, Identifiable {
         switch self {
         case .recording:
             [.init(id: "microphone", title: "Microphone"), .init(id: "meetings", title: "Meetings"),
-             .init(id: "autoStop", title: "Auto-stop"), .init(id: "afterRecording", title: "After recording")]
+             .init(id: "autoStop", title: "Auto-stop"), .init(id: "afterRecording", title: "After recording"),
+             .init(id: "screen", title: "Screen")]
         case .providers:
             [.init(id: "localAI", title: "Local AI"), .init(id: "cloud", title: "Cloud"),
              .init(id: "cli", title: "CLIs")]

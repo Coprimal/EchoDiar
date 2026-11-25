@@ -4,9 +4,10 @@ import EchoCore
 import SwiftUI
 
 /// The recording in the sidebar, above the first day: the recorded app's icon, its title (else "Recording…" or
-/// "Paused"; double-click to rename), the elapsed clock and mini meters, then a bottom row with Stop, Pause or Resume,
-/// Mute or Unmute and the language; selected adds the accent fill and stroke of `ConversationCard`. A click opens the
-/// recording page.
+/// "Paused"; double-click to rename), the elapsed clock, mini meters, a glyph while the screen is recorded too and the
+/// size so far, then
+/// a bottom row with Stop, Pause or Resume, Mute or Unmute and the language; selected adds the accent fill and stroke of
+/// `ConversationCard`. A click opens the recording page.
 struct RecordingCard: View {
     let model: AppModel
     var selected = false
@@ -36,6 +37,13 @@ struct RecordingCard: View {
                     } else {
                         elapsedText
                     }
+                    if screenRecorded {
+                        Image(systemName: "rectangle.dashed.badge.record")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Palette.screenRecording)
+                            .help("The screen is recorded too")
+                    }
+                    LiveSizeText(model: model)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -85,6 +93,9 @@ struct RecordingCard: View {
 
     /// The `GlassCard` shape, for the selection.
     private static let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+
+    /// The recording has a screen video starting or running (a static glyph, no animation).
+    private var screenRecorded: Bool { model.screenRecording.isOn }
 
     /// The recording's title, else its state; a field while renamed in place, as `ConversationCard`'s title: Return
     /// saves, Esc and a click elsewhere cancel.
@@ -299,8 +310,10 @@ struct RecordingDetailView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                Button("Open Settings") { openReasonSettings() }
-                    .buttonStyle(.link)
+                if !model.currentRecordingSkipsTranscription {
+                    Button("Open Settings") { openReasonSettings() }
+                        .buttonStyle(.link)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -329,8 +342,12 @@ struct RecordingDetailView: View {
     }
 
     /// Why the recording has no live transcript, with the cloud live options when the default engine is a cloud
-    /// one: the live source is off, or `AppModel.cloudLiveBlock` says what is in the way.
+    /// one: the recording is marked "screen only", the live source is off, or `AppModel.cloudLiveBlock` says what
+    /// is in the way.
     static func noCaptionsReason(model: AppModel) -> String {
+        if model.currentRecordingSkipsTranscription {
+            return String(localized: "Transcription is off for this recording.")
+        }
         let settings = model.settings
         guard settings.autoTranscribe, settings.transcribeWhileRecording, let config = model.defaultCloudConfig else {
             return noCaptionsReason(settings: settings)
@@ -364,7 +381,9 @@ struct RecordingDetailView: View {
     }
 
     private func openReasonSettings() {
-        if !model.settings.autoTranscribe {
+        if model.currentRecordingSkipsTranscription {
+            return
+        } else if !model.settings.autoTranscribe {
             model.openSettings(tab: .recording, subTab: "afterRecording")
         } else if !model.settings.transcribeWhileRecording {
             model.openSettings(tab: .transcription)
@@ -454,6 +473,12 @@ struct RecordingHeader: View {
                     .font(.callout)
                     .foregroundStyle(.yellow)
             }
+            // Why the screen video ended before the recording, or why the screen could not be turned on.
+            if let notice = model.screenRecording.notice {
+                Label(notice, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.yellow)
+            }
             if model.snapshot.silentTapSuspected {
                 SilentTapBanner { PrivacySettings.openSystemAudioRecording() }
             }
@@ -489,10 +514,14 @@ struct RecordingHeader: View {
         HStack(spacing: 10) {
             Image(systemName: paused ? "pause.circle.fill" : "record.circle.fill")
                 .foregroundStyle(paused ? .orange : .red)
-            if live {
-                TimelineView(.periodic(from: .now, by: 1)) { _ in elapsedText }
-            } else {
-                elapsedText
+            // The size right after the clock, as " (43 MB)".
+            HStack(spacing: 0) {
+                if live {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in elapsedText }
+                } else {
+                    elapsedText
+                }
+                LiveSizeText(model: model, parenthesized: true)
             }
             Text(paused ? "Paused" : "Recording")
                 .foregroundStyle(.secondary)
@@ -533,6 +562,25 @@ struct RecordingHeader: View {
         let pattern: Duration.TimeFormatStyle.Pattern = elapsed >= 3_600 ? .hourMinuteSecond : .minuteSecond
         return Text(Duration.seconds(elapsed).formatted(.time(pattern: pattern)))
             .font(.body.monospacedDigit().weight(.semibold))
+    }
+}
+
+/// The size of the recording's files so far (`AppModel.liveRecordingBytes`), tinted as the library's sizes
+/// (`ConversationCard.sizeStyle`); nothing until the first read is back. Its own view, so only it re-renders when the
+/// size changes. `parenthesized`: " (43 MB)", the brackets secondary.
+private struct LiveSizeText: View {
+    let model: AppModel
+    var parenthesized = false
+
+    var body: some View {
+        if let bytes = model.liveRecordingBytes {
+            let size = Text(ConversationCard.sizeText(bytes)).foregroundStyle(ConversationCard.sizeStyle(bytes))
+            (parenthesized
+                ? Text(verbatim: " (").foregroundStyle(.secondary) + size + Text(verbatim: ")").foregroundStyle(.secondary)
+                : size)
+                .monospacedDigit()
+                .lineLimit(1)
+        }
     }
 }
 

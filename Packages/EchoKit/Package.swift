@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "EchoTranscribe", targets: ["EchoTranscribe"]),
         .library(name: "EchoAI", targets: ["EchoAI"]),
         .library(name: "EchoLocalLLM", targets: ["EchoLocalLLM"]),
+        .library(name: "EchoScreen", targets: ["EchoScreen"]),
     ],
     dependencies: [
         // Same repo and tag as argmax-oss-swift 1.1.1; this URL keeps one package identity with speech-swift's dependency.
@@ -84,6 +85,16 @@ let package = Package(
                 .product(name: "Tokenizers", package: "swift-transformers"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .target(
+            name: "EchoScreen",
+            dependencies: ["EchoCore"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "EchoScreenTests",
+            dependencies: ["EchoScreen"],
+            path: "Tests/EchoScreenTests"
         ),
     ]
 )

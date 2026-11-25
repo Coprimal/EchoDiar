@@ -142,6 +142,10 @@
     <value>Added</value>
     <comment>Added</comment>
   </data>
+  <data name="AfterAllowingItQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>After allowing it, quit and reopen EchoDiar.</value>
+    <comment>After allowing it, quit and reopen EchoDiar.</comment>
+  </data>
   <data name="AfterRecording" xml:space="preserve">
     <value>After recording</value>
     <comment>After recording</comment>
@@ -194,13 +198,37 @@
     <value>All files of transcribed conversations older than {0} day will be moved to the Recycle Bin once a day. Nothing matches now.</value>
     <comment>All files of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
   </data>
+  <data name="AllKeysAreShown" xml:space="preserve">
+    <value>All keys are shown</value>
+    <comment>All keys are shown</comment>
+  </data>
   <data name="AllSystemAudio" xml:space="preserve">
     <value>All system audio</value>
     <comment>All system audio</comment>
   </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Allow…</value>
+    <comment>Allow…</comment>
+  </data>
+  <data name="AllowCamera" xml:space="preserve">
+    <value>Allow Camera</value>
+    <comment>Allow Camera</comment>
+  </data>
+  <data name="AllowItInSystemSettingsThenQuitAndReopenEchoDiar" xml:space="preserve">
+    <value>Allow it in System Settings, then quit and reopen EchoDiar.</value>
+    <comment>Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
   <data name="AllowMicrophone" xml:space="preserve">
     <value>Allow Microphone</value>
     <comment>Allow Microphone</comment>
+  </data>
+  <data name="AllowScreenRecording" xml:space="preserve">
+    <value>Allow Screen Recording</value>
+    <comment>Allow Screen Recording</comment>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>Allowed</value>
+    <comment>Allowed</comment>
   </data>
   <data name="AlsoAnswersTheChatTabWhileRecording" xml:space="preserve">
     <value>Also answers the Chat tab while recording.</value>
@@ -209,6 +237,10 @@
   <data name="AlsoForAnswersInTheChatTabWhileRecordingConciseAFewShortBull" xml:space="preserve">
     <value>Also for answers in the Chat tab while recording. Concise: a few short bullets.</value>
     <comment>Also for answers in the Chat tab while recording. Concise: a few short bullets.</comment>
+  </data>
+  <data name="AlsoRecordAScreenAWindowOrAnArea" xml:space="preserve">
+    <value>Also record a screen, a window or an area</value>
+    <comment>Also record a screen, a window or an area</comment>
   </data>
   <data name="AlwaysFor" xml:space="preserve">
     <value>Always for {0}</value>
@@ -294,6 +326,10 @@
     <value>Apple Foundation Models (system)</value>
     <comment>Apple Foundation Models (system)</comment>
   </data>
+  <data name="AppliesToRecordingsYouStartWithRecordOrItsShortcutsNotFromTh" xml:space="preserve">
+    <value>Applies to recordings you start with Record or its shortcuts, not from the calendar or a meeting prompt.</value>
+    <comment>Applies to recordings you start with Record or its shortcuts, not from the calendar or a meeting prompt.</comment>
+  </data>
   <data name="ApproveEchoDiarInSystemSettingsGeneralLoginItems" xml:space="preserve">
     <value>Approve EchoDiar in System Settings &gt; General &gt; Login Items.</value>
     <comment>Approve EchoDiar in System Settings &gt; General &gt; Login Items.</comment>
@@ -358,6 +394,10 @@
     <value>Audio and transcripts stay on this PC.</value>
     <comment>Audio and transcripts stay on this PC.</comment>
   </data>
+  <data name="AudioAndVideoKeepTranscriptSummaryAndChat" xml:space="preserve">
+    <value>Audio and video (keep transcript, summary and chat)</value>
+    <comment>Audio and video (keep transcript, summary and chat)</comment>
+  </data>
   <data name="AudioCaptureAndPlayback" xml:space="preserve">
     <value>Audio capture and playback</value>
     <comment>Audio capture and playback</comment>
@@ -365,6 +405,10 @@
   <data name="AudioHasBeenRemoved" xml:space="preserve">
     <value>Audio has been removed</value>
     <comment>Audio has been removed</comment>
+  </data>
+  <data name="AudioHasBeenRemovedTheScreenRecordingStays" xml:space="preserve">
+    <value>Audio has been removed; the screen recording stays</value>
+    <comment>Audio has been removed; the screen recording stays</comment>
   </data>
   <data name="AudioLeavesThisMacCloudEnginesUploadTheRecordingToTheProvide" xml:space="preserve">
     <value>Audio leaves this Mac: cloud engines upload the recording to the provider.</value>
@@ -402,6 +446,14 @@
     <value>Audio only (keep transcript, summary and chat)</value>
     <comment>Audio only (keep transcript, summary and chat)</comment>
   </data>
+  <data name="AudioTranscriptsSummariesAndChatsStay" xml:space="preserve">
+    <value>Audio, transcripts, summaries and chats stay.</value>
+    <comment>Audio, transcripts, summaries and chats stay.</comment>
+  </data>
+  <data name="Audio_2" xml:space="preserve">
+    <value>Audio:</value>
+    <comment>Audio:</comment>
+  </data>
   <data name="Authentication" xml:space="preserve">
     <value>Authentication</value>
     <comment>Authentication</comment>
@@ -437,6 +489,10 @@
   <data name="Available" xml:space="preserve">
     <value>Available</value>
     <comment>Available</comment>
+  </data>
+  <data name="AvailableWhenRecordingADisplayOrAnArea" xml:space="preserve">
+    <value>Available when recording a display or an area</value>
+    <comment>Available when recording a display or an area</comment>
   </data>
   <data name="Back" xml:space="preserve">
     <value>Back</value>
@@ -478,6 +534,18 @@
     <value>billed per streamed minute, about {0} per hour for each connection</value>
     <comment>billed per streamed minute, about %@ per hour for each connection</comment>
   </data>
+  <data name="BlurBackground" xml:space="preserve">
+    <value>Blur background</value>
+    <comment>Blur background</comment>
+  </data>
+  <data name="BlursEverythingBehindYouInTheCameraBubble" xml:space="preserve">
+    <value>Blurs everything behind you in the camera bubble.</value>
+    <comment>Blurs everything behind you in the camera bubble.</comment>
+  </data>
+  <data name="Both" xml:space="preserve">
+    <value>Both</value>
+    <comment>Both</comment>
+  </data>
   <data name="BothVoicesInBothEars" xml:space="preserve">
     <value>Both voices in both ears</value>
     <comment>Both voices in both ears</comment>
@@ -513,6 +581,18 @@
   <data name="CallDetectedRecord" xml:space="preserve">
     <value>{0} call detected — Record?</value>
     <comment>%@ call detected — Record?</comment>
+  </data>
+  <data name="Camera" xml:space="preserve">
+    <value>Camera</value>
+    <comment>Camera</comment>
+  </data>
+  <data name="CameraBubble" xml:space="preserve">
+    <value>Camera bubble</value>
+    <comment>Camera bubble</comment>
+  </data>
+  <data name="CameraBubbleAndKeyPressesWorkForDisplayAndAreaRecordingsOnly" xml:space="preserve">
+    <value>Camera bubble and key presses work for display and area recordings only.</value>
+    <comment>Camera bubble and key presses work for display and area recordings only.</comment>
   </data>
   <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
@@ -610,6 +690,10 @@
     <value>Checking for updates…</value>
     <comment>Checking for updates…</comment>
   </data>
+  <data name="ChooseAPlaceOutsideTheConversationSFolder" xml:space="preserve">
+    <value>Choose a place outside the conversation's folder.</value>
+    <comment>Choose a place outside the conversation's folder.</comment>
+  </data>
   <data name="ChooseModels" xml:space="preserve">
     <value>Choose Models…</value>
     <comment>Choose Models…</comment>
@@ -625,6 +709,10 @@
   <data name="ClickToRecordANewShortcut" xml:space="preserve">
     <value>Click to record a new shortcut</value>
     <comment>Click to record a new shortcut</comment>
+  </data>
+  <data name="ClickToRecordThisDisplay" xml:space="preserve">
+    <value>Click to record this display</value>
+    <comment>Click to record this display</comment>
   </data>
   <data name="Close" xml:space="preserve">
     <value>Close</value>
@@ -798,6 +886,10 @@
     <value>Could not install the update</value>
     <comment>Could not install the update</comment>
   </data>
+  <data name="CouldNotListTheScreensAndWindows" xml:space="preserve">
+    <value>Could not list the screens and windows.</value>
+    <comment>Could not list the screens and windows.</comment>
+  </data>
   <data name="CouldNotOpenTheAudio" xml:space="preserve">
     <value>Could not open the audio ({0}).</value>
     <comment>Could not open the audio (%@).</comment>
@@ -902,6 +994,10 @@
     <value>Delete all earlier chats?</value>
     <comment>Delete all earlier chats?</comment>
   </data>
+  <data name="DeleteAllVideo" xml:space="preserve">
+    <value>Delete all video…</value>
+    <comment>Delete all video…</comment>
+  </data>
   <data name="DeleteAudioAfterTranscription" xml:space="preserve">
     <value>Delete audio after transcription</value>
     <comment>Delete audio after transcription</comment>
@@ -1002,6 +1098,14 @@
     <value>Delete the audio or the whole conversation</value>
     <comment>Delete the audio or the whole conversation</comment>
   </data>
+  <data name="DeleteTheAudioTheVideoOrTheSelectedConversations" xml:space="preserve">
+    <value>Delete the audio, the video or the selected conversations</value>
+    <comment>Delete the audio, the video or the selected conversations</comment>
+  </data>
+  <data name="DeleteTheAudioTheVideoOrTheWholeConversation" xml:space="preserve">
+    <value>Delete the audio, the video or the whole conversation</value>
+    <comment>Delete the audio, the video or the whole conversation</comment>
+  </data>
   <data name="DeleteTheTranscriptsSummariesAndChatsOfLldConversations" xml:space="preserve">
     <value>Delete the transcripts, summaries and chats of {0} conversations?</value>
     <comment>Delete the transcripts, summaries and chats of %lld conversations?</comment>
@@ -1010,9 +1114,33 @@
     <value>Delete the transcripts, summaries and chats of {0} conversation?</value>
     <comment>Delete the transcripts, summaries and chats of %lld conversations?</comment>
   </data>
+  <data name="DeleteTheVideoOf" xml:space="preserve">
+    <value>Delete the video of "{0}"?</value>
+    <comment>Delete the video of "%@"?</comment>
+  </data>
+  <data name="DeleteTheVideoOfEveryConversation" xml:space="preserve">
+    <value>Delete the video of every conversation</value>
+    <comment>Delete the video of every conversation</comment>
+  </data>
+  <data name="DeleteTheVideoOfLldConversations" xml:space="preserve">
+    <value>Delete the video of {0} conversations?</value>
+    <comment>Delete the video of %lld conversations?</comment>
+  </data>
+  <data name="DeleteTheVideoOfLldConversations__One" xml:space="preserve">
+    <value>Delete the video of {0} conversation?</value>
+    <comment>Delete the video of %lld conversations?</comment>
+  </data>
   <data name="DeleteThisEvent" xml:space="preserve">
     <value>Delete this event?</value>
     <comment>Delete this event?</comment>
+  </data>
+  <data name="DeleteVideo" xml:space="preserve">
+    <value>Delete video</value>
+    <comment>Delete video</comment>
+  </data>
+  <data name="DeleteVideo_2" xml:space="preserve">
+    <value>Delete video…</value>
+    <comment>Delete video…</comment>
   </data>
   <data name="Delete_2" xml:space="preserve">
     <value>Delete "{0}"?</value>
@@ -1061,6 +1189,10 @@
   <data name="DiarizationModels" xml:space="preserve">
     <value>Diarization models</value>
     <comment>Diarization models</comment>
+  </data>
+  <data name="DisplayLld" xml:space="preserve">
+    <value>Display {0}</value>
+    <comment>Display %lld</comment>
   </data>
   <data name="DoesnTSupportTheseSettingsOrThisLanguageLive" xml:space="preserve">
     <value>{0} doesn't support these settings or this language live.</value>
@@ -1174,6 +1306,34 @@
     <value>EchoDiar may lack System Audio Recording permission. Allow it, then restart the recording.</value>
     <comment>EchoDiar may lack System Audio Recording permission. Allow it, then restart the recording.</comment>
   </data>
+  <data name="EchoDiarNeedsCameraAccessToShowTheCameraBubble" xml:space="preserve">
+    <value>EchoDiar needs Camera access to show the camera bubble.</value>
+    <comment>EchoDiar needs Camera access to show the camera bubble.</comment>
+  </data>
+  <data name="EchoDiarNeedsCameraAccessToShowTheCameraBubbleAllowItInSyste" xml:space="preserve">
+    <value>EchoDiar needs Camera access to show the camera bubble. Allow it in System Settings.</value>
+    <comment>EchoDiar needs Camera access to show the camera bubble. Allow it in System Settings.</comment>
+  </data>
+  <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPresses" xml:space="preserve">
+    <value>EchoDiar needs Input Monitoring access to show key presses.</value>
+    <comment>EchoDiar needs Input Monitoring access to show key presses.</comment>
+  </data>
+  <data name="EchoDiarNeedsInputMonitoringAccessToShowKeyPressesAllowItInS" xml:space="preserve">
+    <value>EchoDiar needs Input Monitoring access to show key presses. Allow it in System Settings, then quit and reopen EchoDiar.</value>
+    <comment>EchoDiar needs Input Monitoring access to show key presses. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessAllowItInSystemSettingsThe" xml:space="preserve">
+    <value>EchoDiar needs Screen Recording access. Allow it in System Settings, then quit and reopen EchoDiar.</value>
+    <comment>EchoDiar needs Screen Recording access. Allow it in System Settings, then quit and reopen EchoDiar.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingAccessToRecordTheScreen" xml:space="preserve">
+    <value>EchoDiar needs Screen Recording access to record the screen.</value>
+    <comment>EchoDiar needs Screen Recording access to record the screen.</comment>
+  </data>
+  <data name="EchoDiarNeedsScreenRecordingPermissionToRecordTheScreen" xml:space="preserve">
+    <value>EchoDiar needs Screen Recording permission to record the screen.</value>
+    <comment>EchoDiar needs Screen Recording permission to record the screen.</comment>
+  </data>
   <data name="EchoDiarProcessing" xml:space="preserve">
     <value>EchoDiar, processing</value>
     <comment>EchoDiar, processing</comment>
@@ -1221,6 +1381,10 @@
   <data name="Edit_2" xml:space="preserve">
     <value>Edit…</value>
     <comment>Edit…</comment>
+  </data>
+  <data name="ElapsedTime" xml:space="preserve">
+    <value>Elapsed time</value>
+    <comment>Elapsed time</comment>
   </data>
   <data name="Embedding" xml:space="preserve">
     <value>Embedding</value>
@@ -1270,6 +1434,10 @@
     <value>Enter the embedding model of {0} in Settings › RAG</value>
     <comment>Enter the embedding model of %@ in Settings › RAG</comment>
   </data>
+  <data name="EntireScreen" xml:space="preserve">
+    <value>Entire screen</value>
+    <comment>Entire screen</comment>
+  </data>
   <data name="EntriesPerPage" xml:space="preserve">
     <value>Entries per page</value>
     <comment>Entries per page</comment>
@@ -1278,6 +1446,10 @@
     <value>Every license above in one text file.</value>
     <comment>Every license above in one text file.</comment>
   </data>
+  <data name="EverythingYouTypeBecomesVisibleInTheVideo" xml:space="preserve">
+    <value>Everything you type becomes visible in the video</value>
+    <comment>Everything you type becomes visible in the video</comment>
+  </data>
   <data name="Expand" xml:space="preserve">
     <value>Expand</value>
     <comment>Expand</comment>
@@ -1285,6 +1457,22 @@
   <data name="Expanded" xml:space="preserve">
     <value>Expanded</value>
     <comment>Expanded</comment>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Export…</value>
+    <comment>Export…</comment>
+  </data>
+  <data name="ExportVideo" xml:space="preserve">
+    <value>Export Video</value>
+    <comment>Export Video</comment>
+  </data>
+  <data name="ExportVideo_2" xml:space="preserve">
+    <value>Export video…</value>
+    <comment>Export video…</comment>
+  </data>
+  <data name="Exporting" xml:space="preserve">
+    <value>Exporting…</value>
+    <comment>Exporting…</comment>
   </data>
   <data name="ExtraHeaders" xml:space="preserve">
     <value>Extra headers</value>
@@ -1306,6 +1494,14 @@
     <value>File</value>
     <comment>File</comment>
   </data>
+  <data name="FileSize" xml:space="preserve">
+    <value>File size</value>
+    <comment>File size</comment>
+  </data>
+  <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
+    <value>Files can be several times larger. In a meeting-like test, a window recording took about {0} MB per minute at 60 fps, against {1} MB per minute at 15 fps.</value>
+    <comment>Files can be several times larger. In a meeting-like test, a window recording took about %@ MB per minute at 60 fps, against %@ MB per minute at 15 fps.</comment>
+  </data>
   <data name="Filter" xml:space="preserve">
     <value>Filter</value>
     <comment>Filter</comment>
@@ -1325,6 +1521,10 @@
   <data name="ForExample" xml:space="preserve">
     <value>For example:</value>
     <comment>For example:</comment>
+  </data>
+  <data name="FrameRate" xml:space="preserve">
+    <value>Frame rate</value>
+    <comment>Frame rate</comment>
   </data>
   <data name="FreeSpace" xml:space="preserve">
     <value>Free space</value>
@@ -1406,6 +1606,18 @@
     <value>Hide Sidebar (⌘B)</value>
     <comment>Hide Sidebar (⌘B)</comment>
   </data>
+  <data name="HideTheCameraBubble" xml:space="preserve">
+    <value>Hide the camera bubble</value>
+    <comment>Hide the camera bubble</comment>
+  </data>
+  <data name="HideVideo" xml:space="preserve">
+    <value>Hide video</value>
+    <comment>Hide video</comment>
+  </data>
+  <data name="HighlightClicks" xml:space="preserve">
+    <value>Highlight clicks</value>
+    <comment>Highlight clicks</comment>
+  </data>
   <data name="History" xml:space="preserve">
     <value>History</value>
     <comment>History</comment>
@@ -1425,6 +1637,10 @@
   <data name="HuggingFaceDownloads" xml:space="preserve">
     <value>Hugging Face downloads</value>
     <comment>Hugging Face downloads</comment>
+  </data>
+  <data name="IconOnly" xml:space="preserve">
+    <value>Icon only</value>
+    <comment>Icon only</comment>
   </data>
   <data name="IdentifyingSpeakers" xml:space="preserve">
     <value>Identifying speakers…</value>
@@ -1485,6 +1701,10 @@
   <data name="IndicatorSize" xml:space="preserve">
     <value>Indicator size</value>
     <comment>Indicator size</comment>
+  </data>
+  <data name="InputMonitoring" xml:space="preserve">
+    <value>Input Monitoring</value>
+    <comment>Input Monitoring</comment>
   </data>
   <data name="InstallAndRelaunch" xml:space="preserve">
     <value>Install and Relaunch</value>
@@ -1590,6 +1810,10 @@
     <value>Key {0}</value>
     <comment>Key %lld</comment>
   </data>
+  <data name="KeyPresses" xml:space="preserve">
+    <value>Key presses</value>
+    <comment>Key presses</comment>
+  </data>
   <data name="LLMDiarizationTimestampsApproximateSpeakersCanBeMislabeled" xml:space="preserve">
     <value>LLM diarization — timestamps approximate, speakers can be mislabeled.</value>
     <comment>LLM diarization — timestamps approximate, speakers can be mislabeled.</comment>
@@ -1638,9 +1862,17 @@
     <value>Last 7 days</value>
     <comment>Last 7 days</comment>
   </data>
+  <data name="LastArea" xml:space="preserve">
+    <value>Last area</value>
+    <comment>Last area</comment>
+  </data>
   <data name="LastChecked" xml:space="preserve">
     <value>Last checked {0}</value>
     <comment>Last checked %@</comment>
+  </data>
+  <data name="LastUsed" xml:space="preserve">
+    <value>Last used</value>
+    <comment>Last used</comment>
   </data>
   <data name="LaunchAtLogin" xml:space="preserve">
     <value>Launch at login</value>
@@ -1734,21 +1966,41 @@
     <value>{0} byte</value>
     <comment>%lld bytes</comment>
   </data>
-  <data name="LldConversationsWithoutAudioWouldBeLeftEmptyTheyAreMovedToTh" xml:space="preserve">
-    <value>{0} conversations without audio would be left empty: they are moved to the Recycle Bin entirely.</value>
-    <comment>%lld conversations without audio would be left empty: they are moved to the Recycle Bin entirely.</comment>
+  <data name="LldConversationsHaveVideoButNoAudioTheirVideoStaysButTheyCan" xml:space="preserve">
+    <value>{0} conversations have video but no audio: their video stays, but they cannot be transcribed again.</value>
+    <comment>%lld conversations have video but no audio: their video stays, but they cannot be transcribed again.</comment>
   </data>
-  <data name="LldConversationsWithoutAudioWouldBeLeftEmptyTheyAreMovedToTh_2" xml:space="preserve">
+  <data name="LldConversationsHaveVideoButNoAudioTheirVideoStaysButTheyCan__One" xml:space="preserve">
+    <value>{0} conversation has video but no audio: its video stays, but it cannot be transcribed again.</value>
+    <comment>%lld conversations have video but no audio: their video stays, but they cannot be transcribed again.</comment>
+  </data>
+  <data name="LldConversationsWithoutAudioOrVideoWouldBeLeftEmptyTheyAreMo" xml:space="preserve">
+    <value>{0} conversations without audio or video would be left empty: they are moved to the Recycle Bin entirely.</value>
+    <comment>%lld conversations without audio or video would be left empty: they are moved to the Recycle Bin entirely.</comment>
+  </data>
+  <data name="LldConversationsWithoutAudioOrVideoWouldBeLeftEmptyTheyAreMo_2" xml:space="preserve">
+    <value>{0} conversations without audio or video would be left empty: they are moved to the Trash entirely.</value>
+    <comment>%lld conversations without audio or video would be left empty: they are moved to the Trash entirely.</comment>
+  </data>
+  <data name="LldConversationsWithoutAudioOrVideoWouldBeLeftEmptyTheyAreMo_2__One" xml:space="preserve">
+    <value>{0} conversation without audio or video would be left empty: it is moved to the Trash entirely.</value>
+    <comment>%lld conversations without audio or video would be left empty: they are moved to the Trash entirely.</comment>
+  </data>
+  <data name="LldConversationsWithoutAudioOrVideoWouldBeLeftEmptyTheyAreMo__One" xml:space="preserve">
+    <value>{0} conversation without audio or video would be left empty: it is moved to the Recycle Bin entirely.</value>
+    <comment>%lld conversations without audio or video would be left empty: they are moved to the Recycle Bin entirely.</comment>
+  </data>
+  <data name="LldConversationsWithoutAudioWouldBeLeftEmptyTheyAreMovedToTh" xml:space="preserve">
     <value>{0} conversations without audio would be left empty: they are moved to the Trash entirely.</value>
     <comment>%lld conversations without audio would be left empty: they are moved to the Trash entirely.</comment>
   </data>
-  <data name="LldConversationsWithoutAudioWouldBeLeftEmptyTheyAreMovedToTh_2__One" xml:space="preserve">
+  <data name="LldConversationsWithoutAudioWouldBeLeftEmptyTheyAreMovedToTh__One" xml:space="preserve">
     <value>{0} conversation without audio would be left empty: it is moved to the Trash entirely.</value>
     <comment>%lld conversations without audio would be left empty: they are moved to the Trash entirely.</comment>
   </data>
-  <data name="LldConversationsWithoutAudioWouldBeLeftEmptyTheyAreMovedToTh__One" xml:space="preserve">
-    <value>{0} conversation without audio would be left empty: it is moved to the Recycle Bin entirely.</value>
-    <comment>%lld conversations without audio would be left empty: they are moved to the Recycle Bin entirely.</comment>
+  <data name="LldFps" xml:space="preserve">
+    <value>{0} fps</value>
+    <comment>%lld fps</comment>
   </data>
   <data name="LldKbps" xml:space="preserve">
     <value>{0} kbps</value>
@@ -1854,6 +2106,14 @@
     <value>Looking for {0}...</value>
     <comment>Looking for %@...</comment>
   </data>
+  <data name="MBMin" xml:space="preserve">
+    <value>{0} (~{1} MB/min)</value>
+    <comment>%@ (~%@ MB/min)</comment>
+  </data>
+  <data name="MacOSAppliesThePermissionOnceEchoDiarIsQuitAndOpenedAgain" xml:space="preserve">
+    <value>macOS applies the permission once EchoDiar is quit and opened again.</value>
+    <comment>macOS applies the permission once EchoDiar is quit and opened again.</comment>
+  </data>
   <data name="MacOSGivesSilenceNotAnErrorWhenSystemAudioRecordingIsOffIfYo" xml:space="preserve">
     <value>macOS gives silence, not an error, when System Audio Recording is off. If you just allowed it, test again. Otherwise turn on EchoDiar in Privacy &amp; Security › Screen &amp; System Audio Recording.</value>
     <comment>macOS gives silence, not an error, when System Audio Recording is off. If you just allowed it, test again. Otherwise turn on EchoDiar in Privacy &amp; Security › Screen &amp; System Audio Recording.</comment>
@@ -1893,6 +2153,10 @@
   <data name="Meetings" xml:space="preserve">
     <value>Meetings</value>
     <comment>Meetings</comment>
+  </data>
+  <data name="MenuBarWhileRecording" xml:space="preserve">
+    <value>Menu bar while recording</value>
+    <comment>Menu bar while recording</comment>
   </data>
   <data name="Mic" xml:space="preserve">
     <value>Mic</value>
@@ -2122,6 +2386,10 @@
     <value>No AI model: set up a provider or download a model in Settings › AI Providers.</value>
     <comment>No AI model: set up a provider or download a model in Settings › AI Providers.</comment>
   </data>
+  <data name="NoAudio" xml:space="preserve">
+    <value>No audio</value>
+    <comment>No audio</comment>
+  </data>
   <data name="NoCalendarAccountCanHoldEchoDiarSCalendar" xml:space="preserve">
     <value>No calendar account can hold EchoDiar's calendar.</value>
     <comment>No calendar account can hold EchoDiar's calendar.</comment>
@@ -2186,6 +2454,10 @@
     <value>No models listed; type the model id.</value>
     <comment>No models listed; type the model id.</comment>
   </data>
+  <data name="NoScreenRecordingAtThisPoint" xml:space="preserve">
+    <value>No screen recording at this point</value>
+    <comment>No screen recording at this point</comment>
+  </data>
   <data name="NoSettingsMatch" xml:space="preserve">
     <value>No settings match "{0}"</value>
     <comment>No settings match "%@"</comment>
@@ -2229,6 +2501,10 @@
   <data name="NotARecognizedMeetingLinkJoinWonTBeOffered" xml:space="preserve">
     <value>Not a recognized meeting link: Join won't be offered.</value>
     <comment>Not a recognized meeting link: Join won't be offered.</comment>
+  </data>
+  <data name="NotAllowed" xml:space="preserve">
+    <value>Not allowed</value>
+    <comment>Not allowed</comment>
   </data>
   <data name="NotAvailableOnThisMac" xml:space="preserve">
     <value>Not available on this Mac</value>
@@ -2318,6 +2594,10 @@
     <value>Off: each catch-up adds what was said since the previous one. On: each one reads the whole recording again.</value>
     <comment>Off: each catch-up adds what was said since the previous one. On: each one reads the whole recording again.</comment>
   </data>
+  <data name="OffScreenAndSoundOnlyNoTranscriptSummaryOrChatUntilYouTransc" xml:space="preserve">
+    <value>Off: screen and sound only. No transcript, summary or chat until you transcribe it later.</value>
+    <comment>Off: screen and sound only. No transcript, summary or chat until you transcribe it later.</comment>
+  </data>
   <data name="OffersToRecordWhenAMeetingAppStartsUsingTheMicrophone" xml:space="preserve">
     <value>Offers to record when a meeting app starts using the microphone.</value>
     <comment>Offers to record when a meeting app starts using the microphone.</comment>
@@ -2354,6 +2634,10 @@
     <value>One per line, Name: value. Saved in the settings file: put API keys in the API key field.</value>
     <comment>One per line, Name: value. Saved in the settings file: put API keys in the API key field.</comment>
   </data>
+  <data name="Only" xml:space="preserve">
+    <value>Only {0}</value>
+    <comment>Only %@</comment>
+  </data>
   <data name="OnlyEventsInTheEchoDiarCalendarCanBeChanged" xml:space="preserve">
     <value>Only events in the EchoDiar calendar can be changed.</value>
     <comment>Only events in the EchoDiar calendar can be changed.</comment>
@@ -2365,6 +2649,10 @@
   <data name="OnlyEventsWithAMeetingLinkOrInTheEchoDiarCalendarAreShown" xml:space="preserve">
     <value>Only events with a meeting link, or in the EchoDiar calendar, are shown.</value>
     <comment>Only events with a meeting link, or in the EchoDiar calendar, are shown.</comment>
+  </data>
+  <data name="OnlyRecordsAllSystemAudio" xml:space="preserve">
+    <value>Only {0} (records all system audio)</value>
+    <comment>Only %@ (records all system audio)</comment>
   </data>
   <data name="OnlyTheSystemChannelIsUploadedAsOneExtraTranscriptionBilledB" xml:space="preserve">
     <value>Only the system channel is uploaded, as one extra transcription billed by the provider; only the speaker labels are kept. Not used when the transcription model already labels speakers. Prices are approximate list prices per audio hour.</value>
@@ -2417,6 +2705,10 @@
   <data name="OpenSourceSoftware" xml:space="preserve">
     <value>Open-source software</value>
     <comment>Open-source software</comment>
+  </data>
+  <data name="OpenSystemSettings" xml:space="preserve">
+    <value>Open System Settings</value>
+    <comment>Open System Settings</comment>
   </data>
   <data name="OpenTheChatOfTheOpenConversation" xml:space="preserve">
     <value>Open the chat of the open conversation</value>
@@ -2518,6 +2810,10 @@
     <value>Pauses or resumes the recording from any app.</value>
     <comment>Pauses or resumes the recording from any app.</comment>
   </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>Permissions</value>
+    <comment>Permissions</comment>
+  </data>
   <data name="PermissionsAndConsent" xml:space="preserve">
     <value>Permissions and consent</value>
     <comment>Permissions and consent</comment>
@@ -2581,6 +2877,10 @@
   <data name="PlaybackStopped" xml:space="preserve">
     <value>Playback stopped ({0}).</value>
     <comment>Playback stopped (%@).</comment>
+  </data>
+  <data name="PortionOfTheScreen" xml:space="preserve">
+    <value>Portion of the screen</value>
+    <comment>Portion of the screen</comment>
   </data>
   <data name="PreparingAudio" xml:space="preserve">
     <value>Preparing audio…</value>
@@ -2678,6 +2978,10 @@
     <value>Re-transcribe with another model or language</value>
     <comment>Re-transcribe with another model or language</comment>
   </data>
+  <data name="ReTranscribingIsNoLongerPossibleTheVideoTranscriptSummaryAnd" xml:space="preserve">
+    <value>Re-transcribing is no longer possible. The video, transcript, summary and chat stay.</value>
+    <comment>Re-transcribing is no longer possible. The video, transcript, summary and chat stay.</comment>
+  </data>
   <data name="Ready" xml:space="preserve">
     <value>Ready</value>
     <comment>Ready</comment>
@@ -2714,6 +3018,10 @@
     <value>Record all system audio, from 15 min before the start</value>
     <comment>Record all system audio, from 15 min before the start</comment>
   </data>
+  <data name="RecordAt60FramesPerSecond" xml:space="preserve">
+    <value>Record at 60 frames per second?</value>
+    <comment>Record at 60 frames per second?</comment>
+  </data>
   <data name="RecordAtStart" xml:space="preserve">
     <value>Record at start</value>
     <comment>Record at start</comment>
@@ -2722,9 +3030,37 @@
     <value>Record {0} (⌘R)</value>
     <comment>Record %@ (⌘R)</comment>
   </data>
+  <data name="RecordScreen" xml:space="preserve">
+    <value>Record Screen</value>
+    <comment>Record Screen</comment>
+  </data>
   <data name="RecordStop" xml:space="preserve">
     <value>Record / Stop</value>
     <comment>Record / Stop</comment>
+  </data>
+  <data name="RecordTheScreen" xml:space="preserve">
+    <value>Record the screen</value>
+    <comment>Record the screen</comment>
+  </data>
+  <data name="RecordTheScreenAndR" xml:space="preserve">
+    <value>Record the screen and {0} (⌘R)</value>
+    <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
+    <value>Record the screen and the microphone (⌘R)</value>
+    <comment>Record the screen and the microphone (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenFromNowOn" xml:space="preserve">
+    <value>Record the screen from now on</value>
+    <comment>Record the screen from now on</comment>
+  </data>
+  <data name="RecordTheScreenToShowTheCameraBubble" xml:space="preserve">
+    <value>Record the screen to show the camera bubble</value>
+    <comment>Record the screen to show the camera bubble</comment>
+  </data>
+  <data name="RecordTheScreenToo" xml:space="preserve">
+    <value>Record the screen too</value>
+    <comment>Record the screen too</comment>
   </data>
   <data name="RecordYourFirstConversation" xml:space="preserve">
     <value>Record your first conversation</value>
@@ -2798,9 +3134,21 @@
     <value>Recordings are transcribed on this PC. Pick a speech recognition model to download.</value>
     <comment>Recordings are transcribed on this PC. Pick a speech recognition model to download.</comment>
   </data>
+  <data name="RecordingsWithoutATranscriptAreNeverDeletedAutomatically" xml:space="preserve">
+    <value>Recordings without a transcript are never deleted automatically.</value>
+    <comment>Recordings without a transcript are never deleted automatically.</comment>
+  </data>
   <data name="RecordsAllSystemAudio" xml:space="preserve">
     <value>{0} (records all system audio)</value>
     <comment>%@ (records all system audio)</comment>
+  </data>
+  <data name="RecordsItInThisRecordingFromNowOn" xml:space="preserve">
+    <value>Records it in this recording from now on.</value>
+    <comment>Records it in this recording from now on.</comment>
+  </data>
+  <data name="RecordsTheScreen" xml:space="preserve">
+    <value>Records the screen.</value>
+    <comment>Records the screen.</comment>
   </data>
   <data name="Recovered" xml:space="preserve">
     <value>Recovered</value>
@@ -2890,6 +3238,10 @@
     <value>Resume recording</value>
     <comment>Resume recording</comment>
   </data>
+  <data name="ResumeTheRecordingToRecordTheScreen" xml:space="preserve">
+    <value>Resume the recording to record the screen</value>
+    <comment>Resume the recording to record the screen</comment>
+  </data>
   <data name="Retry" xml:space="preserve">
     <value>Retry</value>
     <comment>Retry</comment>
@@ -2954,9 +3306,53 @@
     <value>Scan</value>
     <comment>Scan</comment>
   </data>
+  <data name="Screen" xml:space="preserve">
+    <value>Screen</value>
+    <comment>Screen</comment>
+  </data>
+  <data name="ScreenAndSoundOnlyNoTranscriptSummaryOrChatUntilYouTranscrib" xml:space="preserve">
+    <value>Screen and sound only. No transcript, summary or chat until you transcribe it later.</value>
+    <comment>Screen and sound only. No transcript, summary or chat until you transcribe it later.</comment>
+  </data>
   <data name="ScreenLockedStopRecording" xml:space="preserve">
     <value>Screen locked — stop recording?</value>
     <comment>Screen locked — stop recording?</comment>
+  </data>
+  <data name="ScreenRecorded" xml:space="preserve">
+    <value>Screen recorded</value>
+    <comment>Screen recorded</comment>
+  </data>
+  <data name="ScreenRecording" xml:space="preserve">
+    <value>Screen Recording</value>
+    <comment>Screen Recording</comment>
+  </data>
+  <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
+    <value>Screen recording could not resume. The sound is still recording.</value>
+    <comment>Screen recording could not resume. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecordingOff" xml:space="preserve">
+    <value>Screen recording off</value>
+    <comment>Screen recording off</comment>
+  </data>
+  <data name="ScreenRecordingStoppedCouldNotWriteTheVideoTheSoundIsStillRe" xml:space="preserve">
+    <value>Screen recording stopped: could not write the video. The sound is still recording.</value>
+    <comment>Screen recording stopped: could not write the video. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecordingStoppedLessThan1GBOfDiskSpaceLeftTheSoundIsSt" xml:space="preserve">
+    <value>Screen recording stopped: less than 1 GB of disk space left. The sound is still recording.</value>
+    <comment>Screen recording stopped: less than 1 GB of disk space left. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecordingStoppedTheScreenOrWindowIsNoLongerAvailableTh" xml:space="preserve">
+    <value>Screen recording stopped: the screen or window is no longer available. The sound is still recording.</value>
+    <comment>Screen recording stopped: the screen or window is no longer available. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecording_2" xml:space="preserve">
+    <value>Screen recording</value>
+    <comment>Screen recording</comment>
+  </data>
+  <data name="ScreenRecordings" xml:space="preserve">
+    <value>Screen recordings</value>
+    <comment>Screen recordings</comment>
   </data>
   <data name="ScreenSharingInMeetingAppsShowsItToo" xml:space="preserve">
     <value>Screen sharing in meeting apps shows it too.</value>
@@ -3002,6 +3398,10 @@
     <value>Select All</value>
     <comment>Select All</comment>
   </data>
+  <data name="SelectArea" xml:space="preserve">
+    <value>Select area…</value>
+    <comment>Select area…</comment>
+  </data>
   <data name="Send" xml:space="preserve">
     <value>Send</value>
     <comment>Send</comment>
@@ -3034,6 +3434,10 @@
     <value>Settings…</value>
     <comment>Settings…</comment>
   </data>
+  <data name="Sharper" xml:space="preserve">
+    <value>Sharper</value>
+    <comment>Sharper</comment>
+  </data>
   <data name="Shortcut" xml:space="preserve">
     <value>Shortcut</value>
     <comment>Shortcut</comment>
@@ -3042,9 +3446,17 @@
     <value>Shortcuts</value>
     <comment>Shortcuts</comment>
   </data>
+  <data name="ShowAllKeys" xml:space="preserve">
+    <value>Show all keys</value>
+    <comment>Show all keys</comment>
+  </data>
   <data name="ShowFloatingIndicatorWhileRecording" xml:space="preserve">
     <value>Show floating indicator while recording</value>
     <comment>Show floating indicator while recording</comment>
+  </data>
+  <data name="ShowInFinder" xml:space="preserve">
+    <value>Show in Finder</value>
+    <comment>Show in Finder</comment>
   </data>
   <data name="ShowItInScreenshotsAndScreenRecordings" xml:space="preserve">
     <value>Show it in screenshots and screen recordings</value>
@@ -3062,6 +3474,14 @@
     <value>Show Sidebar (⌘B)</value>
     <comment>Show Sidebar (⌘B)</comment>
   </data>
+  <data name="ShowTheCameraBubble" xml:space="preserve">
+    <value>Show the camera bubble</value>
+    <comment>Show the camera bubble</comment>
+  </data>
+  <data name="ShowTheCursor" xml:space="preserve">
+    <value>Show the cursor</value>
+    <comment>Show the cursor</comment>
+  </data>
   <data name="ShowTheOtherSpeakers" xml:space="preserve">
     <value>Show the other speakers</value>
     <comment>Show the other speakers</comment>
@@ -3077,6 +3497,18 @@
   <data name="ShowingMeetingsInTheNext7DaysTheListUpdatesAutomatically" xml:space="preserve">
     <value>Showing meetings in the next 7 days. The list updates automatically.</value>
     <comment>Showing meetings in the next 7 days. The list updates automatically.</comment>
+  </data>
+  <data name="ShowsKeyPresses" xml:space="preserve">
+    <value>Shows key presses.</value>
+    <comment>Shows key presses.</comment>
+  </data>
+  <data name="ShowsShortcutsSuchAsKAtTheBottomOfTheScreen" xml:space="preserve">
+    <value>Shows shortcuts such as ⌘K at the bottom of the screen.</value>
+    <comment>Shows shortcuts such as ⌘K at the bottom of the screen.</comment>
+  </data>
+  <data name="ShowsTheCameraBubble" xml:space="preserve">
+    <value>Shows the camera bubble.</value>
+    <comment>Shows the camera bubble.</comment>
   </data>
   <data name="ShowsTheTranscriptDuringTheRecordingWhisperAndParakeetModels" xml:space="preserve">
     <value>Shows the transcript during the recording. Whisper and Parakeet models keep it, so it is ready within seconds of Stop. Uses more CPU and memory while recording. A cloud engine can show it with a local model or its realtime stream: see Transcription model below.</value>
@@ -3106,9 +3538,17 @@
     <value>Shows the transcript while recording with a model on this PC. Free: nothing is uploaded while recording, but it uses CPU, memory and battery. The saved transcript still comes from {0} after Stop, so it can differ from what you saw.</value>
     <comment>Shows the transcript while recording with a model on this PC. Free: nothing is uploaded while recording, but it uses CPU, memory and battery. The saved transcript still comes from %@ after Stop, so it can differ from what you saw.</comment>
   </data>
+  <data name="ShowsYourCameraInARoundBubbleOnScreen" xml:space="preserve">
+    <value>Shows your camera in a round bubble on screen.</value>
+    <comment>Shows your camera in a round bubble on screen.</comment>
+  </data>
   <data name="SimulateState" xml:space="preserve">
     <value>Simulate state</value>
     <comment>Simulate state</comment>
+  </data>
+  <data name="SizesMeasuredInAMeetingLikeWindowRecordingAt15FpsMoreMotionO" xml:space="preserve">
+    <value>Sizes measured in a meeting-like window recording at 15 fps. More motion or a higher frame rate makes larger files.</value>
+    <comment>Sizes measured in a meeting-like window recording at 15 fps. More motion or a higher frame rate makes larger files.</comment>
   </data>
   <data name="Skip" xml:space="preserve">
     <value>Skip</value>
@@ -3121,6 +3561,10 @@
   <data name="Small" xml:space="preserve">
     <value>Small</value>
     <comment>Small</comment>
+  </data>
+  <data name="Smaller" xml:space="preserve">
+    <value>Smaller</value>
+    <comment>Smaller</comment>
   </data>
   <data name="SonnetOpusOrHaikuEmptyDefault" xml:space="preserve">
     <value>sonnet, opus or haiku (empty = default)</value>
@@ -3222,6 +3666,14 @@
     <value>Stop recording (⌘R)</value>
     <comment>Stop recording (⌘R)</comment>
   </data>
+  <data name="StopRecordingScreen" xml:space="preserve">
+    <value>Stop Recording Screen</value>
+    <comment>Stop Recording Screen</comment>
+  </data>
+  <data name="StopRecordingTheScreen" xml:space="preserve">
+    <value>Stop recording the screen</value>
+    <comment>Stop recording the screen</comment>
+  </data>
   <data name="StopRecording_2" xml:space="preserve">
     <value>Stop recording</value>
     <comment>Stop recording</comment>
@@ -3229,6 +3681,10 @@
   <data name="StopRecording_3" xml:space="preserve">
     <value>Stop recording?</value>
     <comment>Stop recording?</comment>
+  </data>
+  <data name="StopScreen" xml:space="preserve">
+    <value>Stop screen</value>
+    <comment>Stop screen</comment>
   </data>
   <data name="StopTheAnswer" xml:space="preserve">
     <value>Stop the answer</value>
@@ -3426,6 +3882,54 @@
     <value>the app</value>
     <comment>the app</comment>
   </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheRecycleBin" xml:space="preserve">
+    <value>The audio and video of {0} conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</value>
+    <comment>The audio and video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheRecycleBin_2" xml:space="preserve">
+    <value>The audio and video of {0} conversations will be moved to the Recycle Bin now, then daily for older ones:</value>
+    <comment>The audio and video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheRecycleBin_2__One" xml:space="preserve">
+    <value>The audio and video of {0} conversation will be moved to the Recycle Bin now, then daily for older ones:</value>
+    <comment>The audio and video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheRecycleBin__One" xml:space="preserve">
+    <value>The audio and video of {0} conversation will be moved to the Recycle Bin at the next run (at launch or within a day):</value>
+    <comment>The audio and video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheTrashAtThe" xml:space="preserve">
+    <value>The audio and video of {0} conversations will be moved to the Trash at the next run (at launch or within a day):</value>
+    <comment>The audio and video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheTrashAtThe__One" xml:space="preserve">
+    <value>The audio and video of {0} conversation will be moved to the Trash at the next run (at launch or within a day):</value>
+    <comment>The audio and video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheTrashNowTh" xml:space="preserve">
+    <value>The audio and video of {0} conversations will be moved to the Trash now, then daily for older ones:</value>
+    <comment>The audio and video of %lld conversations will be moved to the Trash now, then daily for older ones:</comment>
+  </data>
+  <data name="TheAudioAndVideoOfLldConversationsWillBeMovedToTheTrashNowTh__One" xml:space="preserve">
+    <value>The audio and video of {0} conversation will be moved to the Trash now, then daily for older ones:</value>
+    <comment>The audio and video of %lld conversations will be moved to the Trash now, then daily for older ones:</comment>
+  </data>
+  <data name="TheAudioAndVideoOfTranscribedConversationsOlderThanLldDaysWi" xml:space="preserve">
+    <value>The audio and video of transcribed conversations older than {0} days will be moved to the Recycle Bin once a day. Nothing matches now.</value>
+    <comment>The audio and video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
+  </data>
+  <data name="TheAudioAndVideoOfTranscribedConversationsOlderThanLldDaysWi_2" xml:space="preserve">
+    <value>The audio and video of transcribed conversations older than {0} days will be moved to the Trash once a day. Nothing matches now.</value>
+    <comment>The audio and video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now.</comment>
+  </data>
+  <data name="TheAudioAndVideoOfTranscribedConversationsOlderThanLldDaysWi_2__One" xml:space="preserve">
+    <value>The audio and video of transcribed conversations older than {0} day will be moved to the Trash once a day. Nothing matches now.</value>
+    <comment>The audio and video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now.</comment>
+  </data>
+  <data name="TheAudioAndVideoOfTranscribedConversationsOlderThanLldDaysWi__One" xml:space="preserve">
+    <value>The audio and video of transcribed conversations older than {0} day will be moved to the Recycle Bin once a day. Nothing matches now.</value>
+    <comment>The audio and video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
+  </data>
   <data name="TheAudioDeviceChangedWhileRecordingWasStartingTryAgain" xml:space="preserve">
     <value>The audio device changed while recording was starting. Try again.</value>
     <comment>The audio device changed while recording was starting. Try again.</comment>
@@ -3454,22 +3958,6 @@
     <value>The audio is moved to the Trash. The transcript, summary and chat stay; playback and re-transcribing are no longer possible.</value>
     <comment>The audio is moved to the Trash. The transcript, summary and chat stay; playback and re-transcribing are no longer possible.</comment>
   </data>
-  <data name="TheAudioOfLldConversationsWillBeMovedToTheRecycleBinAtTheNex" xml:space="preserve">
-    <value>The audio of {0} conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</value>
-    <comment>The audio of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</comment>
-  </data>
-  <data name="TheAudioOfLldConversationsWillBeMovedToTheRecycleBinAtTheNex__One" xml:space="preserve">
-    <value>The audio of {0} conversation will be moved to the Recycle Bin at the next run (at launch or within a day):</value>
-    <comment>The audio of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</comment>
-  </data>
-  <data name="TheAudioOfLldConversationsWillBeMovedToTheRecycleBinNowThenD" xml:space="preserve">
-    <value>The audio of {0} conversations will be moved to the Recycle Bin now, then daily for older ones:</value>
-    <comment>The audio of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:</comment>
-  </data>
-  <data name="TheAudioOfLldConversationsWillBeMovedToTheRecycleBinNowThenD__One" xml:space="preserve">
-    <value>The audio of {0} conversation will be moved to the Recycle Bin now, then daily for older ones:</value>
-    <comment>The audio of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:</comment>
-  </data>
   <data name="TheAudioOfLldConversationsWillBeMovedToTheTrashAtTheNextRunA" xml:space="preserve">
     <value>The audio of {0} conversations will be moved to the Trash at the next run (at launch or within a day):</value>
     <comment>The audio of %lld conversations will be moved to the Trash at the next run (at launch or within a day):</comment>
@@ -3487,20 +3975,12 @@
     <comment>The audio of %lld conversations will be moved to the Trash now, then daily for older ones:</comment>
   </data>
   <data name="TheAudioOfTranscribedConversationsOlderThanLldDaysWillBeMove" xml:space="preserve">
-    <value>The audio of transcribed conversations older than {0} days will be moved to the Recycle Bin once a day. Nothing matches now.</value>
-    <comment>The audio of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
-  </data>
-  <data name="TheAudioOfTranscribedConversationsOlderThanLldDaysWillBeMove_2" xml:space="preserve">
     <value>The audio of transcribed conversations older than {0} days will be moved to the Trash once a day. Nothing matches now.</value>
     <comment>The audio of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now.</comment>
   </data>
-  <data name="TheAudioOfTranscribedConversationsOlderThanLldDaysWillBeMove_2__One" xml:space="preserve">
+  <data name="TheAudioOfTranscribedConversationsOlderThanLldDaysWillBeMove__One" xml:space="preserve">
     <value>The audio of transcribed conversations older than {0} day will be moved to the Trash once a day. Nothing matches now.</value>
     <comment>The audio of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now.</comment>
-  </data>
-  <data name="TheAudioOfTranscribedConversationsOlderThanLldDaysWillBeMove__One" xml:space="preserve">
-    <value>The audio of transcribed conversations older than {0} day will be moved to the Recycle Bin once a day. Nothing matches now.</value>
-    <comment>The audio of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
   </data>
   <data name="TheAudioSystemIsNotRunningTryAgainInAMoment" xml:space="preserve">
     <value>The audio system is not running. Try again in a moment.</value>
@@ -3546,6 +4026,10 @@
     <value>The indicator asks before stopping, with a 15 s countdown. Reaching the length limit stops at once.</value>
     <comment>The indicator asks before stopping, with a 15 s countdown. Reaching the length limit stops at once.</comment>
   </data>
+  <data name="TheLastArea" xml:space="preserve">
+    <value>the last area</value>
+    <comment>the last area</comment>
+  </data>
   <data name="TheLicenseTextIsMissingFromThisBuild" xml:space="preserve">
     <value>The license text is missing from this build.</value>
     <comment>The license text is missing from this build.</comment>
@@ -3553,6 +4037,14 @@
   <data name="TheMeetingHasEndedStopRecording" xml:space="preserve">
     <value>The meeting has ended — stop recording?</value>
     <comment>The meeting has ended — stop recording?</comment>
+  </data>
+  <data name="TheNextRecordingAlsoRecords" xml:space="preserve">
+    <value>The next recording also records {0}</value>
+    <comment>The next recording also records %@</comment>
+  </data>
+  <data name="TheNextRecordingAlsoRecordsTheScreen" xml:space="preserve">
+    <value>The next recording also records the screen</value>
+    <comment>The next recording also records the screen</comment>
   </data>
   <data name="TheOpenChatStaysThisCanTBeUndone" xml:space="preserve">
     <value>The open chat stays. This can't be undone.</value>
@@ -3582,6 +4074,10 @@
     <value>The recording failed.</value>
     <comment>The recording failed.</comment>
   </data>
+  <data name="TheRecordingStartsAsSoonAsYouPick" xml:space="preserve">
+    <value>The recording starts as soon as you pick.</value>
+    <comment>The recording starts as soon as you pick.</comment>
+  </data>
   <data name="TheRecordingsAndTheirFilesAreMovedToTheRecycleBin" xml:space="preserve">
     <value>The recordings and their files are moved to the Recycle Bin.</value>
     <comment>The recordings and their files are moved to the Recycle Bin.</comment>
@@ -3598,6 +4094,34 @@
     <value>The saved transcript is made after Stop and can differ.</value>
     <comment>The saved transcript is made after Stop and can differ.</comment>
   </data>
+  <data name="TheScreenCouldNotBeRecordedTheSoundIsStillRecording" xml:space="preserve">
+    <value>The screen could not be recorded. The sound is still recording.</value>
+    <comment>The screen could not be recorded. The sound is still recording.</comment>
+  </data>
+  <data name="TheScreenCouldNotBeRecordedThisRecordingWillNotBeTranscribed" xml:space="preserve">
+    <value>The screen could not be recorded. This recording will not be transcribed automatically; you can transcribe it later.</value>
+    <comment>The screen could not be recorded. This recording will not be transcribed automatically; you can transcribe it later.</comment>
+  </data>
+  <data name="TheScreenIsRecordedToo" xml:space="preserve">
+    <value>The screen is recorded too</value>
+    <comment>The screen is recorded too</comment>
+  </data>
+  <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
+    <value>The screen recording is moved to the Trash. Everything else in the conversation stays.</value>
+    <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
+  </data>
+  <data name="TheScreenRecordingStoppedOnAnError" xml:space="preserve">
+    <value>The screen recording stopped on an error</value>
+    <comment>The screen recording stopped on an error</comment>
+  </data>
+  <data name="TheScreenRecordingsAreMovedToTheTrashEverythingElseInTheseCo" xml:space="preserve">
+    <value>The screen recordings are moved to the Trash. Everything else in these conversations stays.</value>
+    <comment>The screen recordings are moved to the Trash. Everything else in these conversations stays.</comment>
+  </data>
+  <data name="TheScreenWasRecordedUntilItStopped" xml:space="preserve">
+    <value>The screen was recorded until it stopped</value>
+    <comment>The screen was recorded until it stopped</comment>
+  </data>
   <data name="TheSelectedAppStoppedPlayingAudioBeforeRecordingCouldResume" xml:space="preserve">
     <value>The selected app stopped playing audio before recording could resume.</value>
     <comment>The selected app stopped playing audio before recording could resume.</comment>
@@ -3605,6 +4129,10 @@
   <data name="TheSelectedAppStoppedPlayingAudioBeforeRecordingCouldStart" xml:space="preserve">
     <value>The selected app stopped playing audio before recording could start.</value>
     <comment>The selected app stopped playing audio before recording could start.</comment>
+  </data>
+  <data name="TheSelectedArea" xml:space="preserve">
+    <value>the selected area</value>
+    <comment>the selected area</comment>
   </data>
   <data name="TheShortcutCouldNotBeSetUpErrorD" xml:space="preserve">
     <value>The shortcut could not be set up (error {0}).</value>
@@ -3641,6 +4169,62 @@
   <data name="TheTranscriptionSpeakerAndAIModelsAreRemovedFromThisPCNotMov" xml:space="preserve">
     <value>The transcription, speaker and AI models are removed from this PC (not moved to the Recycle Bin). Download them again in Settings › AI Providers › Local AI.</value>
     <comment>The transcription, speaker and AI models are removed from this PC (not moved to the Recycle Bin). Download them again in Settings › AI Providers › Local AI.</comment>
+  </data>
+  <data name="TheVideoCouldNotBeExported" xml:space="preserve">
+    <value>The video could not be exported.</value>
+    <comment>The video could not be exported.</comment>
+  </data>
+  <data name="TheVideoFilesAreMovedToTheTrashAudioTranscriptsSummariesAndC" xml:space="preserve">
+    <value>The video files are moved to the Trash. Audio, transcripts, summaries and chats stay.</value>
+    <comment>The video files are moved to the Trash. Audio, transcripts, summaries and chats stay.</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheRecycleBinAtTheNex" xml:space="preserve">
+    <value>The video of {0} conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</value>
+    <comment>The video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheRecycleBinAtTheNex__One" xml:space="preserve">
+    <value>The video of {0} conversation will be moved to the Recycle Bin at the next run (at launch or within a day):</value>
+    <comment>The video of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheRecycleBinNowThenD" xml:space="preserve">
+    <value>The video of {0} conversations will be moved to the Recycle Bin now, then daily for older ones:</value>
+    <comment>The video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheRecycleBinNowThenD__One" xml:space="preserve">
+    <value>The video of {0} conversation will be moved to the Recycle Bin now, then daily for older ones:</value>
+    <comment>The video of %lld conversations will be moved to the Recycle Bin now, then daily for older ones:</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheTrashAtTheNextRunA" xml:space="preserve">
+    <value>The video of {0} conversations will be moved to the Trash at the next run (at launch or within a day):</value>
+    <comment>The video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheTrashAtTheNextRunA__One" xml:space="preserve">
+    <value>The video of {0} conversation will be moved to the Trash at the next run (at launch or within a day):</value>
+    <comment>The video of %lld conversations will be moved to the Trash at the next run (at launch or within a day):</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheTrashNowThenDailyF" xml:space="preserve">
+    <value>The video of {0} conversations will be moved to the Trash now, then daily for older ones:</value>
+    <comment>The video of %lld conversations will be moved to the Trash now, then daily for older ones:</comment>
+  </data>
+  <data name="TheVideoOfLldConversationsWillBeMovedToTheTrashNowThenDailyF__One" xml:space="preserve">
+    <value>The video of {0} conversation will be moved to the Trash now, then daily for older ones:</value>
+    <comment>The video of %lld conversations will be moved to the Trash now, then daily for older ones:</comment>
+  </data>
+  <data name="TheVideoOfTranscribedConversationsOlderThanLldDaysWillBeMove" xml:space="preserve">
+    <value>The video of transcribed conversations older than {0} days will be moved to the Recycle Bin once a day. Nothing matches now.</value>
+    <comment>The video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
+  </data>
+  <data name="TheVideoOfTranscribedConversationsOlderThanLldDaysWillBeMove_2" xml:space="preserve">
+    <value>The video of transcribed conversations older than {0} days will be moved to the Trash once a day. Nothing matches now.</value>
+    <comment>The video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now.</comment>
+  </data>
+  <data name="TheVideoOfTranscribedConversationsOlderThanLldDaysWillBeMove_2__One" xml:space="preserve">
+    <value>The video of transcribed conversations older than {0} day will be moved to the Trash once a day. Nothing matches now.</value>
+    <comment>The video of transcribed conversations older than %lld days will be moved to the Trash once a day. Nothing matches now.</comment>
+  </data>
+  <data name="TheVideoOfTranscribedConversationsOlderThanLldDaysWillBeMove__One" xml:space="preserve">
+    <value>The video of transcribed conversations older than {0} day will be moved to the Recycle Bin once a day. Nothing matches now.</value>
+    <comment>The video of transcribed conversations older than %lld days will be moved to the Recycle Bin once a day. Nothing matches now.</comment>
   </data>
   <data name="ThereIsNotEnoughFreeDiskSpaceToRecord" xml:space="preserve">
     <value>There is not enough free disk space to record.</value>
@@ -3786,9 +4370,17 @@
     <value>Transcribe now, even with energy saver on</value>
     <comment>Transcribe now, even with energy saver on</comment>
   </data>
+  <data name="TranscribeScreenRecordings" xml:space="preserve">
+    <value>Transcribe screen recordings</value>
+    <comment>Transcribe screen recordings</comment>
+  </data>
   <data name="TranscribeThisConversation" xml:space="preserve">
     <value>Transcribe this conversation</value>
     <comment>Transcribe this conversation</comment>
+  </data>
+  <data name="TranscribeThisRecording" xml:space="preserve">
+    <value>Transcribe this recording</value>
+    <comment>Transcribe this recording</comment>
   </data>
   <data name="TranscribeWhileRecording" xml:space="preserve">
     <value>Transcribe while recording</value>
@@ -3833,6 +4425,10 @@
   <data name="TranscriptionFailedTranscribeThisConversationAgain" xml:space="preserve">
     <value>Transcription failed — transcribe this conversation again</value>
     <comment>Transcription failed — transcribe this conversation again</comment>
+  </data>
+  <data name="TranscriptionIsOffForThisRecording" xml:space="preserve">
+    <value>Transcription is off for this recording.</value>
+    <comment>Transcription is off for this recording.</comment>
   </data>
   <data name="TranscriptionIsOffTurnOnTranscribeAutomaticallyInSettingsRec" xml:space="preserve">
     <value>Transcription is off. Turn on Transcribe automatically in Settings › Recording.</value>
@@ -4010,6 +4606,10 @@
     <value>Use {0}</value>
     <comment>Use %@</comment>
   </data>
+  <data name="Use60Fps" xml:space="preserve">
+    <value>Use 60 fps</value>
+    <comment>Use 60 fps</comment>
+  </data>
   <data name="UseAnHttpsLink" xml:space="preserve">
     <value>Use an https link.</value>
     <comment>Use an https link.</comment>
@@ -4077,6 +4677,26 @@
   <data name="ViaAPI" xml:space="preserve">
     <value>Via API</value>
     <comment>Via API</comment>
+  </data>
+  <data name="Video" xml:space="preserve">
+    <value>Video</value>
+    <comment>Video</comment>
+  </data>
+  <data name="VideoLayout" xml:space="preserve">
+    <value>Video layout</value>
+    <comment>Video layout</comment>
+  </data>
+  <data name="VideoOnTheLeft" xml:space="preserve">
+    <value>Video on the left</value>
+    <comment>Video on the left</comment>
+  </data>
+  <data name="VideoOnTop" xml:space="preserve">
+    <value>Video on top</value>
+    <comment>Video on top</comment>
+  </data>
+  <data name="VideoOnlyKeepAudioTranscriptSummaryAndChat" xml:space="preserve">
+    <value>Video only (keep audio, transcript, summary and chat)</value>
+    <comment>Video only (keep audio, transcript, summary and chat)</comment>
   </data>
   <data name="Vietnamese" xml:space="preserve">
     <value>Vietnamese</value>

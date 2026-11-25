@@ -9,7 +9,7 @@ extension Notification.Name {
 }
 
 /// One conversation inside the main window (its title, date, duration and size, its tabs and Reveal in Finder are in
-/// the toolbar). The Transcript tab ends with a bar of speakers (click to rename), actions and playback. The segments
+/// the toolbar). The Transcript tab ends with a bar of playback, actions and speakers (click to rename). The segments
 /// are one selectable text; a click on a segment's timestamp or name plays from its start; Space plays or pauses.
 /// Stays mounted across tabs, so playback goes on in Summary and Chat.
 struct TranscriptView: View {
@@ -24,6 +24,10 @@ struct TranscriptView: View {
     @State private var shownVersion: Int?
     /// The audio file `playback` opened, to reload its segments when another version is shown.
     @State private var audioURL: URL?
+    /// The video file `playback` opened, with the span that has a picture; nil without one (or before `load`).
+    @State private var videoClip: VideoClip?
+    /// The video the open Export video sheet exports, taken when it opened (a reload cannot empty the sheet).
+    @State private var exportedVideo: URL?
     /// `shownTranscript` as the text the card shows; the first one is built off the main thread with the files.
     @State private var shownText: TranscriptText?
     /// Speaker ids of `shownTranscript`: me first, then s1, s2…
@@ -59,16 +63,15 @@ struct TranscriptView: View {
         ZStack(alignment: .top) {
             if shownTab == .transcript {
                 // The bar slides with the transcript: it has nothing for Summary and Chat. Until the files are read,
-                // a light pane, so the click that opened the conversation shows at once.
-                if loaded {
-                    VStack(spacing: 10) {
-                        content
-                        bottomBar
+                // a light pane (beside the video pane's placeholder when there is a video), so the click that opened
+                // the conversation shows at once.
+                VStack(spacing: 10) {
+                    withVideoPane {
+                        if loaded { content } else { DetailLoadingPane() }
                     }
-                    .transition(tabTransition)
-                } else {
-                    DetailLoadingPane().transition(tabTransition)
+                    if loaded { bottomBar }
                 }
+                .transition(tabTransition)
             } else {
                 AIPanelView(conversation: conversation, model: model, tab: shownTab, transition: tabTransition)
                     .transition(tabTransition)
@@ -79,6 +82,9 @@ struct TranscriptView: View {
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task(id: conversation) { await load() }
+        #if DEBUG
+        .onAppear { DetailTiming.log("placeholder", conversation.id) }
+        #endif
         .task { model.refreshInstalledModels() }
         .onChange(of: model.detailTab) { old, new in
             forward = (Self.tabs.firstIndex(of: new) ?? 0) > (Self.tabs.firstIndex(of: old) ?? 0)
@@ -94,6 +100,11 @@ struct TranscriptView: View {
             playback.togglePlay()
         }
         .onDisappear { playback.close() }
+        .sheet(isPresented: Binding(get: { exportedVideo != nil }, set: { if !$0 { exportedVideo = nil } })) {
+            if let exportedVideo {
+                VideoExportSheet(title: conversation.title, folder: conversation.folder, video: exportedVideo)
+            }
+        }
     }
 
     static let tabs: [AppModel.DetailTab] = [.transcript, .summary, .chat]
@@ -127,7 +138,7 @@ struct TranscriptView: View {
 
     // MARK: - Bottom bar
 
-    /// Like the Summary and Chat tabs' bars: the transcription's state, then the speakers, actions and playback.
+    /// Like the Summary and Chat tabs' bars: the transcription's state, then playback, actions and the speakers.
     private var bottomBar: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Not wrapped in a row: its body is often empty, which then takes no space. A running job shows on
@@ -147,7 +158,7 @@ struct TranscriptView: View {
             } else if shownTranscript?.notes.contains(Transcript.diarizationMissingNote) == true {
                 diarizationMissingNotice
             }
-            if conversation.hasAudio {
+            if conversation.hasAudio || videoClip != nil {
                 HStack(spacing: 10) {
                     PlaybackScrubber(playback: playback)
                     PlaybackTime(playback: playback).fixedSize()
@@ -205,18 +216,69 @@ struct TranscriptView: View {
         .font(.caption)
     }
 
-    /// Speaker chips, then the actions and the transport at the trailing edge.
+    /// The transport first, then Re-transcribe and Summarize, the other buttons, and the speaker chips at the trailing
+    /// edge.
     private func controlRow(chips: Int) -> some View {
         HStack(spacing: 8) {
+            if conversation.hasAudio {
+                transport
+            } else if videoClip != nil {
+                // The video still plays.
+                transport
+                audioRemovedNote
+            } else {
+                audioRemovedNote
+            }
+            primaryActions
+            secondaryActions
+            Spacer(minLength: 8)
             if shownTranscript != nil && !speakers.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(speakers.prefix(chips), id: \.self, content: speakerChip)
                     if chips < speakers.count { moreSpeakersChip(Array(speakers.dropFirst(chips))) }
                 }
             }
-            Spacer(minLength: 8)
-            actions
-            if conversation.hasAudio { transport } else { audioRemovedNote }
+        }
+    }
+
+    /// Where the video shows: left of the transcript, above it, or not at all; saved in the settings. A menu whose
+    /// button shows the current layout's icon.
+    private var layoutSwitch: some View {
+        let current = model.settings.transcriptVideoLayout
+        return Menu {
+            ForEach(TranscriptVideoLayout.allCases, id: \.self) { layout in
+                Toggle(isOn: Binding(
+                    get: { layout == current },
+                    set: { if $0 { model.updateSettings { $0.transcriptVideoLayout = layout } } }
+                )) {
+                    Label(Self.layoutName(layout), systemImage: Self.layoutIcon(layout))
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: Self.layoutIcon(current))
+                MenuChevron()
+            }
+            .accessibilityLabel(Self.layoutName(current))
+        }
+        // As tall as the row's other buttons (Export video, Delete video, Copy).
+        .modifier(CompactMenu(maxWidth: nil, height: BottomBarButtonStyle.height, horizontalPadding: 10))
+        .help("Video layout")
+    }
+
+    private static func layoutIcon(_ layout: TranscriptVideoLayout) -> String {
+        switch layout {
+        case .sideBySide: "rectangle.split.2x1"
+        case .stacked: "rectangle.split.1x2"
+        case .hidden: "video.slash"
+        }
+    }
+
+    private static func layoutName(_ layout: TranscriptVideoLayout) -> LocalizedStringKey {
+        switch layout {
+        case .sideBySide: "Video on the left"
+        case .stacked: "Video on top"
+        case .hidden: "Hide video"
         }
     }
 
@@ -227,10 +289,14 @@ struct TranscriptView: View {
 
     private static let maxSpeakerChips = 3
 
-    /// Copy (round), Re-transcribe and Summarize, in the accent color like Send; a spinner and "Transcribing…" in
-    /// Re-transcribe's place while a job is queued or runs, with Stop (round) beside it ("Stopping…" once clicked).
-    private var actions: some View {
+    /// The video layout menu, Export video and Delete video (with a video), and Copy, all round.
+    private var secondaryActions: some View {
         HStack(spacing: 6) {
+            if videoClip != nil {
+                layoutSwitch
+                exportVideoButton
+                deleteVideoButton
+            }
             Button(action: copyTranscript) {
                 Label("Copy transcript", systemImage: "square.on.square")
                     .labelStyle(.iconOnly)
@@ -238,6 +304,13 @@ struct TranscriptView: View {
             .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
             .help("Copy transcript")
             .disabled(shownTranscript?.segments.isEmpty ?? true)
+        }
+    }
+
+    /// Re-transcribe and Summarize, in the accent color like Send; a spinner and "Transcribing…" in Re-transcribe's
+    /// place while a job is queued or runs, with Stop (round) beside it ("Stopping…" once clicked).
+    private var primaryActions: some View {
+        HStack(spacing: 6) {
             if model.isTranscribing(conversation.id) {
                 let stopping = model.stoppingTranscriptions.contains(conversation.id)
                 Button {} label: {
@@ -263,6 +336,33 @@ struct TranscriptView: View {
             }
             if transcript?.segments.isEmpty == false { summaryButton }
         }
+    }
+
+    /// Opens `VideoExportSheet`. Not while the conversation is recorded, compressed or transcribed (as Delete video).
+    private var exportVideoButton: some View {
+        Button { exportedVideo = videoClip?.url } label: {
+            Label("Export video…", systemImage: "square.and.arrow.up")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
+        .help("Export video…")
+        .disabled(!DeleteMenuItems.canDelete(conversation, model))
+    }
+
+    /// Moves the video to the Trash, asked first like Delete audio; the conversation then reloads without it (`load`
+    /// runs again as `hasVideo` turns false), so the pane and the layout switch go. Not while the conversation is
+    /// recorded, compressed or transcribed.
+    private var deleteVideoButton: some View {
+        let asks = !model.settings.deleteWithoutConfirmation
+        return Button {
+            DeleteMenuItems.delete(.video, conversation, model)
+        } label: {
+            Label(asks ? "Delete video…" : "Delete video", systemImage: "trash")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
+        .help(asks ? "Delete video…" : "Delete video")
+        .disabled(!DeleteMenuItems.canDelete(conversation, model))
     }
 
     /// Opens the Summary tab, and starts a summary when there is none yet and the AI tab could start one; a spinner and
@@ -328,13 +428,16 @@ struct TranscriptView: View {
             && conversation.status != .compressing && conversation.status != .failed
     }
 
-    /// In place of the transport once the audio was moved to the Trash (from a Delete menu, Storage or auto-delete).
+    /// In place of the transport once the audio was moved to the Trash (from a Delete menu, Storage or auto-delete);
+    /// beside it when the video still plays.
     private var audioRemovedNote: some View {
         Label("Audio has been removed", systemImage: "speaker.slash")
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize()
-            .help("Playback and re-transcribing are no longer possible. The transcript, summary and chat stay.")
+            .help(videoClip == nil
+                  ? Text("Playback and re-transcribing are no longer possible. The transcript, summary and chat stay.")
+                  : Text("Re-transcribing is no longer possible. The video, transcript, summary and chat stay."))
     }
 
     private var transport: some View {
@@ -535,6 +638,35 @@ struct TranscriptView: View {
         .modifier(GlassCard(cornerRadius: 20))
     }
 
+    /// `main` (the transcript card, or its loading pane) with the video pane left of it or above it, as
+    /// `transcriptVideoLayout` says; alone without a video or when the layout hides it.
+    @ViewBuilder
+    private func withVideoPane<Main: View>(@ViewBuilder _ main: () -> Main) -> some View {
+        if showsVideoPane {
+            let pane = VideoPaneView(playback: playback, clip: videoClip, conversationID: conversation.id)
+            if model.settings.transcriptVideoLayout == .stacked {
+                PaneSplit(vertical: true, firstMinimum: 120, secondMinimum: 160) { pane } second: { main() }
+            } else {
+                PaneSplit(vertical: false, firstMinimum: 200, secondMinimum: 260) { pane } second: { main() }
+            }
+        } else {
+            main()
+        }
+    }
+
+    /// Not while the video is still being written. Not tied to the audio: a conversation keeps its video after
+    /// "Delete audio after transcription".
+    private var videoPlayable: Bool { conversation.hasVideo && conversation.status != .recording }
+
+    /// Before `load`, from the conversation, so the pane's placeholder shows in the click's frame; after it, from the
+    /// file found.
+    private var showsVideoPane: Bool {
+        model.settings.transcriptVideoLayout != .hidden && (loaded ? videoClip != nil : videoPlayable)
+    }
+
+    /// Segment clicks and the transport play the audio, or the video without it.
+    private var mediaPlayable: Bool { audioURL != nil || videoClip != nil }
+
     /// The picked older version's transcript, else the newest.
     private var shownTranscript: Transcript? {
         versions.first { $0.number == shownVersion }?.transcript ?? transcript
@@ -592,12 +724,14 @@ struct TranscriptView: View {
     /// Reads the transcript, builds its text and resolves the audio file off the main thread; runs again when the
     /// conversation changes (e.g. a re-transcription finished). No playback while the audio is being recorded or
     /// compressed, or once it was deleted (which stops it). A file gone without the app (deleted in Finder) lists the
-    /// conversation again, without audio.
+    /// conversation again, without audio. The video likewise, with its own gate (`videoPlayable`); its track and
+    /// duration are read here too, so the player opens on a measured file.
     private func load() async {
         let folder = conversation.folder
         let wantsTranscript = conversation.hasTranscript
         let playable = conversation.hasAudio && conversation.status != .recording && conversation.status != .compressing
-        let (loaded, audio, text) = await Task.detached(priority: .utility) {
+        let videoPlayable = videoPlayable
+        let (loaded, audio, video, videoGone, text) = await Task.detached(priority: .utility) {
             // The newest version is transcript.json itself.
             let versions = wantsTranscript ? Transcript.readVersions(from: folder) : []
             let audio = playable
@@ -605,18 +739,27 @@ struct TranscriptView: View {
                     ConversationFiles.audioURL(in: folder, fileName: $0.audioFileName)
                 }.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
                 : nil
-            return (versions, audio, versions.last.map { TranscriptText($0.transcript, playable: audio != nil) })
+            let videoFile = videoPlayable ? VideoClip.file(in: folder) : nil
+            // A file that exists but cannot be read shows no pane, and is not "gone".
+            let video = if let videoFile { await VideoClip.load(videoFile) } else { VideoClip?.none }
+            let text = versions.last.map { TranscriptText($0.transcript, playable: audio != nil || video != nil) }
+            return (versions, audio, video, videoPlayable && videoFile == nil, text)
         }.value
         guard !Task.isCancelled else { return }
         if playable, audio == nil { model.audioMissing(conversation.id) }
+        if videoGone { model.videoMissing(conversation.id) }
         versions = loaded
         transcript = loaded.last?.transcript
         shownVersion = nil
         audioURL = audio
+        videoClip = video
         shownText = text
         loadFailed = wantsTranscript && loaded.isEmpty
         applyShownVersion()
         self.loaded = true
+        #if DEBUG
+        DetailTiming.log("content", conversation.id)
+        #endif
         showPendingTime()
     }
 
@@ -625,8 +768,8 @@ struct TranscriptView: View {
     private func applyShownVersion() {
         speakers = shownTranscript.map(Self.speakers) ?? []
         updateShownText()
-        playback.load(url: audioURL, segments: shownTranscript?.segments ?? [],
-                      channels: model.settings.playbackChannels)
+        playback.load(url: audioURL, video: videoClip?.url, firstFrame: videoClip?.shown.lowerBound ?? 0,
+                      segments: shownTranscript?.segments ?? [], channels: model.settings.playbackChannels)
         if shownVersion != nil {
             renaming = nil
             showingMoreSpeakers = false
@@ -640,8 +783,8 @@ struct TranscriptView: View {
             shownText = nil
             return
         }
-        if shownText?.transcript != shown || shownText?.playable != (audioURL != nil) {
-            shownText = TranscriptText(shown, playable: audioURL != nil)
+        if shownText?.transcript != shown || shownText?.playable != mediaPlayable {
+            shownText = TranscriptText(shown, playable: mediaPlayable)
         }
     }
 
@@ -783,5 +926,52 @@ private struct SpeakerChipShape: ViewModifier {
             .frame(height: BottomBarButtonStyle.height)
             .background(Palette.hoverFill, in: Capsule())
             .contentShape(Capsule())
+    }
+}
+
+/// The video pane and the transcript side by side or stacked, split half and half at first, with a 10 pt gap between
+/// the two cards that drags to resize them (a resize pointer over it). No divider line: unlike `HSplitView` and
+/// `VSplitView`, whose divider cannot be hidden, the cards' own edges separate them.
+private struct PaneSplit<First: View, Second: View>: View {
+    let vertical: Bool
+    let firstMinimum: CGFloat
+    let secondMinimum: CGFloat
+    @ViewBuilder let first: First
+    @ViewBuilder let second: Second
+    /// The first pane's share of the space without the gap.
+    @State private var fraction: CGFloat = 0.5
+    /// The first pane's length when the drag began.
+    @State private var dragStart: CGFloat?
+
+    private static var gap: CGFloat { 10 }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let total = max((vertical ? geometry.size.height : geometry.size.width) - Self.gap, 0)
+            let length = clamped(total * fraction, total: total)
+            let layout = vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
+            layout {
+                first.frame(width: vertical ? nil : length, height: vertical ? length : nil)
+                Color.clear
+                    .frame(width: vertical ? nil : Self.gap, height: vertical ? Self.gap : nil)
+                    .contentShape(Rectangle())
+                    .pointerStyle(vertical ? .rowResize : .columnResize)
+                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { drag in
+                            let start = dragStart ?? length
+                            if dragStart == nil { dragStart = start }
+                            let moved = vertical ? drag.translation.height : drag.translation.width
+                            if total > 0 { fraction = clamped(start + moved, total: total) / total }
+                        }
+                        .onEnded { _ in dragStart = nil })
+                second.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    /// `length` kept between the two minimums; half and half when the space is too small for both.
+    private func clamped(_ length: CGFloat, total: CGFloat) -> CGFloat {
+        guard total >= firstMinimum + secondMinimum else { return total / 2 }
+        return min(max(length, firstMinimum), total - secondMinimum)
     }
 }

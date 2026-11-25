@@ -107,8 +107,10 @@
                 </Button>
 
                 <!--
-                    Idle: Record and its menu of targets and the language, a split button with no fill at rest and the
-                    default hover, pressed and menu-open fills. Recording: Stop and Pause or Resume.
+                    Idle: Record and its options (the system audio target and the language), a split button with no fill
+                    at rest and the default hover, pressed and menu-open fills. The options stay open while they are
+                    picked and close on a click outside them or on Esc (macOS RecordingOptionsPopover). Recording: Stop
+                    and Pause or Resume.
                 -->
                 <StackPanel x:Name="RecordGroup" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <SplitButton
@@ -121,7 +123,23 @@
                         ToolTipService.ToolTip="{local:T Text='Record'}">
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE7C8;" />
                         <SplitButton.Flyout>
-                            <MenuFlyout x:Name="TargetMenu" Placement="BottomEdgeAlignedLeft" />
+                            <Flyout x:Name="TargetMenu" Placement="BottomEdgeAlignedLeft">
+                                <StackPanel MinWidth="240" Spacing="4">
+                                    <TextBlock
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{local:T Text='System audio'}" />
+                                    <!-- "All system audio" and the apps with audio (code-behind). -->
+                                    <StackPanel x:Name="TargetsPanel" />
+                                    <Border Height="1" Margin="0,4" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                    <TextBlock
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{local:T Text='Language'}" />
+                                    <!-- The language picker (code-behind, it needs the model). -->
+                                    <Border x:Name="LanguageHost" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Flyout>
                         </SplitButton.Flyout>
                     </SplitButton>
                     <Button

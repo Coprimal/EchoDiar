@@ -150,6 +150,8 @@ public final class RecordingEngine: @unchecked Sendable {
 
     private var state = State.idle
     private var target = CaptureTarget.global
+    /// False: no process tap at all, the system channel is written as silence (see `start`).
+    private var systemAudio = true
     private var micDeviceUID: String?
     private var session: RecordingSession?
     private var folder: URL?
@@ -182,15 +184,19 @@ public final class RecordingEngine: @unchecked Sendable {
     /// `micDeviceUID` nil (or a device that is gone) records the default input.
     /// `probe` marks the session as recorded by the DEBUG `--capture-probe` harness. `title` (e.g. the calendar
     /// event's) goes into the first `session.json`, trimmed; blank or nil leaves the default title.
+    /// `skipsTranscription` marks the recording "screen only" in the first `session.json`.
+    /// `systemAudio` false records the microphone only: no tap is created (nor reopened at resume or on an output
+    /// change), the system channel is written as silence and is never reported as a silent tap.
     @discardableResult
     public func start(
         target: CaptureTarget, language: String, micDeviceUID: String? = nil,
-        root: URL = RecordingSession.conversationsRoot, probe: Bool = false, title: String? = nil
+        root: URL = RecordingSession.conversationsRoot, probe: Bool = false, title: String? = nil,
+        skipsTranscription: Bool = false, systemAudio: Bool = true
     ) throws -> URL {
         try onQueue {
             try startLocked(
                 target: target, language: language, micDeviceUID: micDeviceUID, root: root, probe: probe,
-                title: Self.normalizedTitle(title))
+                title: Self.normalizedTitle(title), skipsTranscription: skipsTranscription, systemAudio: systemAudio)
         }
     }
 
@@ -239,6 +245,15 @@ public final class RecordingEngine: @unchecked Sendable {
         }
     }
 
+    /// Sets the recording's screen video in `session.json`. No-op when idle.
+    public func setVideo(_ video: RecordingSession.Video?) {
+        queue.async { [self] in
+            guard state != .idle, var session else { return }
+            session.video = video
+            save(session)
+        }
+    }
+
     private static func normalizedTitle(_ title: String?) -> String? {
         guard let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
         return trimmed
@@ -264,6 +279,12 @@ public final class RecordingEngine: @unchecked Sendable {
         return live
     }
 
+    /// The writer's `fileTime(atHostTime:)`: seconds of the audio file (paused spans removed) at `hostTime` in
+    /// `mach_absolute_time()` ticks; nil when idle or paused. Lock-only.
+    public func fileTime(atHostTime hostTime: UInt64) -> Double? {
+        shared.withLock { $0.writer }?.fileTime(atHostTime: hostTime)
+    }
+
     // MARK: - Engine queue
 
     private func onQueue<T>(_ body: () throws -> T) rethrows -> T {
@@ -272,7 +293,8 @@ public final class RecordingEngine: @unchecked Sendable {
     }
 
     private func startLocked(
-        target: CaptureTarget, language: String, micDeviceUID: String?, root: URL, probe: Bool, title: String?
+        target: CaptureTarget, language: String, micDeviceUID: String?, root: URL, probe: Bool, title: String?,
+        skipsTranscription: Bool, systemAudio: Bool
     ) throws -> URL {
         guard state == .idle else { throw RecordingEngineError.alreadyRecording }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -283,6 +305,7 @@ public final class RecordingEngine: @unchecked Sendable {
         micRoutesLost = 0
         micMuted = false
         self.target = target
+        self.systemAudio = systemAudio
         self.micDeviceUID = micDeviceUID
         systemMicMuted = InputMute.isSystemMuted(micDeviceUID: micDeviceUID)
 
@@ -295,7 +318,8 @@ public final class RecordingEngine: @unchecked Sendable {
             outputDeviceName: Self.defaultDeviceName(kAudioHardwarePropertyDefaultOutputDevice),
             languageMarkers: [.init(fileTime: 0, language: language)],
             probe: probe,
-            title: title
+            title: title,
+            skipsTranscription: skipsTranscription
         )
         let folder = session.folder(in: root)
         try session.write(to: folder)
@@ -316,8 +340,10 @@ public final class RecordingEngine: @unchecked Sendable {
         let writer: ChannelWriter
         do {
             writer = try ChannelWriter(fileURL: folder.appendingPathComponent(session.audioFileName))
-            let check = OutputCheck(target: target)
-            writer.isTargetPlayingOutput = { check.isPlaying() }
+            if systemAudio {
+                let check = OutputCheck(target: target)
+                writer.isTargetPlayingOutput = { check.isPlaying() }
+            }
             writer.liveSink = liveSink
             try writer.start(micRing: micSource.ring, systemRing: system.ring, micFormat: micSource.format, systemFormat: system.format)
         } catch {
@@ -438,8 +464,10 @@ public final class RecordingEngine: @unchecked Sendable {
 
     // MARK: - Sources
 
+    /// With no system audio, a ring nothing writes to, which the writer fills with silence; no tap is created.
     private func startTap() throws -> (ring: RingBuffer, format: ChannelWriter.SourceFormat) {
         tapGeneration &+= 1
+        guard systemAudio else { return (Self.silentRing(), Self.silentFormat) }
         let generation = tapGeneration
         tap.onFormatChange = { [weak self] _ in
             guard let self else { return }
@@ -479,7 +507,7 @@ public final class RecordingEngine: @unchecked Sendable {
 
     /// On failure the mic keeps recording and the system channel pads silence.
     private func rebuildTap(generation: UInt64) {
-        guard state == .recording, generation == tapGeneration, let writer else { return }
+        guard state == .recording, systemAudio, generation == tapGeneration, let writer else { return }
         do {
             let system = try startTap()
             try writer.replaceRing(channel: .system, ring: system.ring, format: system.format)

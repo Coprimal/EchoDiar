@@ -26,14 +26,15 @@ public sealed class LibraryNotFoundException(Guid id) : Exception($"Conversation
 public sealed class LibraryStore(string root, IFileTrash trash)
 {
     /// <summary>Bytes on disk by kind. <see cref="Models"/> comes from the caller (the model store).</summary>
-    public sealed record Usage(long Audio, long TranscriptsAndAI, long Models, IReadOnlyList<ConversationUsage> Conversations)
+    public sealed record Usage(long Audio, long Video, long TranscriptsAndAI, long Models, IReadOnlyList<ConversationUsage> Conversations)
     {
-        public long Total => Audio + TranscriptsAndAI + Models;
+        public long Total => Audio + Video + TranscriptsAndAI + Models;
     }
 
-    public sealed record ConversationUsage(Guid Id, string Title, long Audio, long Total);
+    public sealed record ConversationUsage(Guid Id, string Title, long Audio, long Video, long Total);
 
     private static readonly string[] AudioExtensions = [".caf", ".m4a"];
+    private static readonly string[] VideoExtensions = [".mp4", ".mov"];
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IReadOnlyList<Conversation> _conversations = [];
@@ -94,6 +95,7 @@ public sealed class LibraryStore(string root, IFileTrash trash)
         conversation.Write();
         conversation.SizeBytes = current.SizeBytes;
         conversation.HasAudio = current.HasAudio;
+        conversation.HasVideo = current.HasVideo;
         Normalize(conversation);
         Replace(index, conversation);
     });
@@ -110,6 +112,22 @@ public sealed class LibraryStore(string root, IFileTrash trash)
         var conversation = TryRead(current.Folder) ?? current with { };
         conversation.SizeBytes = SizeOnDisk(current.Folder);
         conversation.HasAudio = false;
+        conversation.HasVideo = current.HasVideo;
+        if (HasMetadataFile(current.Folder)) conversation.Write();
+        Normalize(conversation);
+        Replace(index, conversation);
+    });
+
+    /// <summary>Moves the conversation's video files to the Recycle Bin and updates its size; audio, transcript, summary and chat stay.</summary>
+    public Task DeleteVideoAsync(Guid id) => Run(() =>
+    {
+        var index = RequireIndex(id);
+        var current = Conversations[index];
+        foreach (var path in VideoFiles(current.Folder)) trash.MoveToTrash(path);
+        var conversation = TryRead(current.Folder) ?? current with { };
+        conversation.SizeBytes = SizeOnDisk(current.Folder);
+        conversation.HasAudio = current.HasAudio;
+        conversation.HasVideo = false;
         if (HasMetadataFile(current.Folder)) conversation.Write();
         Normalize(conversation);
         Replace(index, conversation);
@@ -117,14 +135,14 @@ public sealed class LibraryStore(string root, IFileTrash trash)
 
     /// <summary>
     /// Moves the transcript and its kept versions, summary and its versions, chat, archived chats and catch-ups to the
-    /// Recycle Bin; the conversation is ready to transcribe again. Without audio nothing would be left, so the whole
-    /// conversation goes instead.
+    /// Recycle Bin; the conversation is ready to transcribe again. When the disk has neither audio nor video files
+    /// nothing would be left, so the whole conversation goes instead.
     /// </summary>
     public Task DeleteTranscriptsAndAIAsync(Guid id) => Run(() =>
     {
         var index = RequireIndex(id);
         var current = Conversations[index];
-        if (!current.HasAudio)
+        if (AudioFiles(current.Folder).Count == 0 && VideoFiles(current.Folder).Count == 0)
         {
             DeleteLocked(id);
             return;
@@ -145,13 +163,14 @@ public sealed class LibraryStore(string root, IFileTrash trash)
         }
         conversation.SizeBytes = SizeOnDisk(current.Folder);
         conversation.HasAudio = current.HasAudio;
+        conversation.HasVideo = current.HasVideo;
         if (HasMetadataFile(current.Folder)) conversation.Write();
         Replace(index, conversation);
     });
 
     /// <summary>
     /// Rescans the root, then moves what <see cref="RetentionPolicy.Select"/> picks to the Recycle Bin (the folder, or
-    /// the audio files listed again at deletion time); returns the deletions done. <paramref name="isBusy"/> is asked
+    /// the audio and/or video files listed again at deletion time); returns the deletions done. <paramref name="isBusy"/> is asked
     /// right before each one (recording, compressing, transcribing or an AI job), which is then skipped; it is awaited
     /// without holding the store, so it may dispatch to the UI thread. A failure is logged and the rest continue.
     /// </summary>
@@ -166,8 +185,21 @@ public sealed class LibraryStore(string root, IFileTrash trash)
             if (await isBusy(deletion.ConversationId).ConfigureAwait(false)) continue;
             try
             {
-                if (deletion.Mode == RetentionMode.WholeConversation) await DeleteAsync(deletion.ConversationId).ConfigureAwait(false);
-                else await DeleteAudioAsync(deletion.ConversationId).ConfigureAwait(false);
+                switch (deletion.Mode)
+                {
+                    case RetentionMode.WholeConversation:
+                        await DeleteAsync(deletion.ConversationId).ConfigureAwait(false);
+                        break;
+                    case RetentionMode.AudioOnly:
+                        await DeleteAudioAsync(deletion.ConversationId).ConfigureAwait(false);
+                        await DeleteVideoAsync(deletion.ConversationId).ConfigureAwait(false);
+                        break;
+                    case RetentionMode.VideoOnly:
+                        await DeleteVideoAsync(deletion.ConversationId).ConfigureAwait(false);
+                        break;
+                    default:
+                        continue;
+                }
                 done.Add(deletion);
             }
             // OperationCanceledException: the user cancelled a Recycle Bin error dialog (ShellFiles).
@@ -186,22 +218,33 @@ public sealed class LibraryStore(string root, IFileTrash trash)
         var sizes = Conversations.Select(c =>
         {
             var audio = AudioFiles(c.Folder).Sum(FileLength);
-            return new ConversationUsage(c.Id, c.Title, audio, SizeOnDisk(c.Folder));
+            var video = VideoFiles(c.Folder).Sum(FileLength);
+            return new ConversationUsage(c.Id, c.Title, audio, video, SizeOnDisk(c.Folder));
         }).ToList();
         var audio = sizes.Sum(s => s.Audio);
-        return new Usage(audio, sizes.Sum(s => s.Total) - audio, modelBytes(), sizes.OrderByDescending(s => s.Total).ToList());
+        var video = sizes.Sum(s => s.Video);
+        return new Usage(audio, video, sizes.Sum(s => s.Total) - audio - video, modelBytes(),
+            sizes.OrderByDescending(s => s.Total).ToList());
     });
 
     /// <summary>
     /// Audio files of a conversation folder, sorted by name: regular files (not links or other reparse points, not
     /// hidden) with an audio extension, as written by the recorder (CAF) and the compressor (m4a). Not recursive.
     /// </summary>
-    public static IReadOnlyList<string> AudioFiles(string folder)
+    public static IReadOnlyList<string> AudioFiles(string folder) => Files(folder, AudioExtensions);
+
+    /// <summary>
+    /// Video files of a conversation folder, sorted by name: regular files (not links or other reparse points, not
+    /// hidden) with a video extension (mp4, mov), as written by the screen recorder. Not recursive.
+    /// </summary>
+    public static IReadOnlyList<string> VideoFiles(string folder) => Files(folder, VideoExtensions);
+
+    private static IReadOnlyList<string> Files(string folder, string[] extensions)
     {
         if (!Directory.Exists(folder)) return [];
         var options = new EnumerationOptions { AttributesToSkip = 0, IgnoreInaccessible = true };
         return Directory.EnumerateFiles(folder, "*", options)
-            .Where(path => AudioExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+            .Where(path => extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             .Where(path => IsPlain(new FileInfo(path)))
             .OrderBy(Path.GetFileName, StringComparer.Ordinal)
             .ToList();
@@ -343,6 +386,7 @@ public sealed class LibraryStore(string root, IFileTrash trash)
         }
         conversation.SizeBytes = SizeOnDisk(folder);
         conversation.HasAudio = AudioFiles(folder).Count > 0;
+        conversation.HasVideo = VideoFiles(folder).Count > 0;
         Normalize(conversation);
         return conversation;
     }
