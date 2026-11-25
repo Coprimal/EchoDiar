@@ -499,6 +499,17 @@ public sealed class RecordingEngine : IDisposable
         return writer is null ? snapshot : snapshot.Applying(writer.Stats);
     }
 
+    /// <summary>
+    /// The writer's <see cref="ChannelWriter.FileTime"/>: seconds of the audio file (paused spans removed) at
+    /// <paramref name="systemRelativeTimeQpc100ns"/>; null when idle or paused. Lock-only.
+    /// </summary>
+    public double? FileTime(long systemRelativeTimeQpc100ns)
+    {
+        ChannelWriter? writer;
+        lock (_shared) writer = _sharedWriter;
+        return writer?.FileTime(systemRelativeTimeQpc100ns);
+    }
+
     // Inside _gate
 
     private RecordingSession? StopLocked(EndReason reason)

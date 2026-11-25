@@ -195,6 +195,19 @@ public sealed class ChannelWriter : IDisposable
         }
     }
 
+    /// <summary>
+    /// The audio file time, in seconds (paused spans removed), of <paramref name="time"/> in QPC 100 ns units, e.g. a
+    /// video frame's <c>SystemRelativeTime</c>. Null unless running (not started, paused or stopped). Earlier times give
+    /// earlier, possibly negative, seconds. Lock-only.
+    /// </summary>
+    public double? FileTime(long time)
+    {
+        lock (_gate)
+        {
+            return _state == State.Running ? OutputIndex(time) / SampleRate : null;
+        }
+    }
+
     /// <summary>Final drain, flush and close. Safe to call repeatedly; rethrows the first write-path error.</summary>
     public void Stop()
     {

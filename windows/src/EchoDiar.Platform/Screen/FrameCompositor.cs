@@ -1,0 +1,271 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
+using EchoDiar.Core.Screen;
+using Windows.Graphics.DirectX.Direct3D11;
+using Windows.Win32;
+using Windows.Win32.Graphics.Direct2D;
+using Windows.Win32.Graphics.Direct2D.Common;
+using Windows.Win32.Graphics.Direct3D11;
+using Windows.Win32.Graphics.DirectWrite;
+using Windows.Win32.Graphics.Dxgi;
+using Windows.Win32.Graphics.Dxgi.Common;
+using Windows.Win32.System.WinRT.Direct3D11;
+using WinRT;
+
+namespace EchoDiar.Platform.Screen;
+
+/// <summary>
+/// Draws one video frame of a fixed, even output size with Direct2D on the <see cref="CaptureDevice"/>: black, then
+/// a captured texture aspect-fitted (black bars) or the placeholder (macOS <c>ScreenPlaceholder</c>: the localized
+/// text in bold white letters of about height / 12, centred, wrapped to 80 % of the width), then <see cref="Overlay"/>.
+/// <see cref="ReadPixels"/> copies the last drawn frame to the CPU (staging texture) as top-down BGRA rows.
+/// </summary>
+/// <remarks>
+/// Not thread-safe; create, use and dispose it off the UI thread (MTA), as the device. It turns on the device's
+/// multithread protection when offered, since Windows.Graphics.Capture uses the same device on its own threads.
+/// </remarks>
+internal sealed class FrameCompositor : IDisposable
+{
+    private const float Dpi = 96; // device-independent pixels are pixels
+
+    private static readonly D2D1_COLOR_F Black = new() { a = 1 };
+    private static readonly D2D1_COLOR_F White = new() { r = 1, g = 1, b = 1, a = 1 };
+
+    // Every COM object created here, released in reverse order by Dispose. Interface casts of these (QueryInterface
+    // on the same wrapper) are not listed: releasing the wrapper releases them.
+    private readonly List<object> _owned = [];
+    private readonly ID3D11DeviceContext _context;
+    private readonly ID2D1DeviceContext _target;
+    private readonly ID3D11Texture2D _render;
+    private readonly ID3D11Texture2D _staging;
+    private readonly IDWriteTextFormat _textFormat;
+    private readonly ID2D1SolidColorBrush _textBrush;
+    private readonly string _placeholderText;
+    private bool _disposed;
+
+    /// <param name="size">The output size, even and positive.</param>
+    /// <param name="placeholderText">Already localized ("Screen recording off").</param>
+    public FrameCompositor(CaptureDevice device, ScreenGeometry.Size size, string placeholderText)
+    {
+        if (size.Width <= 0 || size.Height <= 0 || size.Width % 2 != 0 || size.Height % 2 != 0)
+        {
+            throw new ArgumentException($"The output size must be even and positive: {size.Width}x{size.Height}");
+        }
+        Size = size;
+        _placeholderText = placeholderText;
+        _context = device.Context;
+        try
+        {
+            // Documented on the immediate context; drivers also answer it on the device. Without it, no protection.
+            (device.Context as ID3D11Multithread ?? device.Device as ID3D11Multithread)?.SetMultithreadProtected(true);
+
+            _render = Own(CreateTexture(device.Device, size, D3D11_USAGE.D3D11_USAGE_DEFAULT,
+                D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE, 0));
+            _staging = Own(CreateTexture(device.Device, size, D3D11_USAGE.D3D11_USAGE_STAGING, 0,
+                D3D11_CPU_ACCESS_FLAG.D3D11_CPU_ACCESS_READ));
+
+            PInvoke.D2D1CreateFactory(D2D1_FACTORY_TYPE.D2D1_FACTORY_TYPE_SINGLE_THREADED, typeof(ID2D1Factory1).GUID,
+                null, out var factory).ThrowOnFailure();
+            var d2dFactory = (ID2D1Factory1)Own(factory);
+            d2dFactory.CreateDevice((IDXGIDevice)device.Device, out var d2dDevice);
+            Own(d2dDevice).CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS.D2D1_DEVICE_CONTEXT_OPTIONS_NONE, out var target);
+            _target = Own(target);
+            _target.SetDpi(Dpi, Dpi);
+            _target.CreateBitmapFromDxgiSurface((IDXGISurface)_render,
+                BitmapProperties(D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED,
+                    D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_CANNOT_DRAW),
+                out var targetBitmap);
+            _target.SetTarget(Own(targetBitmap));
+            _target.CreateSolidColorBrush(White, null, out var brush);
+            _textBrush = Own(brush);
+
+            PInvoke.DWriteCreateFactory(DWRITE_FACTORY_TYPE.DWRITE_FACTORY_TYPE_SHARED, out IDWriteFactory dwrite).ThrowOnFailure();
+            var locale = CultureInfo.CurrentUICulture.Name;
+            Own(dwrite).CreateTextFormat("Segoe UI", null, DWRITE_FONT_WEIGHT.DWRITE_FONT_WEIGHT_BOLD,
+                DWRITE_FONT_STYLE.DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH.DWRITE_FONT_STRETCH_NORMAL, size.Height / 12f,
+                locale.Length > 0 ? locale : "en-us", out var textFormat);
+            _textFormat = Own(textFormat);
+            _textFormat.SetTextAlignment(DWRITE_TEXT_ALIGNMENT.DWRITE_TEXT_ALIGNMENT_CENTER);
+            _textFormat.SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT.DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>The output size, in pixels.</summary>
+    public ScreenGeometry.Size Size { get; }
+
+    /// <summary>
+    /// Drawn on top of every frame (camera bubble, click rings), with the device context in pixels and the output
+    /// size; inside the compositor's BeginDraw/EndDraw. Null: nothing.
+    /// </summary>
+    public Action<ID2D1DeviceContext, ScreenGeometry.Size>? Overlay { get; set; }
+
+    /// <summary>
+    /// Draws a frame into the output texture: <paramref name="source"/> cropped to <paramref name="crop"/> (its
+    /// pixels, clipped to the texture) and aspect-fitted, or the placeholder when <paramref name="source"/> is null.
+    /// An empty crop leaves the frame black. Throws <see cref="COMException"/> when Direct2D fails.
+    /// </summary>
+    public unsafe void Compose(ID3D11Texture2D? source, ScreenGeometry.Rect crop)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _target.BeginDraw();
+        try
+        {
+            _target.Clear(Black);
+            if (source is null) DrawPlaceholder();
+            else DrawSource(source, crop);
+            Overlay?.Invoke(_target, Size);
+        }
+        catch
+        {
+            _target.EndDraw(null, null); // so the next BeginDraw works; the drawing error is the one thrown
+            throw;
+        }
+        var hr = _target.EndDraw(null, null);
+        if (hr.Failed) throw new COMException($"ID2D1DeviceContext.EndDraw failed: 0x{hr.Value:X8}", hr.Value);
+    }
+
+    /// <summary>
+    /// Copies the last composed frame into <paramref name="destination"/> (at least width * 4 * height bytes): rows
+    /// top-down, width * 4 bytes apart.
+    /// </summary>
+    public unsafe void ReadPixels(Span<byte> destination)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var row = Size.Width * 4;
+        if (destination.Length < row * Size.Height)
+        {
+            throw new ArgumentException($"A {Size.Width}x{Size.Height} frame needs {row * Size.Height} bytes", nameof(destination));
+        }
+        _context.CopyResource(_staging, _render);
+        _context.Map(_staging, 0, D3D11_MAP.D3D11_MAP_READ, 0, out var mapped);
+        try
+        {
+            var data = (byte*)mapped.pData;
+            for (var y = 0; y < Size.Height; y++)
+            {
+                new ReadOnlySpan<byte>(data + (long)y * mapped.RowPitch, row).CopyTo(destination.Slice(y * row, row));
+            }
+        }
+        finally
+        {
+            _context.Unmap(_staging, 0);
+        }
+    }
+
+    /// <summary>
+    /// The D3D11 texture behind a capture frame's surface (<c>Direct3D11CaptureFrame.Surface</c>), through
+    /// IDirect3DDxgiInterfaceAccess. The caller releases it (<see cref="Marshal.ReleaseComObject"/>) before the frame
+    /// is disposed.
+    /// </summary>
+    public static unsafe ID3D11Texture2D Texture(IDirect3DSurface surface)
+    {
+        var unknown = MarshalInterface<IDirect3DSurface>.FromManaged(surface);
+        try
+        {
+            var access = (IDirect3DDxgiInterfaceAccess)Marshal.GetObjectForIUnknown(unknown);
+            try
+            {
+                var iid = typeof(ID3D11Texture2D).GUID;
+                access.GetInterface(&iid, out var texture);
+                try
+                {
+                    return (ID3D11Texture2D)Marshal.GetObjectForIUnknown((nint)texture);
+                }
+                finally
+                {
+                    Marshal.Release((nint)texture);
+                }
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(access);
+            }
+        }
+        finally
+        {
+            Marshal.Release(unknown);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        if (_target is not null) _target.SetTarget(null);
+        for (var i = _owned.Count - 1; i >= 0; i--) Marshal.ReleaseComObject(_owned[i]);
+        _owned.Clear();
+    }
+
+    private void DrawSource(ID3D11Texture2D source, ScreenGeometry.Rect crop)
+    {
+        source.GetDesc(out var desc);
+        int left = Math.Clamp(crop.X, 0, (int)desc.Width), top = Math.Clamp(crop.Y, 0, (int)desc.Height);
+        int right = Math.Clamp(crop.X + crop.Width, left, (int)desc.Width);
+        int bottom = Math.Clamp(crop.Y + crop.Height, top, (int)desc.Height);
+        if (right - left <= 0 || bottom - top <= 0) return;
+
+        _target.CreateBitmapFromDxgiSurface((IDXGISurface)source,
+            BitmapProperties(D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_NONE),
+            out var bitmap);
+        try
+        {
+            var fit = ScreenGeometry.AspectFit(new ScreenGeometry.Size(right - left, bottom - top), Size);
+            _target.DrawBitmap(bitmap, Rect(fit.X, fit.Y, fit.Width, fit.Height), 1,
+                D2D1_BITMAP_INTERPOLATION_MODE.D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+                Rect(left, top, right - left, bottom - top));
+        }
+        finally
+        {
+            Marshal.ReleaseComObject(bitmap);
+        }
+    }
+
+    private void DrawPlaceholder()
+    {
+        if (_placeholderText.Length == 0) return;
+        var layout = Rect(Size.Width * 0.1f, 0, Size.Width * 0.8f, Size.Height);
+        _target.DrawText(_placeholderText, (uint)_placeholderText.Length, _textFormat, layout, _textBrush,
+            D2D1_DRAW_TEXT_OPTIONS.D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE.DWRITE_MEASURING_MODE_NATURAL);
+    }
+
+    private T Own<T>(T com) where T : class
+    {
+        _owned.Add(com);
+        return com;
+    }
+
+    private static ID3D11Texture2D CreateTexture(ID3D11Device device, ScreenGeometry.Size size, D3D11_USAGE usage,
+        D3D11_BIND_FLAG bind, D3D11_CPU_ACCESS_FLAG cpuAccess)
+    {
+        var desc = new D3D11_TEXTURE2D_DESC
+        {
+            Width = (uint)size.Width,
+            Height = (uint)size.Height,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+            SampleDesc = new DXGI_SAMPLE_DESC { Count = 1 },
+            Usage = usage,
+            BindFlags = bind,
+            CPUAccessFlags = cpuAccess,
+        };
+        device.CreateTexture2D(desc, null, out var texture);
+        return texture;
+    }
+
+    private static D2D1_BITMAP_PROPERTIES1_unmanaged BitmapProperties(D2D1_ALPHA_MODE alpha, D2D1_BITMAP_OPTIONS options) => new()
+    {
+        pixelFormat = new D2D1_PIXEL_FORMAT { format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM, alphaMode = alpha },
+        dpiX = Dpi,
+        dpiY = Dpi,
+        bitmapOptions = options,
+    };
+
+    private static D2D_RECT_F Rect(float x, float y, float width, float height) =>
+        new() { left = x, top = y, right = x + width, bottom = y + height };
+}
