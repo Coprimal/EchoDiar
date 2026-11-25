@@ -217,6 +217,7 @@ public sealed partial class AppViewModel : ObservableObject
             if (value.ScreenRecordingEnabled != old.ScreenRecordingEnabled) OnPropertyChanged(nameof(ScreenRecordingOn));
             // The camera bubble follows its option during a video too (macOS setOverlays), wherever it was changed.
             if (value.ScreenCamera != old.ScreenCamera) _screen.SetCameraOption(value.ScreenCamera);
+            if (value.ScreenCameraBlur != old.ScreenCameraBlur) _screen.SetCameraBlur(value.ScreenCameraBlur);
             SyncMeetingDetection();
             OnCalendarSettingsChanged(old.Calendar, value.Calendar);
             if (value.LibraryPageSize != old.LibraryPageSize) ResetLibraryPage();

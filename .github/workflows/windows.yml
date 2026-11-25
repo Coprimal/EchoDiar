@@ -296,6 +296,14 @@ jobs:
             "Models/silero_vad.onnx SHA-256 $vadHash"
             if ($vadHash -ne '1A153A22F4509E292A94E67D6F9B85E8DEB25B4988682B7E174C65279D8788E3') { $errors += "Models/silero_vad.onnx SHA-256 $vadHash is not the pinned v6.2.1 file" }
           }
+          # The background blur's PP-HumanSeg model (Platform's Content): the pinned OpenCV zoo file.
+          $seg = Join-Path $root 'Models/human_segmentation_pphumanseg_2023mar.onnx'
+          if (-not (Test-Path -LiteralPath $seg)) { $errors += 'Missing Models/human_segmentation_pphumanseg_2023mar.onnx' }
+          else {
+            $segHash = (Get-FileHash -LiteralPath $seg -Algorithm SHA256).Hash
+            "Models/human_segmentation_pphumanseg_2023mar.onnx SHA-256 $segHash"
+            if ($segHash -ne '552D8A984054E59B5D773D24B9B12022B22046CEB2BBC4C9AAEACEB36A9DDF24') { $errors += "Models/human_segmentation_pphumanseg_2023mar.onnx SHA-256 $segHash is not the pinned 2023mar file" }
+          }
           $ort = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter 'onnxruntime.dll')
           if ($ort.Count -ne 1) {
             $errors += "Expected exactly one onnxruntime.dll in the package, found $($ort.Count): " +

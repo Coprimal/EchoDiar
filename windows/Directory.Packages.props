@@ -28,6 +28,10 @@
     <PackageVersion Include="Whisper.net" Version="1.9.1" />
     <PackageVersion Include="Whisper.net.Runtime" Version="1.9.1" />
     <PackageVersion Include="org.k2fsa.sherpa.onnx" Version="1.13.8" />
+    <!-- ONNX Runtime's managed API only (background blur). The native onnxruntime.dll is sherpa-onnx 1.13.8's
+         (1.28.2.0); keep this version <= it. Never add Microsoft.ML.OnnxRuntime (native) or Windows ML: a second
+         onnxruntime.dll would collide with sherpa-onnx's. -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.28.0" />
     <PackageVersion Include="LLamaSharp" Version="0.30.0" />
     <PackageVersion Include="LLamaSharp.Backend.Cpu" Version="0.30.0" />
   </ItemGroup>

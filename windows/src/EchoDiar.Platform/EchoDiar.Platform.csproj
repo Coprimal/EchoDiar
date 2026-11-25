@@ -18,11 +18,22 @@
     <!-- Foundation 2.3.12 asks for InteractiveExperiences >= 2.1.8, which NuGet does not have (NU1603); pin the
          2.1.9 that App uses. -->
     <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" PrivateAssets="all" />
+    <!-- Background blur (PersonSegmenter). Managed API only: it loads the onnxruntime.dll that sherpa-onnx ships. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EchoDiar.Core\EchoDiar.Core.csproj" />
     <ProjectReference Include="..\EchoDiar.AI\EchoDiar.AI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PP-HumanSeg 2023mar (Apache-2.0, PaddleSeg via the OpenCV zoo) for the camera bubble's background blur, the
+         float model. Copied to the output of every project that references this one, so it reaches the App's MSIX
+         and the Platform tests.
+         Source: https://huggingface.co/opencv/human_segmentation_pphumanseg/resolve/e876e63603f6c65c1a22576bfd5fc7c07ecf9eb9/human_segmentation_pphumanseg_2023mar.onnx (revision e876e63603f6c65c1a22576bfd5fc7c07ecf9eb9)
+         SHA-256: 552d8a984054e59b5d773d24b9b12022b22046ceb2bbc4c9aaeaceb36a9ddf24 (6,163,938 bytes) -->
+    <Content Include="Models\human_segmentation_pphumanseg_2023mar.onnx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

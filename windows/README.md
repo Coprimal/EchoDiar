@@ -14,6 +14,7 @@ windows/
                                 channel writer, recording engine, merger (portable, runs on macOS)
   src/EchoDiar.Platform/        net10.0-windows10.0.26100.0: WASAPI mic and loopback capture,
                                 audio sessions, process info, shell files (CsWin32 interop)
+                                and the bundled PP-HumanSeg model for background blur (Models/)
   src/EchoDiar.App/             WinUI 3 app, single-project MSIX, win-x64 + win-arm64
   tests/EchoDiar.Tests/         net10.0 xUnit v3 tests for Core, plus the cross-platform Fixtures/
   scripts/vm-install.ps1        installs a CI build in a Windows VM
@@ -75,7 +76,7 @@ With the variable set, the output must show the writer tests ran, not "skipped".
 [.github/workflows/windows.yml](../.github/workflows/windows.yml) runs on pushes to `main` and the plan branches in its `on.push.branches` that touch `windows/**` or the workflow file, on pull requests touching the same paths, and on `workflow_dispatch`. Jobs:
 
 - `test` (windows-latest) and `test-arm64` (windows-11-arm): the same `dotnet test` and filter as above, run from `windows/` so `global.json` applies.
-- `package` (matrix x64, arm64): builds the Debug MSIX with MSBuild (`SideloadOnly`, no bundle, manifest Version `0.0.<run number>.0`) and signs it with the dev certificate from the `windows-dev-signing` environment (pull requests run without the environment and build unsigned). A package contents check then fails the job unless every native DLL (Whisper.net, sherpa-onnx, LLamaSharp) is in the `.msix` for the job's architecture, and the only `onnxruntime.dll` is sherpa-onnx's (the Windows App SDK metapackage is not used for this reason: its ML component ships another `onnxruntime.dll`).
+- `package` (matrix x64, arm64): builds the Debug MSIX with MSBuild (`SideloadOnly`, no bundle, manifest Version `0.0.<run number>.0`) and signs it with the dev certificate from the `windows-dev-signing` environment (pull requests run without the environment and build unsigned). A package contents check then fails the job unless every native DLL (Whisper.net, sherpa-onnx, LLamaSharp) is in the `.msix` for the job's architecture, and the only `onnxruntime.dll` is sherpa-onnx's (the Windows App SDK metapackage is not used for this reason: its ML component ships another `onnxruntime.dll`). It also checks the SHA-256 of the bundled models: Silero VAD 6.2.1 (`Models/silero_vad.onnx`, Transcribe) and PP-HumanSeg 2023mar from the OpenCV zoo (`Models/human_segmentation_pphumanseg_2023mar.onnx`, Platform, Apache-2.0).
 
 Each `package` job uploads the artifact `EchoDiar-win-<arch>` (kept 14 days): the `.msix`, the public `EchoDiarDev.cer` and `vm-install.ps1`. The private key never leaves the runner; staging fails if a `.pfx` or `.p12` lands in the artifact.
 

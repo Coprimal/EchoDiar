@@ -90,6 +90,12 @@ internal sealed class ScreenRecordingController
     /// </summary>
     private bool _showsCamera;
 
+    /// <summary>
+    /// "Blur background" (macOS <c>screenCameraBlur</c>): read at each start and turn-on, changed by
+    /// <see cref="SetCameraBlur"/>, given to the camera before it opens and while it runs.
+    /// </summary>
+    private bool _cameraBlur;
+
     /// <summary>The bubble shows and its camera is open or opening.</summary>
     private bool _cameraOn;
 
@@ -189,6 +195,7 @@ internal sealed class ScreenRecordingController
         _endReason = null;
         _skipsTranscription = skipsTranscription;
         _showsCamera = settings.ScreenCamera;
+        _cameraBlur = settings.ScreenCameraBlur;
         recorder.Ended += reason => _post(() => OnEnded(recorder, reason));
         var generation = Prepare(source);
         var video = new SessionVideo
@@ -223,6 +230,7 @@ internal sealed class ScreenRecordingController
             return;
         }
         _showsCamera = settings.ScreenCamera;
+        _cameraBlur = settings.ScreenCameraBlur;
         _ = TurnOnAsync(recorder, source, Prepare(source));
     }
 
@@ -234,6 +242,20 @@ internal sealed class ScreenRecordingController
     {
         _showsCamera = on;
         SyncCamera();
+    }
+
+    /// <summary>
+    /// "Blur background" changed (Settings): the running camera switches at once (macOS <c>setBlur</c>). Turning it on
+    /// takes the sharp picture out of the bubble and the video until the first blurred frame; turning it off brings the
+    /// sharp frames back and drops the blur-failed notice.
+    /// </summary>
+    public void SetCameraBlur(bool on)
+    {
+        _cameraBlur = on;
+        if (!on) ClearBlurNotice();
+        if (_camera is not { } camera || _bubble is not { } bubble) return;
+        camera.SetBlur(on);
+        if (on) ClearCameraPicture(camera, bubble);
     }
 
     /// <summary>
@@ -481,6 +503,8 @@ internal sealed class ScreenRecordingController
         }
         if (_cameraOn) return;
         _cameraOn = true;
+        // Before the open, so a sharp frame is never delivered with blur on.
+        camera.SetBlur(_cameraBlur);
         var generation = ++_cameraGeneration;
         var opening = _cameraWork.ContinueWith(_ => camera.StartAsync(), CancellationToken.None,
             TaskContinuationOptions.None, TaskScheduler.Default).Unwrap();
@@ -530,6 +554,39 @@ internal sealed class ScreenRecordingController
     private static string CameraNotice =>
         Loc.T("Camera access is off. Turn on EchoDiar in Windows Settings › Privacy & security › Camera.");
 
+    private static string BlurNotice => Loc.T("Background blur is not available. The camera bubble shows no picture.");
+
+    /// <summary>
+    /// The running camera cannot blur (no model, ONNX Runtime missing, the model failed): it delivers no frame while
+    /// blur stays on, so the bubble and the video show the placeholder, with a notice.
+    /// </summary>
+    private void OnBlurFailed(CameraSource camera, string message)
+    {
+        if (!_cameraOn || !_cameraBlur || !ReferenceEquals(_camera, camera) || _bubble is not { } bubble) return;
+        Log($"camera bubble: no background blur: {message}");
+        ClearCameraPicture(camera, bubble);
+        Notice = BlurNotice;
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// The bubble and the video show the placeholder until the camera's next frame. Call after the camera dropped its
+    /// latest frame (<see cref="CameraSource.SetBlur"/>): a frame the bubble is being given meanwhile lands first,
+    /// under <c>_frameGate</c>, and is cleared; the recorder starts again from its placeholder (a new camera generation).
+    /// </summary>
+    private void ClearCameraPicture(CameraSource camera, CameraBubbleWindow bubble)
+    {
+        lock (_frameGate) bubble.ClearFrame();
+        _cameraRecorder?.SetCamera(camera, () => bubble.Placement);
+    }
+
+    private void ClearBlurNotice()
+    {
+        if (Notice != BlurNotice) return;
+        Notice = null;
+        Changed?.Invoke();
+    }
+
     /// <summary>The running camera stopped by itself (unplugged, taken by another app): the bubble is off for this video.</summary>
     private void OnCameraFailed(CameraSource camera, string message)
     {
@@ -544,6 +601,7 @@ internal sealed class ScreenRecordingController
     private void CameraOff()
     {
         if (!_cameraOn) return;
+        ClearBlurNotice();
         _cameraOn = false;
         _cameraSource = null;
         _cameraGeneration++;
@@ -561,6 +619,7 @@ internal sealed class ScreenRecordingController
         var bubble = new CameraBubbleWindow(Log);
         camera.FrameAvailable += () => ShowFrame(camera, bubble);
         camera.Failed += message => _post(() => OnCameraFailed(camera, message));
+        camera.BlurFailed += message => _post(() => OnBlurFailed(camera, message));
         _camera = camera;
         _bubble = bubble;
         return (camera, bubble);
