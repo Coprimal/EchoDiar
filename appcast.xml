@@ -4,6 +4,16 @@
         <title>EchoDiar</title>
         <link>https://echodiar.coprimal.dev/appcast.xml</link>
         <item>
+            <title>1.7.0</title>
+            <pubDate>Wed, 25 Nov 2026 05:18:22 -0600</pubDate>
+            <sparkle:fullReleaseNotesLink>https://github.com/Coprimal/EchoDiar/blob/main/CHANGELOG.md</sparkle:fullReleaseNotesLink>
+            <sparkle:version>18</sparkle:version>
+            <sparkle:shortVersionString>1.7.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/Coprimal/EchoDiar/releases/download/v1.7.0/EchoDiar-1.7.0.zip" length="19004756" type="application/octet-stream" sparkle:edSignature="o6NmV2Vmm1XPpwjXwRAnjLFSY7iPUKyxanqtwNe/bHWqv0MUMjif0KZqwM97EgSCxcoC3WSikODFO1uR/FFgBQ=="/>
+        </item>
+        <item>
             <title>1.6.1</title>
             <pubDate>Mon, 23 Nov 2026 05:32:24 -0600</pubDate>
             <sparkle:fullReleaseNotesLink>https://github.com/Coprimal/EchoDiar/blob/main/CHANGELOG.md</sparkle:fullReleaseNotesLink>
