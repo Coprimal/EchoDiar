@@ -4,7 +4,7 @@
     the window's title bar (MainWindow.SetTitleBar): the logo, the page's or the conversation's title and, for a
     conversation, its date and duration; all of it drags the window, the caption buttons sit at its right. The toolbar
     row below, from the left: the sidebar button (library pages), Back, the record group, Reveal and Delete, Settings
-    and Calendar, Update; at the right edge a Settings section's inner tabs (a conversation's Summary | Chat tabs are in
+    and Calendar, Stack Panes or Side by Side (on a conversation and the recording), Update; at the right edge a Settings section's inner tabs (a conversation's Summary | Chat tabs are in
     its AI panel, the library chat is the library sidebar's Chat tab). Icon buttons are 32 x 32 subtle buttons with 16 px Segoe Fluent Icons;
     4 px between the buttons of a group, 8 px between groups.
 -->
@@ -234,6 +234,25 @@
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE787;" />
                     </Button>
                 </StackPanel>
+
+                <!--
+                    On a conversation and the live recording (macOS layoutItem): stacks their two panes, the transcript on
+                    top, or puts them back side by side; its icon is the layout it switches to (code-behind). After the
+                    groups that are always shown, so showing it moves none of them.
+                -->
+                <Button
+                    x:Name="LayoutButton"
+                    Width="32"
+                    Height="32"
+                    Padding="0"
+                    Style="{StaticResource SubtleButtonStyle}"
+                    Visibility="Collapsed">
+                    <FontIcon
+                        x:Name="LayoutIcon"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        FontSize="16"
+                        Glyph="&#xE90E;" />
+                </Button>
 
                 <!--
                     Shown while an update is available and nothing runs that installing would cut off; while it installs,

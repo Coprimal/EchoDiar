@@ -18,8 +18,11 @@ namespace EchoDiar.App.ViewModels;
 
 public enum RouteKind { List, Conversation, Recording, Settings, Calendar }
 
-/// <summary>The tab of the conversation's AI panel, beside its transcript (macOS <c>AppModel.DetailTab</c>).</summary>
-public enum DetailTab { Summary, Chat }
+/// <summary>
+/// The tab of the conversation's AI panel, beside its transcript (macOS <c>AppModel.DetailTab</c>); Catch-up only for a
+/// conversation with catch-ups.
+/// </summary>
+public enum DetailTab { Summary, CatchUp, Chat }
 
 /// <summary>The recording page's right panel tab (macOS <c>AppModel.RecordingTab</c>): Catch-up | Chat.</summary>
 public enum RecordingTab { CatchUp, Chat }
@@ -941,9 +944,10 @@ public sealed partial class AppViewModel : ObservableObject
     /// </summary>
     private async Task FinishRecordingAsync(string folder, RecordingTranscriber? transcriber)
     {
-        // The recording page's tab at Stop, before a new recording can reset it: Catch-up opens Summary, whose
-        // Catch-ups bar has the recording's catch-ups; a chat going on during the recording carries on in Chat.
-        var openTab = RecordingTab == RecordingTab.Chat ? DetailTab.Chat : DetailTab.Summary;
+        // The recording page's tab at Stop, before a new recording can reset it: the same tab, the recording's
+        // catch-ups in Catch-up (Summary when it has none, see AIPanelView); a chat going on during the recording
+        // carries on in Chat.
+        var openTab = RecordingTab == RecordingTab.Chat ? DetailTab.Chat : DetailTab.CatchUp;
         var prior = transcriber is null ? null : FinishRecordingTranscriberAsync(transcriber);
         if (_closing) return;
         try

@@ -1,5 +1,8 @@
 using EchoDiar.App.ViewModels;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace EchoDiar.App.Views;
 
@@ -7,7 +10,8 @@ namespace EchoDiar.App.Views;
 /// The model and language menus of the AI panel's Chat and Summary tabs, of the library chat and of the recording's right
 /// panel (macOS <c>AIModelMenu</c> and <c>AILanguageMenu</c>, shared by AIPanelView.swift, GlobalChatView.swift and
 /// RecordingViews.swift), and the setup hint shown while no model can run. Built when they open, from the providers
-/// model. The model menu shows and edits one <see cref="AIPurpose"/>'s default.
+/// model. The model menu shows and edits one <see cref="AIPurpose"/>'s default. Also what the headers they sit in
+/// share: the narrowing steps (<see cref="FitRow"/>), icon-only tabs and narrower menus.
 /// </summary>
 internal static class AIMenus
 {
@@ -87,6 +91,87 @@ internal static class AIMenus
             };
             menu.Items.Add(item);
         }
+    }
+
+    /// <summary>
+    /// The first of <paramref name="steps"/> narrowing steps (macOS <c>ViewThatFits</c>) whose row fits
+    /// <paramref name="width"/>: <paramref name="apply"/> sets a step, then the row's <paramref name="leading"/> and
+    /// <paramref name="trailing"/> parts are measured at their natural width, with the <paramref name="row"/>'s column
+    /// spacing (a step may change it) between them; the last step when none fits. Called
+    /// outside the layout pass, so a label shown again to be measured never makes the layout loop; the caller then
+    /// invalidates the row's measure.
+    /// </summary>
+    public static void FitRow(double width, Grid row, FrameworkElement leading, FrameworkElement trailing, int steps, Action<int> apply)
+    {
+        var natural = new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity);
+        for (var step = 0; step < steps; step++)
+        {
+            apply(step);
+            if (step == steps - 1) return;
+            leading.Measure(natural);
+            trailing.Measure(natural);
+            // Half a pixel of slack: layout rounding may give a little less than the measured width.
+            if (leading.DesiredSize.Width + row.ColumnSpacing + trailing.DesiredSize.Width <= width + 0.5) return;
+        }
+    }
+
+    /// <summary>
+    /// A header tab's name, or only its icon (macOS <c>tabIcon</c>), the name then its tooltip; the name is what screen
+    /// readers say either way.
+    /// </summary>
+    public static void ShowTabLabel(SelectorBarItem tab, string title, string glyph, bool label)
+    {
+        AutomationProperties.SetName(tab, title);
+        if (label)
+        {
+            tab.Icon = null;
+            tab.Text = title;
+            ToolTipService.SetToolTip(tab, null);
+            return;
+        }
+        tab.Text = "";
+        if (tab.Icon is not FontIcon icon || icon.Glyph != glyph)
+        {
+            tab.Icon = new FontIcon
+            {
+                FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["SymbolThemeFontFamily"],
+                FontSize = 14,
+                Glyph = glyph,
+            };
+        }
+        ToolTipService.SetToolTip(tab, title);
+    }
+
+    /// <summary>
+    /// A menu's chevron 4 px from its icon while it shows only its icon (macOS: 6 → 3 pt), else the 8 px of the
+    /// DropDownButton template's <c>ChevronIcon</c>. Nothing before the template is applied.
+    /// </summary>
+    public static void TightenChevron(DropDownButton button, bool iconOnly)
+    {
+        if (Descendant(button, "ChevronIcon") is { } chevron) chevron.Margin = new Thickness(iconOnly ? 4 : 8, 0, 0, 0);
+    }
+
+    private static FrameworkElement? Descendant(DependencyObject parent, string name)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is FrameworkElement { Name: var childName } element && childName == name) return element;
+            if (Descendant(child, name) is { } found) return found;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// A header button's or tab's side padding 4 px narrower in the narrowest header (macOS: the menus' and the tabs'
+    /// 12 pt padding down to 8), else its style's.
+    /// </summary>
+    public static void CompactPadding(Control button, bool compact)
+    {
+        button.ClearValue(Control.PaddingProperty);
+        if (!compact) return;
+        var padding = button.Padding;
+        button.Padding = new Thickness(Math.Max(padding.Left - 4, 0), padding.Top, Math.Max(padding.Right - 4, 0), padding.Bottom);
     }
 
     private static MenuFlyoutItem Header(string text) => new() { Text = text, IsEnabled = false, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };

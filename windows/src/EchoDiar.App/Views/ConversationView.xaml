@@ -2,8 +2,9 @@
 <!--
     One conversation beside the wide layout's sidebar: its title (double-click to rename) and details, then two columns
     (macOS TranscriptView): the transcript with playback (TranscriptView) on the left, the AI panel with its Summary |
-    Chat tabs (AIPanelView) on the right, 50/50 at first, the narrow gap between them drags to resize (PaneSplitter). Each
-    column shows its own loading state until its files are read.
+    Chat tabs (AIPanelView) on the right, 50/50 at first, the narrow gap between them drags to resize (PaneSplitter); with
+    Stack Panes (AppSettings.StackedPanes), the transcript above the panel instead (set in code). Each pane shows its own
+    loading state until its files are read.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.ConversationView"
@@ -14,22 +15,27 @@
 
     <!--
         The title and details are above the transcript column only: the AI panel spans both rows, so its header (on the
-        window, above its card) lines up with the sidebar's header, as on macOS. The two columns keep their minimums;
-        the gap writes their widths (not saved). The transcript's is the wider. Neither its control row nor the panel's
-        header wraps: narrower, their buttons and menus show their icons only.
+        window, above its card) lines up with the sidebar's header, as on macOS. The two columns keep their minimums
+        (300 / 280 px, kept by the gap); the gap writes their widths (not saved). The transcript's is the wider. Neither its control row nor the panel's
+        header wraps: narrower, their buttons and menus show their icons only. Stacked, the rows are the title, the
+        transcript, the gap and the panel, each pane at least 200 px high (ConversationView.ApplyLayout). No row
+        spacing: it would also go round the gap; the title's margin spaces it from the transcript.
     -->
-    <Grid Margin="0,8,12,12" RowSpacing="12">
+    <Grid x:Name="PanesGrid" Margin="0,8,12,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MinWidth="300" />
+            <ColumnDefinition Width="*" />
             <ColumnDefinition Width="10" />
-            <ColumnDefinition Width="*" MinWidth="280" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <StackPanel Padding="4,0" Spacing="2">
+        <StackPanel
+            Margin="0,0,0,12"
+            Padding="4,0"
+            Spacing="2">
             <Grid>
                 <TextBlock
                     x:Name="TitleText"
@@ -78,26 +84,30 @@
             The 10 px gap with its grip, two short lines in the middle; the secondary text brush, faded at rest to
             the strong stroke colour, full on hover, drag and keyboard focus.
         -->
-        <views:PaneSplitter Grid.RowSpan="2" Grid.Column="1" AutomationProperties.Name="{local:T Text='Resize'}">
+        <views:PaneSplitter
+            x:Name="Splitter"
+            Grid.RowSpan="2"
+            Grid.Column="1"
+            AutomationProperties.Name="{local:T Text='Resize'}">
             <!-- At rest from the start (PaneSplitter's RestOpacity), so a new conversation does not fade it. -->
             <Grid Background="Transparent" Opacity="0.7">
                 <StackPanel
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
-                    Spacing="3">
+                    Spacing="2">
                     <Rectangle
-                        Width="2"
-                        Height="18"
+                        Width="1"
+                        Height="14"
                         Fill="{ThemeResource TextFillColorSecondaryBrush}"
-                        RadiusX="1"
-                        RadiusY="1" />
+                        RadiusX="0.5"
+                        RadiusY="0.5" />
                     <Rectangle
-                        Width="2"
-                        Height="18"
+                        Width="1"
+                        Height="14"
                         Fill="{ThemeResource TextFillColorSecondaryBrush}"
-                        RadiusX="1"
-                        RadiusY="1" />
+                        RadiusX="0.5"
+                        RadiusY="0.5" />
                 </StackPanel>
             </Grid>
         </views:PaneSplitter>

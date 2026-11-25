@@ -3,13 +3,15 @@
     The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
     title, the state, the elapsed time, the mic and system meters, "Catch up" and the language, the calendar suggestion
     and the capture warnings, pinned on top; under them the live transcript (or the wave and why there is none) on the
-    left and, on the right, the catch-ups or the live chat under their tabs, the catch-up model and the answer language.
+    left and, on the right, the catch-ups or the live chat under their tabs, the catch-up model and the answer language;
+    the gap between them drags to resize them (PaneSplitter), and with Stack Panes the transcript is above the panel.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.RecordingView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:EchoDiar.App">
+    xmlns:local="using:EchoDiar.App"
+    xmlns:views="using:EchoDiar.App.Views">
 
     <UserControl.Resources>
         <!--
@@ -216,10 +218,17 @@
             Severity="Warning"
             Title="{local:T Text='No system audio'}" />
 
-        <!-- The transcript on the left; on the right, the panel with its Catch-up | Chat tabs (AppViewModel.RecordingTab). -->
-        <Grid Grid.Row="4" ColumnSpacing="12">
+        <!--
+            The transcript on the left; on the right, the panel with its Catch-up | Chat tabs (AppViewModel.RecordingTab);
+            50/50 at first, the 10 px gap between them drags to resize them, each at least 240 / 300 px wide (kept by the
+            gap: half and half when there is no room for both). Stacked
+            (AppSettings.StackedPanes), the transcript above the panel, at least 160 / 200 px high (set in code:
+            RecordingView.ApplyLayout).
+        -->
+        <Grid x:Name="PanesGrid" Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -257,55 +266,102 @@
                 </StackPanel>
             </Grid>
 
-            <!--
-                One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, the
-                answer language and, on the Catch-up tab, Search) over the catch-ups or the chat.
-            -->
-            <Border
-                x:Name="SidePanel"
+            <!-- The gap with its grip, as the conversation's (ConversationView). -->
+            <views:PaneSplitter
+                x:Name="Splitter"
                 Grid.Column="1"
-                Style="{StaticResource PaneStyle}">
-                <Grid RowSpacing="10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid Margin="10,10,10,0" ColumnSpacing="8">
+                AutomationProperties.Name="{local:T Text='Resize'}">
+                <Grid Background="Transparent" Opacity="0.7">
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="2">
+                        <Rectangle
+                            Width="1"
+                            Height="14"
+                            Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                            RadiusX="0.5"
+                            RadiusY="0.5" />
+                        <Rectangle
+                            Width="1"
+                            Height="14"
+                            Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                            RadiusX="0.5"
+                            RadiusY="0.5" />
+                    </StackPanel>
+                </Grid>
+            </views:PaneSplitter>
+
+            <!--
+                A header on the window, above the card, as the conversation's AI panel (AIPanelView): the Catch-up | Chat
+                tabs, then the catch-up model, which also answers the chat, the answer language and, on the Catch-up tab,
+                Search; the card under it holds only the catch-ups or the chat. The header is one row, never wrapped:
+                narrower, the language shows only its globe, then the model only its chip, then the tabs only their
+                icons, the names in the tooltips; the same step on both tabs (RecordingView.FitHeader).
+            -->
+            <Grid
+                x:Name="SidePanel"
+                Grid.Column="2"
+                RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid x:Name="PanelHeader" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <!-- On the window, as the AI panel's tabs: a track of the cards' fill. -->
+                    <Border
+                        x:Name="PanelTabsTrack"
+                        Padding="2"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource OverlayCornerRadius}">
+                        <SelectorBar x:Name="PanelTabsBar" Padding="0">
+                            <SelectorBarItem x:Name="CatchUpPanelTab" Text="{local:T Text='Catch-up'}" />
+                            <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
+                        </SelectorBar>
+                    </Border>
+                    <!-- Margins space the menus: a collapsed one's column would keep a ColumnSpacing. -->
+                    <Grid
+                        x:Name="PanelHeaderMenus"
+                        Grid.Column="1"
+                        HorizontalAlignment="Right">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
-                        <Border
-                            Padding="2"
-                            VerticalAlignment="Center"
-                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="{StaticResource OverlayCornerRadius}">
-                            <SelectorBar x:Name="PanelTabsBar" Padding="0">
-                                <SelectorBarItem x:Name="CatchUpPanelTab" Text="{local:T Text='Catch-up'}" />
-                                <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
-                            </SelectorBar>
-                        </Border>
                         <!-- The catch-up provider and model (AIMenus, AIPurpose.CatchUp); never an in-app model. -->
                         <DropDownButton
                             x:Name="PanelModelButton"
-                            Grid.Column="1"
                             MaxWidth="180"
                             HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="{local:T Text='Model for catch-ups and live chat'}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
+                            VerticalAlignment="Center">
+                            <!--
+                                A Grid, not a horizontal StackPanel: its star column gives the name a finite width to
+                                trim with "…" inside the button. The name's margin spaces it, so the chip alone (the
+                                name collapsed) keeps no gap.
+                            -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
                                 <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
                                 <TextBlock
                                     x:Name="PanelModelText"
+                                    Grid.Column="1"
+                                    Margin="6,0,0,0"
                                     MaxLines="1"
                                     TextTrimming="CharacterEllipsis"
                                     TextWrapping="NoWrap" />
-                            </StackPanel>
+                            </Grid>
                             <DropDownButton.Flyout>
                                 <MenuFlyout x:Name="PanelModelMenu" Placement="BottomEdgeAlignedRight" />
                             </DropDownButton.Flyout>
@@ -313,11 +369,13 @@
                         <!-- The language of summaries and answers, as the conversation's AI panel. -->
                         <DropDownButton
                             x:Name="PanelLanguageButton"
-                            Grid.Column="2"
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
                             VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
+                            <!-- The name's margin spaces it, as the model's: the globe alone keeps no gap. -->
+                            <StackPanel Orientation="Horizontal">
                                 <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
-                                <TextBlock x:Name="PanelLanguageText" />
+                                <TextBlock x:Name="PanelLanguageText" Margin="6,0,0,0" />
                             </StackPanel>
                             <DropDownButton.Flyout>
                                 <MenuFlyout x:Name="PanelLanguageMenu" Placement="BottomEdgeAlignedRight" />
@@ -326,59 +384,65 @@
                         <!-- Shows or hides the catch-up search field; on the Catch-up tab only. -->
                         <ToggleButton
                             x:Name="CatchUpSearchButton"
-                            Grid.Column="3"
+                            Grid.Column="2"
+                            Margin="8,0,0,0"
                             VerticalAlignment="Center"
                             AutomationProperties.Name="{local:T Text='Search catch-ups'}"
                             ToolTipService.ToolTip="{local:T Text='Search catch-ups'}">
                             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
                         </ToggleButton>
                     </Grid>
-
-                    <!--
-                        The search field, then the catch-ups (CatchUpCard, set in code), newest first, the one being
-                        written at the top; while there are none, a hint to press Catch up (or that none was found).
-                    -->
-                    <Border x:Name="CatchUpPanel" Grid.Row="1">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <!--
-                                Filters the catch-ups as typed and highlights the term in them (macOS catchUpSearchField):
-                                slides in under the header; Esc clears it, then hides it.
-                            -->
-                            <AutoSuggestBox
-                                x:Name="CatchUpSearchBox"
-                                Margin="10,0,10,0"
-                                AutomationProperties.Name="{local:T Text='Search catch-ups'}"
-                                PlaceholderText="{local:T Text='Search catch-ups'}"
-                                QueryIcon="Find"
-                                Visibility="Collapsed" />
-                            <TextBlock
-                                x:Name="CatchUpEmptyText"
-                                Grid.Row="1"
-                                Margin="20"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Style="{StaticResource BodyTextBlockStyle}"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                TextAlignment="Center"
-                                TextWrapping="Wrap" />
-                            <ScrollViewer
-                                x:Name="CatchUpScroller"
-                                Grid.Row="1"
-                                VerticalScrollBarVisibility="Auto"
-                                Visibility="Collapsed">
-                                <StackPanel x:Name="CatchUpCards" Padding="8" Spacing="6" />
-                            </ScrollViewer>
-                        </Grid>
-                    </Border>
-
-                    <!-- LiveChatView, made in code while the Chat tab is shown. -->
-                    <Border x:Name="ChatHost" Grid.Row="1" />
                 </Grid>
-            </Border>
+
+                <!-- The card under the header: the tab's content, 10 px under its top edge. -->
+                <Border Grid.Row="1" Style="{StaticResource PaneStyle}">
+                    <Grid Padding="0,10,0,0">
+                        <!--
+                            The search field, then the catch-ups (CatchUpCard, set in code), newest first, the one being
+                            written at the top; while there are none, a hint to press Catch up (or that none was found).
+                        -->
+                        <Border x:Name="CatchUpPanel">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <!--
+                                    Filters the catch-ups as typed and highlights the term in them (macOS catchUpSearchField):
+                                    slides in at the card's top, 10 px from its edges; Esc clears it, then hides it.
+                                -->
+                                <AutoSuggestBox
+                                    x:Name="CatchUpSearchBox"
+                                    Margin="10,0,10,0"
+                                    AutomationProperties.Name="{local:T Text='Search catch-ups'}"
+                                    PlaceholderText="{local:T Text='Search catch-ups'}"
+                                    QueryIcon="Find"
+                                    Visibility="Collapsed" />
+                                <TextBlock
+                                    x:Name="CatchUpEmptyText"
+                                    Grid.Row="1"
+                                    Margin="20"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource BodyTextBlockStyle}"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                                <ScrollViewer
+                                    x:Name="CatchUpScroller"
+                                    Grid.Row="1"
+                                    VerticalScrollBarVisibility="Auto"
+                                    Visibility="Collapsed">
+                                    <StackPanel x:Name="CatchUpCards" Padding="8" Spacing="6" />
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- LiveChatView, made in code while the Chat tab is shown. -->
+                        <Border x:Name="ChatHost" />
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

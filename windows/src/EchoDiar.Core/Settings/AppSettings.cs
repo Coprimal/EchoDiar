@@ -150,6 +150,8 @@ public sealed record AppSettings : IJsonOnDeserializing, IJsonOnDeserialized
     [JsonPropertyName("realtimeAsFinal")] public bool RealtimeAsFinal { get; set; }
     /// <summary>Library sidebar entries per page, one of <see cref="LibraryPaging.SizeOptions"/>.</summary>
     [JsonPropertyName("libraryPageSize")] public int LibraryPageSize { get; set; } = 100;
+    /// <summary>The conversation's and the recording's two panes are stacked (the transcript on top) instead of side by side.</summary>
+    [JsonPropertyName("stackedPanes")] public bool StackedPanes { get; set; }
 
     /// <summary>Keys not modeled here, written back as read.</summary>
     [JsonExtensionData] public Dictionary<string, JsonElement> Extra { get; set; } = [];

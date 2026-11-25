@@ -451,7 +451,8 @@ public sealed class SettingsTests : IDisposable
           "globalHotKeyWindows": {"virtualKey": 82, "modifiers": 3}, "globalHotKeyEnabled": true,
           "globalPauseHotKeyWindows": {"virtualKey": 80, "modifiers": 3}, "globalPauseHotKeyEnabled": true,
           "autoExcludedProviderIDs": [], "providerAvailabilityMigrated": false, "aiSettingsMigrated": false,
-          "cloudLiveSource": "off", "realtimeAsFinal": false, "libraryPageSize": 100
+          "cloudLiveSource": "off", "realtimeAsFinal": false, "libraryPageSize": 100,
+          "stackedPanes": false
         }
         """;
 }

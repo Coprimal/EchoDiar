@@ -1,10 +1,13 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Model;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Windows.ApplicationModel.DataTransfer;
 using VirtualKey = Windows.System.VirtualKey;
 
 namespace EchoDiar.App.Views;
@@ -12,7 +15,7 @@ namespace EchoDiar.App.Views;
 /// <summary>
 /// The recording's Chat tab (macOS LiveChatView.swift): questions about the meeting so far
 /// (<see cref="AppViewModel.AskLive"/>), answered with the catch-up provider. <see cref="AppViewModel.LiveChatMessages"/>
-/// (questions in a bubble, answers rendered by <see cref="MarkdownView"/> with their model), then
+/// (questions in a bubble, answers rendered by <see cref="MarkdownView"/> with their model and, once written, Copy), then
 /// <see cref="AppViewModel.LiveChatRun"/>: its question, the answer streamed so far (or a spinner with its status line),
 /// its error. <c>[mm:ss]</c> citations keep the link style but open nothing, as macOS: the live transcript has no
 /// scroll-to-time hook. Under it the question row, or <see cref="AppViewModel.LiveChatDisabledReason"/>.
@@ -24,6 +27,9 @@ public sealed partial class LiveChatView : UserControl
 
     private readonly AppViewModel _model;
     private bool _framed = true;
+
+    /// <summary>Hides "Copied" 2 s after an answer is copied.</summary>
+    private readonly DispatcherQueueTimer _toastTimer;
 
     /// <summary>The messages and the run shown: the list is rebuilt when either is another one.</summary>
     private IReadOnlyList<ChatLog.Message>? _messagesShown;
@@ -37,6 +43,10 @@ public sealed partial class LiveChatView : UserControl
     {
         _model = model;
         InitializeComponent();
+        _toastTimer = DispatcherQueue.CreateTimer();
+        _toastTimer.Interval = TimeSpan.FromSeconds(2);
+        _toastTimer.IsRepeating = false;
+        _toastTimer.Tick += (_, _) => Toast.Visibility = Visibility.Collapsed;
         SendButton.Click += (_, _) => Ask();
         StopButton.Click += (_, _) => _model.StopLiveChat();
         QuestionBox.PreviewKeyDown += OnQuestionKeyDown;
@@ -62,6 +72,8 @@ public sealed partial class LiveChatView : UserControl
             _model.PropertyChanged -= OnModelChanged;
             _model.LiveChatTextChanged -= UpdateStream;
             _model.ProvidersModel.Changed -= UpdateInput;
+            _toastTimer.Stop();
+            Toast.Visibility = Visibility.Collapsed;
         };
     }
 
@@ -133,13 +145,14 @@ public sealed partial class LiveChatView : UserControl
     {
         if (_streamSlot is null || _model.LiveChatRun is not { } run) return;
         var status = run.Text.Length > 0 ? "" : run.IsRunning ? "\u0001" + run.StatusLine : "\u0002";
-        var key = status + "\u0000" + run.Text + "\u0000" + run.Error;
+        // Whether it runs too: a failed answer keeps its text and gets Copy.
+        var key = status + "\u0000" + run.IsRunning + "\u0000" + run.Text + "\u0000" + run.Error;
         if (key == _streamRendered) return;
         _streamRendered = key;
         _streamSlot.Children.Clear();
         if (run.Text.Length > 0)
         {
-            _streamSlot.Children.Add(MessageView(ChatRole.Assistant, run.Text, null));
+            _streamSlot.Children.Add(MessageView(ChatRole.Assistant, run.Text, null, streaming: run.IsRunning));
         }
         else if (run.IsRunning)
         {
@@ -161,8 +174,11 @@ public sealed partial class LiveChatView : UserControl
         ScrollChatToEnd();
     }
 
-    /// <summary>As the conversation chat's messages: a question in a bubble at the trailing edge; an answer's Markdown with its model's badge.</summary>
-    private UIElement MessageView(ChatRole role, string text, string? model)
+    /// <summary>
+    /// As the conversation chat's messages: a question in a bubble at the trailing edge; an answer's Markdown with its
+    /// model's badge and, once written (not <paramref name="streaming"/>), Copy.
+    /// </summary>
+    private UIElement MessageView(ChatRole role, string text, string? model, bool streaming = false)
     {
         if (role == ChatRole.User)
         {
@@ -176,9 +192,10 @@ public sealed partial class LiveChatView : UserControl
         var markdown = new RichTextBlock();
         MarkdownView.Render(markdown, text, Links);
         answer.Children.Add(markdown);
+        var footer = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         if (model is { Length: > 0 })
         {
-            answer.Children.Add(new Border
+            footer.Children.Add(new Border
             {
                 Style = (Style)Resources["BadgeStyle"],
                 Child = new TextBlock
@@ -187,7 +204,46 @@ public sealed partial class LiveChatView : UserControl
                 },
             });
         }
+        if (!streaming)
+        {
+            var copy = new Button
+            {
+                Style = (Style)Application.Current.Resources["SubtleButtonStyle"],
+                Padding = new Thickness(6, 2, 6, 2),
+                Content = new FontIcon
+                {
+                    FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["SymbolThemeFontFamily"],
+                    FontSize = 12,
+                    Glyph = "\uE8C8",
+                },
+            };
+            AutomationProperties.SetName(copy, Loc.T("Copy"));
+            ToolTipService.SetToolTip(copy, Loc.T("Copy the answer"));
+            copy.Click += (_, _) => CopyAnswer(text);
+            footer.Children.Add(copy);
+        }
+        if (footer.Children.Count > 0) answer.Children.Add(footer);
         return answer;
+    }
+
+    /// <summary>Copies the answer and shows "Copied" for 2 s; a newer copy gets its own 2 s (as AIPanelView).</summary>
+    private void CopyAnswer(string text)
+    {
+        var package = new DataPackage();
+        package.SetText(text);
+        try
+        {
+            Clipboard.SetContent(package);
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"EchoDiar: could not copy: {e.GetType().Name}");
+            return;
+        }
+        ToastText.Text = Loc.T("Copied");
+        Toast.Visibility = Visibility.Visible;
+        _toastTimer.Stop();
+        _toastTimer.Start();
     }
 
     /// <summary>

@@ -22,8 +22,8 @@ namespace EchoDiar.App.Views;
 /// <see cref="AppViewModel"/>, one per conversation, so one goes on when the page changes and the conversation's other
 /// tab shows it as busy, with Stop. Answers are Markdown rendered by <see cref="MarkdownView"/> (at most every 120 ms
 /// while streaming, as the model batches the text, and once more when saved); <c>[mm:ss]</c> citations call the seek
-/// action <see cref="ConversationView"/> passes, web links open once their destination is confirmed. Under the
-/// summary, the Catch-ups bar with the catch-ups written while recording (<see cref="CatchUpCard"/>, read-only).
+/// action <see cref="ConversationView"/> passes, web links open once their destination is confirmed. The Catch-up
+/// tab, there only with catch-ups, shows those written while recording (<see cref="CatchUpCard"/>, read-only).
 /// Attach when the page shows, Detach when it goes.
 /// </summary>
 public sealed partial class AIPanelView : UserControl
@@ -32,6 +32,14 @@ public sealed partial class AIPanelView : UserControl
     private static readonly TimeSpan SpinnerDelay = TimeSpan.FromMilliseconds(150);
 
     private static readonly UISettings UISettings = new();
+
+    /// <summary>
+    /// The tabs' icons in a narrow header (macOS <c>tabIcon</c>): left-aligned lines, a bulleted list (as the
+    /// recording's Catch-up tab) and a chat bubble.
+    /// </summary>
+    private const string SummaryTabGlyph = "\uE8E4";
+    private const string CatchUpTabGlyph = "\uE8FD";
+    private const string ChatTabGlyph = "\uE8BD";
 
     private readonly DispatcherQueueTimer _toastTimer;
     private readonly DispatcherQueueTimer _focusTimer;
@@ -61,9 +69,6 @@ public sealed partial class AIPanelView : UserControl
     /// they are. Never set merely because the panel opens on Chat: ↑/↓ through the cards and Space must keep working.
     /// </summary>
     private bool _focusPending;
-
-    /// <summary>The Catch-ups section under the summary is open; collapsed for each conversation.</summary>
-    private bool _showingCatchUps;
 
     /// <summary>The catch-up cards by id, kept while shown, so a card's Markdown is not rendered again.</summary>
     private readonly Dictionary<Guid, CatchUpCard> _catchUpCards = [];
@@ -120,11 +125,6 @@ public sealed partial class AIPanelView : UserControl
         ClearHistoryButton.Click += (_, _) => _ = ClearHistoryAsync();
         QuestionBox.PreviewKeyDown += OnQuestionKeyDown;
         QuestionBox.TextChanged += (_, _) => UpdateActions();
-        CatchUpsHeader.Click += (_, _) =>
-        {
-            _showingCatchUps = !_showingCatchUps;
-            UpdateCatchUps();
-        };
     }
 
     /// <summary>The first read of the conversation's files has returned; until then the header shows over the loading ring.</summary>
@@ -172,7 +172,6 @@ public sealed partial class AIPanelView : UserControl
         _streamSlot = null;
         _loadedSeen = false;
         _focusPending = false;
-        _showingCatchUps = false;
         _catchUpCards.Clear();
         _catchUpOpenStates.Clear();
         CatchUpCards.Children.Clear();
@@ -208,29 +207,53 @@ public sealed partial class AIPanelView : UserControl
     }
 
     /// <summary>
-    /// The tab selected in the header, its pane and footer: Summary's actions, or Chat's question row with a fresh chat
-    /// and History in the header. Leaving Chat closes the History panel.
+    /// The tab selected in the header, its pane and footer: Summary's actions, Catch-up's cards without a footer (the
+    /// header's menus hidden but keeping their room), or Chat's question row with a fresh chat and History in the
+    /// header. Leaving Chat closes the History panel.
     /// </summary>
     private void UpdateTab()
     {
         var chat = _tab == DetailTab.Chat;
-        var item = chat ? ChatPanelTab : SummaryPanelTab;
+        var catchUp = _tab == DetailTab.CatchUp;
+        var item = _tab switch
+        {
+            DetailTab.Chat => ChatPanelTab,
+            DetailTab.CatchUp => CatchUpPanelTab,
+            _ => SummaryPanelTab,
+        };
         if (PanelTabsBar.SelectedItem != item) PanelTabsBar.SelectedItem = item;
-        SummaryPane.Visibility = Shown(!chat);
+        SummaryPane.Visibility = Shown(_tab == DetailTab.Summary);
+        CatchUpPane.Visibility = Shown(catchUp);
         ChatPane.Visibility = Shown(chat);
+        // The catch-ups are read-only: no footer.
+        Footer.Visibility = Shown(ContentHost.Visibility == Visibility.Visible && !catchUp);
         SummaryActions.Visibility = Shown(!chat);
         QuestionRow.Visibility = Shown(chat);
         FreshChatButton.Visibility = Shown(chat);
         HistoryButton.Visibility = Shown(chat);
+        foreach (var control in new Control[] { ModelButton, LanguageButton, DataNotesButton }) Reserve(control, hidden: catchUp);
         if (!chat) ShowHistory(false);
+        UpdateCatchUps();
         FitHeader();
+    }
+
+    /// <summary>
+    /// Hidden but keeping its room (macOS <c>hidden()</c>), so the header's step does not change with the tab: not
+    /// drawn, clicked, tabbed to or read out.
+    /// </summary>
+    private static void Reserve(Control control, bool hidden)
+    {
+        control.Opacity = hidden ? 0 : 1;
+        control.IsHitTestVisible = !hidden;
+        control.IsTabStop = !hidden;
+        AutomationProperties.SetAccessibilityView(control, hidden ? Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw : Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Content);
     }
 
     /// <summary>A tab picked in the header; only a pick that differs from the model's tab is written.</summary>
     private void OnPanelTabSelected()
     {
         if (_model is not { IsClosing: false } model || PanelTabsBar.SelectedItem is not { } item) return;
-        var picked = item == ChatPanelTab ? DetailTab.Chat : DetailTab.Summary;
+        var picked = item == ChatPanelTab ? DetailTab.Chat : item == CatchUpPanelTab ? DetailTab.CatchUp : DetailTab.Summary;
         if (picked != model.DetailTab) model.DetailTab = picked;
     }
 
@@ -245,7 +268,7 @@ public sealed partial class AIPanelView : UserControl
         LoadingRing.Opacity = 0;
         LoadingRing.Visibility = Shown(loading);
         ContentHost.Visibility = Shown(!loading);
-        Footer.Visibility = Shown(!loading);
+        Footer.Visibility = Shown(!loading && _tab != DetailTab.CatchUp);
         if (loading) _spinnerTimer.Start();
         Services.StartupTrace.Write($"conversation {_panel?.ConversationId} AI panel: {(loading ? "loading ring" : "content")} shown");
     }
@@ -267,6 +290,13 @@ public sealed partial class AIPanelView : UserControl
             ShowLoading(false);
             if (_focusPending && _tab == DetailTab.Chat) FocusQuestionOnceLoaded();
         }
+        // Without catch-ups there is no Catch-up tab: opened on it (the list's arrows keep the tab), it shows Summary
+        // (macOS leaveEmptyCatchUpTab); the model's change updates everything.
+        if (_panel.HasLoaded && _panel.CatchUps.Count == 0 && _model.DetailTab == DetailTab.CatchUp)
+        {
+            _model.DetailTab = DetailTab.Summary;
+            return;
+        }
         UpdateSummary();
         UpdateCatchUps();
         UpdateChat();
@@ -281,23 +311,16 @@ public sealed partial class AIPanelView : UserControl
 
     // Summary
 
-    /// <summary>
-    /// The summary being written, else the shown version with its menu, else a note above the catch-ups; a note in the
-    /// middle while there are neither.
-    /// </summary>
+    /// <summary>The summary being written, else the shown version with its menu; a note in the middle while there is none.</summary>
     private void UpdateSummary()
     {
         if (_panel is null) return;
         var job = _panel.SummaryJob;
         var shown = _panel.ShownSummary;
         var none = job is null && shown is null;
-        var empty = none && _panel.CatchUps.Count == 0;
-        var note = _panel.EmptyNote ?? Loc.T("No summary yet.");
-        SummaryEmptyText.Text = note;
-        SummaryEmptyText.Visibility = Shown(empty);
-        SummaryContent.Visibility = Shown(!empty);
-        SummaryNoneText.Text = note;
-        SummaryNoneText.Visibility = Shown(none);
+        SummaryEmptyText.Text = _panel.EmptyNote ?? Loc.T("No summary yet.");
+        SummaryEmptyText.Visibility = Shown(none);
+        SummaryContent.Visibility = Shown(!none);
         VersionButton.Visibility = Shown(job is null && shown is not null);
         if (shown is not null)
         {
@@ -316,42 +339,19 @@ public sealed partial class AIPanelView : UserControl
             _summaryRendered = text;
             MarkdownView.Render(SummaryText, text, Links());
         }
-        UpdateRowHeights();
     }
 
     /// <summary>
-    /// The heights of the summary and the catch-up cards (macOS <c>summaryPane</c>): the summary takes all the height
-    /// above the Catch-ups bar while it is collapsed or absent; open, the cards share it 1:1 with a summary (shown or
-    /// being written), else take all of it, the summary area hidden.
-    /// </summary>
-    private void UpdateRowHeights()
-    {
-        if (_panel is null) return;
-        var open = _showingCatchUps && _panel.CatchUps.Count > 0;
-        var hasSummary = _panel.SummaryJob is not null || _panel.ShownSummary is not null;
-        SummaryRow.Height = open && !hasSummary ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        CatchUpsCardsRow.Height = open ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-    }
-
-    /// <summary>
-    /// The Catch-ups bar (macOS <c>catchUpsSection</c>), pinned under the summary while there are some: its header with
-    /// the count, then, open, the cards newest first in their own scroller, the newest open and the others collapsed
-    /// unless clicked otherwise; each kept by id.
+    /// The Catch-up tab, there only while the conversation has catch-ups, and its cards (macOS <c>catchUpPane</c>):
+    /// newest first, the newest open and the others collapsed unless clicked otherwise, each with Copy; each kept by id.
+    /// Built only while the tab shows, as macOS.
     /// </summary>
     private void UpdateCatchUps()
     {
         if (_panel is null) return;
         var catchUps = _panel.CatchUps;
-        CatchUpsSection.Visibility = Shown(catchUps.Count > 0);
-        var count = catchUps.Count.ToString("N0", CultureInfo.CurrentCulture);
-        CatchUpsCount.Text = count;
-        AutomationProperties.SetName(CatchUpsHeader, $"{Loc.T("Catch-ups")}, {count}");
-        AutomationProperties.SetItemStatus(CatchUpsHeader, Loc.T(_showingCatchUps ? "Expanded" : "Collapsed"));
-        CatchUpsChevron.Glyph = _showingCatchUps ? "\uE70D" : "\uE76C";
-        CatchUpCards.Visibility = Shown(_showingCatchUps);
-        UpdateRowHeights();
-        // Built only while open, as macOS.
-        if (!_showingCatchUps) return;
+        CatchUpPanelTab.Visibility = Shown(catchUps.Count > 0);
+        if (_tab != DetailTab.CatchUp) return;
         var providers = _panel.Providers.AIProviders;
         List<CatchUpCard> cards = [];
         for (var i = catchUps.Count - 1; i >= 0; i--)
@@ -700,7 +700,8 @@ public sealed partial class AIPanelView : UserControl
         AutomationProperties.SetName(ModelButton, title);
         var language = _model.Settings.SummaryLanguage;
         LanguageText.Text = LanguageOptions.ShortCode(language);
-        DataNotesButton.Visibility = Shown(DataNotes().Count > 0);
+        // Shown by FitHeader, which hides it in the narrowest header.
+        _hasDataNotes = DataNotes().Count > 0;
         FitHeader();
 
         SetupHints.Visibility = Shown(current is null);
@@ -724,36 +725,61 @@ public sealed partial class AIPanelView : UserControl
         }
     }
 
-    /// <summary>What <see cref="FitHeader"/> last fitted: the width, the labels and the buttons shown.</summary>
-    private (double Width, string Model, string Language, DetailTab Tab, Visibility Notes)? _headerFitted;
+    /// <summary>The "i" has notes to show: hidden in the narrowest header only.</summary>
+    private bool _hasDataNotes;
+
+    /// <summary>What <see cref="FitHeader"/> last fitted: the width, the labels and whether the "i" shows.</summary>
+    private (double Width, string Model, string Language, bool Notes)? _headerFitted;
 
     /// <summary>
-    /// The header on one row, never wrapped (macOS <c>headerRow(modelLabel:languageLabel:)</c>): with both names when
-    /// everything fits, else the language as its globe only, then the model as its chip only too, the names in their
-    /// tooltips. Decided from the natural widths, outside the layout pass (the header's SizeChanged, a name or a button
-    /// that changed), so a name shown again to be measured never makes the layout loop. Too narrow even then, the
-    /// menus are clipped at the trailing edge.
+    /// The header on one row, never wrapped (macOS <c>headerRow</c>): with both names when everything fits, else the
+    /// language as its globe only, then the model as its chip only too, the names in their tooltips, then the tabs as
+    /// their icons too, then also without the "i" and with narrower menus and buttons (<see cref="ApplyHeaderStep"/>).
+    /// Chosen as if Chat's fresh chat and History showed, so a switch of tabs never changes the step. Decided from the
+    /// natural widths, outside the layout pass (the header's SizeChanged, a name or a button that changed). Too narrow
+    /// even then, the menus are clipped at the trailing edge.
     /// </summary>
     private void FitHeader()
     {
         var width = HeaderRow.ActualWidth;
         if (width <= 0) return;
-        var key = (width, ModelText.Text, LanguageText.Text, _tab, DataNotesButton.Visibility);
+        var key = (width, ModelText.Text, LanguageText.Text, _hasDataNotes);
         if (_headerFitted == key) return;
         _headerFitted = key;
-        var natural = new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity);
-        PanelTabsTrack.Measure(natural);
-        var step = 0;
-        for (; step < 2; step++)
-        {
-            ShowHeaderLabels(model: true, language: step == 0);
-            HeaderMenus.Measure(natural);
-            // Half a pixel of slack: layout rounding may give a little less than the measured width.
-            if (PanelTabsTrack.DesiredSize.Width + HeaderRow.ColumnSpacing + HeaderMenus.DesiredSize.Width <= width + 0.5) break;
-        }
-        if (step == 2) ShowHeaderLabels(model: false, language: false);
+        FreshChatButton.Visibility = Visibility.Visible;
+        HistoryButton.Visibility = Visibility.Visible;
+        AIMenus.FitRow(width, HeaderRow, PanelTabsTrack, HeaderMenus, 5, ApplyHeaderStep);
+        var chat = _tab == DetailTab.Chat;
+        FreshChatButton.Visibility = Shown(chat);
+        HistoryButton.Visibility = Shown(chat);
         // Measured at their natural width above: the next layout pass measures them with the header's width again.
         HeaderRow.InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// One of <see cref="FitHeader"/>'s steps: 0 everything named, 1 the globe alone, 2 the chip alone too, 3 the tabs'
+    /// icons too, 4 also no "i", 4 px less side padding in the tabs, the menus and the buttons (macOS 12 → 8 pt) and
+    /// 6 px between the row's items instead of 8 (macOS <c>tight</c>), so the three tabs fit the panel's minimum width.
+    /// </summary>
+    private void ApplyHeaderStep(int step)
+    {
+        ShowHeaderLabels(model: step < 2, language: step < 1);
+        AIMenus.ShowTabLabel(SummaryPanelTab, Loc.T("Summary"), SummaryTabGlyph, label: step < 3);
+        AIMenus.ShowTabLabel(CatchUpPanelTab, Loc.T("Catch-up"), CatchUpTabGlyph, label: step < 3);
+        AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
+        var compact = step >= 4;
+        DataNotesButton.Visibility = Shown(_hasDataNotes && !compact);
+        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton })
+        {
+            AIMenus.CompactPadding(control, compact);
+        }
+        var spacing = compact ? 6 : 8;
+        HeaderRow.ColumnSpacing = spacing;
+        // The menus' margins space them (a collapsed one keeps none).
+        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton })
+        {
+            control.Margin = new Thickness(spacing, 0, 0, 0);
+        }
     }
 
     /// <summary>The model's and the language's names beside their icons, or only in their tooltips.</summary>
@@ -761,6 +787,8 @@ public sealed partial class AIPanelView : UserControl
     {
         ModelText.Visibility = Shown(model);
         LanguageText.Visibility = Shown(language);
+        AIMenus.TightenChevron(ModelButton, iconOnly: !model);
+        AIMenus.TightenChevron(LanguageButton, iconOnly: !language);
         var help = Loc.T("Model for summaries and questions");
         ToolTipService.SetToolTip(ModelButton, model ? help : $"{help}: {ModelText.Text}");
         // The globe alone has no text to be read out (macOS accessibilityLabel("Language")).
@@ -849,11 +877,11 @@ public sealed partial class AIPanelView : UserControl
     /// <summary>
     /// Copy as prompt (macOS <c>copyPrompt</c>, Ctrl+Shift+C), on Summary only: the transcript as a summary prompt,
     /// without a question; kept out of the clipboard history and the cloud clipboard (macOS: transient, this Mac only).
-    /// False on Chat or without a transcript.
+    /// False off Summary or without a transcript.
     /// </summary>
     internal bool CopyPrompt()
     {
-        if (_tab == DetailTab.Chat || _panel?.CopyPrompt(null) is not { } prompt) return false;
+        if (_tab != DetailTab.Summary || _panel?.CopyPrompt(null) is not { } prompt) return false;
         CopyText(prompt, Loc.T("Copied — paste into any chat"), transient: true);
         return true;
     }

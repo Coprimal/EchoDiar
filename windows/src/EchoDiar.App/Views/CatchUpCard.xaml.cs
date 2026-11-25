@@ -67,6 +67,9 @@ public sealed partial class CatchUpCard : UserControl
 
     private bool _open;
 
+    /// <summary>The details shown and the room they were last fitted to (<see cref="FitDetails"/>).</summary>
+    private (string Details, double Room)? _detailsFitted;
+
     public CatchUpCard(MarkdownLinks? links = null)
     {
         _links = links ?? new MarkdownLinks();
@@ -90,6 +93,7 @@ public sealed partial class CatchUpCard : UserControl
             ShowCopied(false);
         };
         HeaderButton.Click += (_, _) => ToggleRequested?.Invoke();
+        HeaderGrid.SizeChanged += (_, _) => FitDetails();
         StopButton.Click += (_, _) => StopRequested?.Invoke();
         CopyButton.Click += (_, _) => Copy();
         ShowCopied(false);
@@ -133,7 +137,11 @@ public sealed partial class CatchUpCard : UserControl
         var details = string.Join(" · ", new[] { state.Provider, state.Model, state.Stopped ? Loc.T("Stopped") : null }
             .Where(part => !string.IsNullOrEmpty(part)));
         RecordingCard.SetText(DetailsText, details);
-        DetailsText.Visibility = details.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        FitDetails();
+        if (ToolTipService.GetToolTip(HeaderButton) as string != details)
+        {
+            ToolTipService.SetToolTip(HeaderButton, details.Length > 0 ? details : null);
+        }
         AutomationProperties.SetName(HeaderButton, details.Length > 0 ? $"{title}, {details}" : title);
 
         StopButton.Visibility = state.Running ? Visibility.Visible : Visibility.Collapsed;
@@ -146,6 +154,30 @@ public sealed partial class CatchUpCard : UserControl
         RenderText();
         RecordingCard.SetText(ErrorText, state.Error ?? "");
         ErrorText.Visibility = state.Error is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>
+    /// The details beside the title only when they fit whole in the room it leaves, else hidden (macOS ViewThatFits
+    /// { title + details; title }); they are always the header's tooltip. Decided after the layout pass (the header's
+    /// SizeChanged) or when they change: the room is the star column's, which does not depend on them, so this never
+    /// makes the layout loop.
+    /// </summary>
+    private void FitDetails()
+    {
+        var details = DetailsText.Text;
+        var room = HeaderGrid.ColumnDefinitions[2].ActualWidth;
+        if (_detailsFitted == (details, room)) return;
+        _detailsFitted = (details, room);
+        if (details.Length == 0)
+        {
+            DetailsText.Visibility = Visibility.Collapsed;
+            return;
+        }
+        // Shown to be measured at its natural width.
+        DetailsText.Visibility = Visibility.Visible;
+        DetailsText.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+        // Half a pixel of slack: layout rounding may give a little less than the measured width.
+        DetailsText.Visibility = DetailsText.DesiredSize.Width <= room + 0.5 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ShowOpen()

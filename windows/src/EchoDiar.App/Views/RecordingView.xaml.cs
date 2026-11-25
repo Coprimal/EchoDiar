@@ -21,7 +21,8 @@ namespace EchoDiar.App.Views;
 /// RecordingWave), opened from the recording's card: the title, "Catch up", the calendar suggestion and the capture
 /// warnings, pinned on top, then the live transcript (or the wave and why there is none) on the left and a panel on the
 /// right with its Catch-up | Chat tabs (<see cref="AppViewModel.RecordingTab"/>), the catch-up model and the answer
-/// language over the catch-ups (macOS CatchUpPanel) or the live chat. The meters and the wave move at 15 Hz while the
+/// language over the catch-ups (macOS CatchUpPanel) or the live chat; the gap between them drags to resize them, and
+/// with Stack Panes (<see cref="AppSettings.StackedPanes"/>) the transcript is above the panel. The meters and the wave move at 15 Hz while the
 /// window is shown and the recording is not paused; the wave stands still when Windows animations are off (Reduce
 /// Motion).
 /// </summary>
@@ -38,6 +39,17 @@ public sealed partial class RecordingView : UserControl
     private const double StackedMetersWidth = 120;
     private const double StackedMetersSpacing = 3;
     private const double StackedLabelMinWidth = 44;
+
+    /// <summary>The gap between the panes, and their minimums side by side and stacked (macOS RecordingDetailView).</summary>
+    private const double PaneGap = 10;
+    private const double TranscriptMinWidth = 240;
+    private const double PanelMinWidth = 300;
+    private const double StackedTranscriptMinHeight = 160;
+    private const double StackedPanelMinHeight = 200;
+
+    /// <summary>The tabs' icons in a narrow panel (macOS <c>tabIcon</c>): a bulleted list, as Catch up's, and a chat bubble.</summary>
+    private const string CatchUpTabGlyph = "\uE8FD";
+    private const string ChatTabGlyph = "\uE8BD";
 
     private static readonly UISettings UISettings = new();
 
@@ -69,6 +81,12 @@ public sealed partial class RecordingView : UserControl
     /// one scrolls again.
     /// </summary>
     private (int Count, Guid? Run, bool Failed)? _scrolledCatchUps;
+
+    /// <summary>The panes' layout as last applied: stacked, side by side, or none yet (the XAML's, side by side).</summary>
+    private bool? _stacked;
+
+    /// <summary>What <see cref="FitHeader"/> last fitted: the header's width and the two names.</summary>
+    private (double Width, string Model, string Language)? _headerFitted;
 
     /// <summary>"Catch up"'s tooltip as last set: one set again while shown closes under the pointer (the captions change it often).</summary>
     private string? _catchUpTip;
@@ -105,6 +123,7 @@ public sealed partial class RecordingView : UserControl
             _model.RecordingTab = RecordingTab.CatchUp;
         };
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
+        PanelHeader.SizeChanged += (_, _) => FitHeader();
         CatchUpSearchButton.Click += (_, _) => SetCatchUpSearch(CatchUpSearchButton.IsChecked == true);
         CatchUpSearchBox.TextChanged += (_, _) =>
         {
@@ -124,6 +143,7 @@ public sealed partial class RecordingView : UserControl
             _model.PropertyChanged += OnModelChanged;
             _model.CatchUpTextChanged += OnCatchUpTextChanged;
             _model.ProvidersModel.Changed += OnProvidersChanged;
+            ApplyLayout();
             Update();
             UpdateTitle();
             UpdateSuggestion();
@@ -153,6 +173,7 @@ public sealed partial class RecordingView : UserControl
                 Update();
                 break;
             case nameof(AppViewModel.Settings):
+                ApplyLayout();
                 UpdateReason();
                 UpdateCatchUpButton();
                 UpdatePanelMenus();
@@ -283,6 +304,83 @@ public sealed partial class RecordingView : UserControl
         }
         var language = LanguageOptions.ShortCode(_model.Settings.SummaryLanguage);
         if (PanelLanguageText.Text != language) PanelLanguageText.Text = language;
+        FitHeader();
+    }
+
+    /// <summary>
+    /// The right panel's header on one row, never wrapped (macOS <c>sidePanel</c>'s ViewThatFits): with both names when
+    /// everything fits, else the language as its globe only, then the model as its chip only too, then the tabs as
+    /// their icons too, the names in the tooltips. Chosen as if the Catch-up tab's Search showed, so a switch of tabs
+    /// never changes the step. Decided from the natural widths, outside the layout pass (the header's SizeChanged or a
+    /// name that changed). Too narrow even then, the menus are clipped at the trailing edge.
+    /// </summary>
+    private void FitHeader()
+    {
+        var width = PanelHeader.ActualWidth;
+        if (width <= 0) return;
+        var key = (width, PanelModelText.Text, PanelLanguageText.Text);
+        if (_headerFitted == key) return;
+        _headerFitted = key;
+        CatchUpSearchButton.Visibility = Visibility.Visible;
+        AIMenus.FitRow(width, PanelHeader, PanelTabsTrack, PanelHeaderMenus, 4, step =>
+        {
+            ShowHeaderLabels(model: step < 2, language: step < 1);
+            AIMenus.ShowTabLabel(CatchUpPanelTab, Loc.T("Catch-up"), CatchUpTabGlyph, label: step < 3);
+            AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
+        });
+        CatchUpSearchButton.Visibility = Shown(_model.RecordingTab != RecordingTab.Chat);
+        // Measured at their natural width above: the next layout pass measures them with the header's width again.
+        PanelHeader.InvalidateMeasure();
+    }
+
+    /// <summary>The model's and the language's names beside their icons, or only in their tooltips.</summary>
+    private void ShowHeaderLabels(bool model, bool language)
+    {
+        PanelModelText.Visibility = Shown(model);
+        PanelLanguageText.Visibility = Shown(language);
+        AIMenus.TightenChevron(PanelModelButton, iconOnly: !model);
+        AIMenus.TightenChevron(PanelLanguageButton, iconOnly: !language);
+        var help = Loc.T("Model for catch-ups and live chat");
+        ToolTipService.SetToolTip(PanelModelButton, model ? help : $"{help}: {PanelModelText.Text}");
+        // The globe alone has no text to be read out.
+        if (language) PanelLanguageButton.ClearValue(AutomationProperties.NameProperty);
+        else AutomationProperties.SetName(PanelLanguageButton, $"{Loc.T("Language")}: {PanelLanguageText.Text}");
+    }
+
+    /// <summary>
+    /// The transcript beside the panel, or above it with <see cref="AppSettings.StackedPanes"/> (macOS
+    /// RecordingDetailView <c>PaneSplit(vertical:)</c>): the columns or the rows (transcript, gap, panel) made again,
+    /// so the split is 50/50 again, with the panes' minimums; only when the setting changed, so another setting keeps a dragged split.
+    /// </summary>
+    private void ApplyLayout()
+    {
+        var stacked = _model.Settings.StackedPanes;
+        if (stacked == _stacked) return;
+        _stacked = stacked;
+        var rows = PanesGrid.RowDefinitions;
+        var columns = PanesGrid.ColumnDefinitions;
+        rows.Clear();
+        columns.Clear();
+        if (stacked)
+        {
+            rows.Add(new RowDefinition());
+            rows.Add(new RowDefinition { Height = new GridLength(PaneGap) });
+            rows.Add(new RowDefinition());
+        }
+        else
+        {
+            columns.Add(new ColumnDefinition());
+            columns.Add(new ColumnDefinition { Width = new GridLength(PaneGap) });
+            columns.Add(new ColumnDefinition());
+        }
+        foreach (var (element, index) in new (FrameworkElement, int)[] { (Splitter, 1), (SidePanel, 2) })
+        {
+            Grid.SetRow(element, stacked ? index : 0);
+            Grid.SetColumn(element, stacked ? 0 : index);
+        }
+        // The minimums are kept by the gap: half and half when the grid has no room for both, as macOS.
+        if (stacked) Splitter.Arrange(vertical: true, StackedTranscriptMinHeight, StackedPanelMinHeight);
+        else Splitter.Arrange(vertical: false, TranscriptMinWidth, PanelMinWidth);
     }
 
     private static Visibility Shown(bool shown) => shown ? Visibility.Visible : Visibility.Collapsed;

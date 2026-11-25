@@ -3,6 +3,7 @@ using EchoDiar.AI;
 using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Settings;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,12 +16,19 @@ namespace EchoDiar.App.Views;
 /// <summary>
 /// One conversation (macOS MainView.swift detail and toolbar title): the title, renamed in place, and the details; then
 /// the transcript with playback on the left and the AI panel with its Summary | Chat tabs on the right (macOS
-/// TranscriptView), side by side, so playback goes on whichever tab shows. It owns the transcript's state and the player.
+/// TranscriptView), side by side, so playback goes on whichever tab shows, or the transcript above the panel with Stack
+/// Panes (<see cref="AppSettings.StackedPanes"/>). It owns the transcript's state and the player.
 /// </summary>
 public sealed partial class ConversationView : UserControl
 {
     /// <summary>How long the loading pane shows without its ring: a ring shown for a frame or two reads as a flicker.</summary>
     private static readonly TimeSpan SpinnerDelay = TimeSpan.FromMilliseconds(150);
+
+    /// <summary>The gap between the panes, and their minimums side by side and stacked (macOS TranscriptView: 280 / 300, 200 / 200).</summary>
+    private const double PaneGap = 10;
+    private const double TranscriptMinWidth = 300;
+    private const double PanelMinWidth = 280;
+    private const double StackedMinHeight = 200;
 
     private static readonly UISettings UISettings = new();
 
@@ -52,6 +60,9 @@ public sealed partial class ConversationView : UserControl
 
     /// <summary>The transcript's loading pane shows; null before the first <see cref="UpdateTranscriptShown"/>.</summary>
     private bool? _loadingShown;
+
+    /// <summary>The panes' layout as last applied: stacked, side by side, or none yet (the XAML's, side by side).</summary>
+    private bool? _stacked;
 
     public ConversationView(AppViewModel model, Guid id)
     {
@@ -85,6 +96,7 @@ public sealed partial class ConversationView : UserControl
             _transcript.Attach();
             TranscriptPane.Attach(_model, _transcript, _playback);
             AIPanel.Attach(_model, _id, OpenCitation);
+            ApplyLayout();
             Update();
             UpdateTranscriptShown();
             OpenLibraryCitation();
@@ -109,7 +121,7 @@ public sealed partial class ConversationView : UserControl
     /// <summary>Space on the conversation (macOS <c>togglePlayback</c>): what the playback bar's play button does.</summary>
     internal void TogglePlayback() => _playback.TogglePlay();
 
-    /// <summary>Ctrl+Shift+C: the AI panel's Copy as prompt on Summary; false when it copied nothing (or on Chat).</summary>
+    /// <summary>Ctrl+Shift+C: the AI panel's Copy as prompt on Summary; false when it copied nothing (or off Summary).</summary>
     internal bool CopyPrompt() => AIPanel.CopyPrompt();
 
     /// <summary>Esc on Chat closes the History panel first; false when it was not open.</summary>
@@ -126,11 +138,54 @@ public sealed partial class ConversationView : UserControl
                 break;
             case nameof(AppViewModel.Settings):
                 _playback.SetChannels(_model.Settings.PlaybackChannels);
+                ApplyLayout();
                 break;
             case nameof(AppViewModel.PendingTranscriptTime):
                 OpenLibraryCitation();
                 break;
         }
+    }
+
+    /// <summary>
+    /// The transcript column beside the AI panel, or above it with <see cref="AppSettings.StackedPanes"/> (macOS
+    /// TranscriptView <c>PaneSplit(vertical:)</c>): the rows (title, transcript, gap, panel) or the columns (transcript,
+    /// gap, panel) made again, so the split is 50/50 again, with the panes' minimums; only when the setting changed, so another setting keeps a
+    /// dragged split. Side by side, the gap and the panel span the title's row, so the panel's header lines up with the
+    /// sidebar's.
+    /// </summary>
+    private void ApplyLayout()
+    {
+        var stacked = _model.Settings.StackedPanes;
+        if (stacked == _stacked) return;
+        _stacked = stacked;
+        var rows = PanesGrid.RowDefinitions;
+        var columns = PanesGrid.ColumnDefinitions;
+        rows.Clear();
+        columns.Clear();
+        rows.Add(new RowDefinition { Height = GridLength.Auto });
+        if (stacked)
+        {
+            rows.Add(new RowDefinition());
+            rows.Add(new RowDefinition { Height = new GridLength(PaneGap) });
+            rows.Add(new RowDefinition());
+            columns.Add(new ColumnDefinition());
+        }
+        else
+        {
+            rows.Add(new RowDefinition());
+            columns.Add(new ColumnDefinition());
+            columns.Add(new ColumnDefinition { Width = new GridLength(PaneGap) });
+            columns.Add(new ColumnDefinition());
+        }
+        foreach (var (element, row, column) in new (FrameworkElement, int, int)[] { (Splitter, 2, 1), (AIPanel, 3, 2) })
+        {
+            Grid.SetRow(element, stacked ? row : 0);
+            Grid.SetRowSpan(element, stacked ? 1 : 2);
+            Grid.SetColumn(element, stacked ? 0 : column);
+        }
+        // The minimums are kept by the gap: half and half when the grid has no room for both, as macOS.
+        if (stacked) Splitter.Arrange(vertical: true, StackedMinHeight, StackedMinHeight);
+        else Splitter.Arrange(vertical: false, TranscriptMinWidth, PanelMinWidth);
     }
 
     /// <summary>A library chat citation of this conversation (<see cref="AppViewModel.OpenReference"/>), taken once.</summary>

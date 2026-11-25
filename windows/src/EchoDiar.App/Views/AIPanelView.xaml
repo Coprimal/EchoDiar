@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     The open conversation's AI panel, right of its transcript (macOS AIPanelView.swift): a header on the window, as the
-    sidebar's (the Summary | Chat tabs in a track, the model and language menus, the "i" about where the data goes and,
-    on Chat, a fresh chat and History), over one card with the tab's pane, then its footer. Summary shows the kept summaries (the newest first with a menu for the earlier ones), then the
-    Catch-ups bar pinned at the bottom (collapsed until it is clicked); its footer has Copy as prompt and Summarize /
-    Re-summarize / Stop. Chat shows the questions with their streamed answers and the History panel at the trailing
+    sidebar's (the Summary | Catch-up | Chat tabs in a track, Catch-up only with catch-ups, the model and language menus,
+    the "i" about where the data goes and, on Chat, a fresh chat and History), over one card with the tab's pane, then
+    its footer. Summary shows the kept summaries (the newest first with a menu for the earlier ones); its footer has Copy
+    as prompt and Summarize / Re-summarize / Stop. Catch-up shows the catch-ups written while recording, read-only, with
+    no footer and the menus hidden. Chat shows the questions with their streamed answers and the History panel at the trailing
     edge; its footer is the question row (Send only). Until the files are read, the header over a loading ring. Fluent theme
     resources (Light and Dark); the messages, menus and history rows are built in code.
 -->
@@ -75,7 +76,8 @@
             The header on the window, above the card, as the sidebar's (the two line up): the tabs, then at the trailing
             edge the model, the language, the "i" and, on Chat, a fresh chat and History; the menus open downwards. One
             row, never wrapped (macOS headerRow): too narrow, the language shows only its globe, then the model only its
-            chip, their names in the tooltips (FitHeader).
+            chip, their names in the tooltips, then the tabs only their icons, then the "i" hides and the menus and
+            buttons narrow; the same step on both tabs (FitHeader).
         -->
         <Grid x:Name="HeaderRow" ColumnSpacing="8">
             <Grid.ColumnDefinitions>
@@ -93,6 +95,11 @@
                 CornerRadius="{StaticResource OverlayCornerRadius}">
                 <SelectorBar x:Name="PanelTabsBar" Padding="0">
                     <SelectorBarItem x:Name="SummaryPanelTab" Text="{local:T Text='Summary'}" />
+                    <!-- Only for a conversation with catch-ups (set in code). -->
+                    <SelectorBarItem
+                        x:Name="CatchUpPanelTab"
+                        Text="{local:T Text='Catch-up'}"
+                        Visibility="Collapsed" />
                     <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
                 </SelectorBar>
             </Border>
@@ -140,9 +147,10 @@
                     Grid.Column="1"
                     Margin="8,0,0,0"
                     VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <!-- The name's margin spaces it, as the model's: the globe alone keeps no gap. -->
+                    <StackPanel Orientation="Horizontal">
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
-                        <TextBlock x:Name="LanguageText" />
+                        <TextBlock x:Name="LanguageText" Margin="6,0,0,0" />
                     </StackPanel>
                     <DropDownButton.Flyout>
                         <MenuFlyout x:Name="LanguageMenu" Placement="BottomEdgeAlignedRight" />
@@ -202,16 +210,14 @@
 
                 <!-- The tab's pane, once the files are read. -->
                 <Grid x:Name="ContentHost" Visibility="Collapsed">
-                    <!-- Summary: the version menu over the summary, the Catch-ups bar if any; a note while there are neither. -->
+                    <!-- Summary: the version menu over the summary; a note while there is none. -->
                     <Border x:Name="SummaryPane">
                         <Grid>
                             <TextBlock x:Name="SummaryEmptyText" Style="{StaticResource EmptyNoteStyle}" />
                             <Grid x:Name="SummaryContent">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition x:Name="SummaryRow" Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition x:Name="CatchUpsCardsRow" Height="0" />
+                                    <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <DropDownButton
                                     x:Name="VersionButton"
@@ -245,61 +251,19 @@
                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                         <RichTextBlock x:Name="SummaryText" />
-                                        <!-- No summary yet, above the catch-ups. -->
-                                        <TextBlock
-                                            x:Name="SummaryNoneText"
-                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                            Style="{StaticResource BodyTextBlockStyle}"
-                                            TextWrapping="Wrap"
-                                            Visibility="Collapsed" />
                                     </StackPanel>
-                                </ScrollViewer>
-                                <!--
-                                    The Catch-ups bar (macOS catchUpsSection), pinned under the summary a line below it: read-only,
-                                    newest first, cards built in code in their own scroller; the code sets the rows' heights.
-                                -->
-                                <Border
-                                    x:Name="CatchUpsSection"
-                                    Grid.Row="2"
-                                    Padding="14,6"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="0,1,0,0"
-                                    Visibility="Collapsed">
-                                    <Button
-                                        x:Name="CatchUpsHeader"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Left"
-                                        Style="{StaticResource SubtleButtonStyle}">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <FontIcon
-                                                x:Name="CatchUpsChevron"
-                                                Width="12"
-                                                VerticalAlignment="Center"
-                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                FontSize="10"
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Glyph="&#xE76C;" />
-                                            <TextBlock
-                                                VerticalAlignment="Center"
-                                                Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                Text="{local:T Text='Catch-ups'}" />
-                                            <TextBlock
-                                                x:Name="CatchUpsCount"
-                                                VerticalAlignment="Center"
-                                                Style="{StaticResource CaptionStyle}" />
-                                        </StackPanel>
-                                    </Button>
-                                </Border>
-                                <ScrollViewer x:Name="CatchUpsScroller" Grid.Row="3">
-                                    <StackPanel
-                                        x:Name="CatchUpCards"
-                                        Padding="14,0,14,16"
-                                        Spacing="6"
-                                        Visibility="Collapsed" />
                                 </ScrollViewer>
                             </Grid>
                         </Grid>
                     </Border>
+
+                    <!--
+                        Catch-up: the catch-ups written while recording (macOS catchUpPane), read-only, newest first, the
+                        cards built in code; no footer.
+                    -->
+                    <ScrollViewer x:Name="CatchUpPane" Visibility="Collapsed">
+                        <StackPanel x:Name="CatchUpCards" Padding="14,0,14,16" Spacing="6" />
+                    </ScrollViewer>
 
                     <!-- Chat: the messages, or a note while there are none; the History panel over the trailing edge. -->
                     <Border x:Name="ChatPane" Visibility="Collapsed">

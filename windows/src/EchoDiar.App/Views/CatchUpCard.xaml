@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     One catch-up (macOS CatchUpPanel.swift CatchUpCardView), on the recording page and in the AI pane: the header
-    (chevron, "Catch-up at m:ss", the provider, the model and "Stopped", then Stop or Copy) and, open, the text: a
+    (chevron, "Catch-up at m:ss" on one line, the provider, the model and "Stopped" beside it only when they fit whole,
+    always in its tooltip, then Stop or Copy) and, open, the text: a
     placeholder until it comes, its Markdown, the error under it.
 -->
 <UserControl
@@ -26,9 +27,10 @@
                 <Button
                     x:Name="HeaderButton"
                     HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Left"
+                    HorizontalContentAlignment="Stretch"
                     Style="{StaticResource SubtleButtonStyle}">
-                    <Grid ColumnSpacing="8">
+                    <!-- Stretched, so the details' column is the room left beside the title (CatchUpCard.FitDetails). -->
+                    <Grid x:Name="HeaderGrid" ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
@@ -53,7 +55,6 @@
                             VerticalAlignment="Center"
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            TextTrimming="CharacterEllipsis"
                             TextWrapping="NoWrap" />
                     </Grid>
                 </Button>

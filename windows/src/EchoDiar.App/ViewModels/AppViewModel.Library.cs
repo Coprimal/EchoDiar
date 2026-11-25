@@ -109,6 +109,12 @@ public sealed partial class AppViewModel
     }
 
     /// <summary>
+    /// The title bar's Stack Panes or Side by Side (macOS <c>layoutItem</c>): the conversation's and the recording's
+    /// transcript above their panel, or beside it again; saved.
+    /// </summary>
+    public void ToggleStackedPanes() => SaveSettings(Settings with { StackedPanes = !Settings.StackedPanes });
+
+    /// <summary>
     /// The one path that hides or shows the library sidebar (macOS <c>setSidebarHidden</c>): hiding it closes the
     /// library chat, which lives in it (the sidebar shows again on its Conversations tab).
     /// </summary>

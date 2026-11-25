@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     The recording's Chat tab (macOS LiveChatView.swift): the recording's chat (questions plain, answers Markdown with
-    their model), then the answer being written (or the last one that failed, with its error), or a note while there
+    their model and, once written, Copy), then the answer being written (or the last one that failed, with its error), or a note while there
     are none; under it the question row (Enter sends, Shift+Enter starts a new line; Stop while an answer is written),
     or why no question can be asked now. Fluent cards in theme resources (Light and Dark), dropped when the view is not
     Framed (the recording's right panel); the messages are built in code.
@@ -72,6 +72,22 @@
                     <StackPanel x:Name="MessagesPanel" Padding="14,16" Spacing="20" />
                 </ScrollViewer>
             </Grid>
+        </Border>
+
+        <!-- "Copied": 2 s over the chat's bottom, as the conversation chat's (AIPanelView). -->
+        <Border
+            x:Name="Toast"
+            Margin="0,0,0,16"
+            Padding="14,8"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource OverlayCornerRadius}"
+            IsHitTestVisible="False"
+            Visibility="Collapsed">
+            <TextBlock x:Name="ToastText" />
         </Border>
 
         <!-- The question row, or why no question can be asked now. -->

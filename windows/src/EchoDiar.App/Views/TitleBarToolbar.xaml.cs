@@ -4,6 +4,7 @@ using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Audio;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Settings;
 using EchoDiar.Platform.SystemServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -20,7 +21,8 @@ namespace EchoDiar.App.Views;
 /// which hides or shows the library sidebar; Back, always shown and enabled off the list only (the library chat is the
 /// sidebar's Chat tab, not a page to go back from); Record with its options, target and language (Stop, blinking, and
 /// Pause or Resume while recording); Reveal and Delete, always shown and enabled on a conversation; Settings (opens the
-/// Settings page, or goes back from it), Calendar (the same for the Calendar page); Update while an App Installer update
+/// Settings page, or goes back from it), Calendar (the same for the Calendar page); Stack Panes or Side by Side on a
+/// conversation and the live recording (<see cref="AppSettings.StackedPanes"/>); Update while an App Installer update
 /// is available and nothing runs that installing would cut off (macOS hides it while recording). At the right edge: a
 /// Settings section's inner tabs (a conversation's tabs are in its AI panel). It also
 /// hosts the window's dialogs (it lives as long as the window): the delete confirmations (of this conversation, and of
@@ -32,6 +34,10 @@ public sealed partial class TitleBarToolbar : UserControl
 {
     private const string PauseGlyph = "";
     private const string ResumeGlyph = "";
+
+    /// <summary>The layout Stack Panes and Side by Side switch to: a pane along the bottom, a pane along the right.</summary>
+    private const string StackGlyph = "\uE90E";
+    private const string SideBySideGlyph = "\uE90D";
 
     /// <summary>The recording indicator dims every other second (macOS RecordingBlink).</summary>
     private static readonly TimeSpan BlinkInterval = TimeSpan.FromSeconds(1);
@@ -60,6 +66,9 @@ public sealed partial class TitleBarToolbar : UserControl
     /// <summary>The sidebar state the sidebar button was last labeled for.</summary>
     private bool? _shownSidebarHidden;
 
+    /// <summary>The panes' layout the layout button was last labeled for.</summary>
+    private bool? _shownStacked;
+
     public TitleBarToolbar()
     {
         InitializeComponent();
@@ -72,6 +81,7 @@ public sealed partial class TitleBarToolbar : UserControl
         StopButton.Click += (_, _) => _ = _model?.StopRecordingAsync();
         PauseButton.Click += (_, _) => _ = _model?.TogglePauseAsync();
         RevealButton.Click += (_, _) => Reveal();
+        LayoutButton.Click += (_, _) => _model?.ToggleStackedPanes();
         UpdateButton.Click += (_, _) => _ = ConfirmUpdateAsync();
         DeleteMenu.Opening += (_, _) => UpdateDeleteMenu();
         DeleteAudioItem.Click += async (_, _) => await DeleteShownAsync(audioOnly: true);
@@ -95,6 +105,7 @@ public sealed partial class TitleBarToolbar : UserControl
         _blinkTimer.Interval = BlinkInterval;
         _blinkTimer.Tick += (_, _) => Blink();
         UpdateSidebarButton();
+        UpdateLayoutButton();
         Update();
     }
 
@@ -163,6 +174,9 @@ public sealed partial class TitleBarToolbar : UserControl
             case nameof(AppViewModel.SidebarHidden):
                 UpdateSidebarButton();
                 break;
+            case nameof(AppViewModel.Settings):
+                UpdateLayoutButton();
+                break;
             case nameof(AppViewModel.RecordTargets):
                 // Apps that started playing since the options opened show up in them.
                 if (TargetMenu.IsOpen) BuildTargetMenu();
@@ -203,6 +217,7 @@ public sealed partial class TitleBarToolbar : UserControl
         var conversation = ShownConversation();
         var onConversation = conversation is not null;
         RevealButton.IsEnabled = onConversation;
+        LayoutButton.Visibility = Shown(onConversation || (_model.Route.Kind == RouteKind.Recording && recording));
         DeleteButton.IsEnabled = conversation is not null && _model.CanDelete(conversation);
         TitleText.Text = conversation?.Title ?? _model.Route.Kind switch
         {
@@ -231,6 +246,21 @@ public sealed partial class TitleBarToolbar : UserControl
         var label = Loc.T(_model.SidebarHidden ? "Show Sidebar" : "Hide Sidebar");
         AutomationProperties.SetName(SidebarButton, label);
         ToolTipService.SetToolTip(SidebarButton, label);
+    }
+
+    /// <summary>
+    /// "Stack Panes" or "Side by Side" with the icon of the layout it switches to (macOS <c>layoutItem</c>), set again
+    /// only when the setting changes, so a tooltip under the pointer stays.
+    /// </summary>
+    private void UpdateLayoutButton()
+    {
+        if (_model is null || _model.Settings.StackedPanes == _shownStacked) return;
+        var stacked = _model.Settings.StackedPanes;
+        _shownStacked = stacked;
+        LayoutIcon.Glyph = stacked ? SideBySideGlyph : StackGlyph;
+        AutomationProperties.SetName(LayoutButton, Loc.T(stacked ? "Side by Side" : "Stack Panes"));
+        ToolTipService.SetToolTip(LayoutButton,
+            Loc.T(stacked ? "Show the transcript beside the panel" : "Show the transcript above the panel"));
     }
 
     // Update
