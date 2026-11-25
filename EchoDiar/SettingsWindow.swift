@@ -159,7 +159,8 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 10)
         .frame(height: 30)
-        .modifier(InputCapsule())
+        // The forms' text field fill: `inputSurface` would blend into the raised card's light top.
+        .modifier(InputCapsule(fill: Palette.fieldSurface))
     }
 
     /// Every section, or while searching only those with a matching setting.

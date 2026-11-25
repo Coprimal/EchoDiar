@@ -863,11 +863,14 @@ struct SearchTextField: NSViewRepresentable {
     }
 }
 
-/// The sidebar search fields' capsule (the library's, Settings'), an input: `Palette.inputSurface` with the cards' edge.
+/// The sidebar search fields' capsule (the library's, Settings'), an input: `fill` (`Palette.inputSurface` by default)
+/// with the cards' edge.
 struct InputCapsule: ViewModifier {
+    var fill = Palette.inputSurface
+
     func body(content: Content) -> some View {
         content
-            .background(Capsule().fill(Palette.inputSurface))
+            .background(Capsule().fill(fill))
             .overlay(Capsule().strokeBorder(Palette.surfaceBorder, lineWidth: 1).allowsHitTesting(false))
     }
 }

@@ -13,6 +13,9 @@ enum Palette {
     static let raisedSurface = Color(red: 58 / 255, green: 58 / 255, blue: 60 / 255)
     /// Text fields and input bars, a step above the cards. #3A3A3C
     static let inputSurface = Color(red: 58 / 255, green: 58 / 255, blue: 60 / 255)
+    /// A system text field's fill (`.roundedBorder`, as in the Settings forms), darker than the cards: the Settings
+    /// sidebar's search field, on a raised card whose top is about as light as `inputSurface`. #161616
+    static let fieldSurface = Color(red: 22 / 255, green: 22 / 255, blue: 22 / 255)
     /// The 1 pt edge of cards and panels.
     static let surfaceBorder = Color.white.opacity(0.08)
     /// "The screen is being recorded": its glyphs and the Stop screen capsule, a muted red (#E05555), calmer than the
