@@ -259,8 +259,8 @@ struct MainView: View {
     private var toolbarLogo: some View {
         Image(nsImage: NSApp.applicationIconImage)
             .resizable()
-            // The icon's own margin leaves a ~32 pt squircle, a little smaller than the 36 pt capsules.
-            .frame(width: 38, height: 38)
+            // The icon's own margin leaves a ~35 pt squircle, about as tall as the 36 pt capsules.
+            .frame(width: 42, height: 42)
             .padding(.trailing, 6)
             .accessibilityHidden(true)
     }
