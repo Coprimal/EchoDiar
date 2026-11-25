@@ -590,6 +590,27 @@ internal static class CaptureProbe
                 bytes,
                 cpuSeconds = (process.TotalProcessorTime - cpuStart).TotalSeconds,
                 lastError = stats.LastError,
+                sessions = stats.Sessions.Select(session => new
+                {
+                    kind = session.Kind.ToString().ToLowerInvariant(),
+                    startedMs = session.StartedMs,
+                    arrivals = session.Arrivals,
+                    firstArrivalMs = session.FirstArrivalMs,
+                    firstFrame = session.FirstFrame is { } frame
+                        ? new
+                        {
+                            meanR = frame.MeanR,
+                            meanG = frame.MeanG,
+                            meanB = frame.MeanB,
+                            minAlpha = frame.MinAlpha,
+                            maxAlpha = frame.MaxAlpha,
+                            samples = frame.Samples,
+                            black = frame.Black,
+                        }
+                        : null,
+                    sampleError = session.SampleError,
+                    restarted = session.Restarted,
+                }).ToArray(),
                 errors = errors.ToArray(),
             };
             await File.WriteAllTextAsync(Path.Combine(dir, "result.json"), JsonSerializer.Serialize(result, JsonOptions));

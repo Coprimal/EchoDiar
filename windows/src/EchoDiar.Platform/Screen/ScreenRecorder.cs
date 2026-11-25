@@ -59,13 +59,32 @@ public sealed class ScreenLowDiskException(long availableBytes)
 public readonly record struct ScreenLatency(double Median, double Max, double Min);
 
 /// <summary>
+/// Sparse statistics of a raw captured frame (every 16th pixel of every 16th row): mean red, green and blue (0..255),
+/// the smallest and largest alpha, the number of pixels read, and whether the frame is black: at most 1 % of them have
+/// any red, green or blue (the captured pointer may cover a few).
+/// </summary>
+public readonly record struct ScreenFrameSample(
+    double MeanR, double MeanG, double MeanB, int MinAlpha, int MaxAlpha, int Samples, bool Black);
+
+/// <summary>
+/// One capture session (a Windows.Graphics.Capture session of one source), for the probe: when it started (ms since
+/// the process started), the frames that arrived, the first one's arrival (ms after the start) and raw statistics
+/// (<paramref name="SampleError"/> when they could not be read). <paramref name="Restarted"/>: its first frame was
+/// black, so it was not written and the session was replaced once by a new one, the next entry.
+/// </summary>
+public sealed record ScreenCaptureSession(
+    ScreenSourceKind Kind, double StartedMs, int Arrivals, double? FirstArrivalMs, ScreenFrameSample? FirstFrame,
+    string? SampleError, bool Restarted);
+
+/// <summary>
 /// What the recorder did so far, for the probe. <paramref name="FramesWritten"/> and
 /// <paramref name="PlaceholdersWritten"/> count samples given to the encoder (the stop pad included);
-/// <paramref name="LatencyMs"/> is null before the first frame.
+/// <paramref name="LatencyMs"/> is null before the first frame; <paramref name="Sessions"/> in start order.
 /// </summary>
 public sealed record ScreenRecorderStats(
     VideoCodec? Codec, int Width, int Height, CaptureDeviceKind? DeviceKind, string? QualityError,
-    int FramesWritten, int PlaceholdersWritten, int LatencySamples, ScreenLatency? LatencyMs, string? LastError);
+    int FramesWritten, int PlaceholdersWritten, int LatencySamples, ScreenLatency? LatencyMs, string? LastError,
+    IReadOnlyList<ScreenCaptureSession> Sessions);
 
 /// <summary>
 /// Records screen sources into one video-only mp4 on the audio file's time base (macOS <c>ScreenRecorder.swift</c>):
@@ -93,6 +112,7 @@ public sealed class ScreenRecorder
     private const DirectXPixelFormat PixelFormat = DirectXPixelFormat.B8G8R8A8UIntNormalized;
     private const int LatencyCapacity = 100_000; // median over the first ~1.8 h at 15 fps; min and max over all
     private static readonly TimeSpan DiskCheckInterval = TimeSpan.FromSeconds(10); // macOS diskCheckInterval
+    private static readonly long ProcessStart = ProcessStartTicks(); // QPC, for ScreenCaptureSession.StartedMs
 
     private enum State { Idle, Running, Stopped }
 
@@ -136,6 +156,7 @@ public sealed class ScreenRecorder
     private double _latencyMax = double.MinValue;
     private double _latencyMin = double.MaxValue;
     private string? _lastError;
+    private readonly List<SessionLog> _sessions = [];
 
     /// <summary>
     /// Raised once when the video ends before <see cref="StopAsync"/>; the file is already finished (padded to the
@@ -159,7 +180,8 @@ public sealed class ScreenRecorder
                     latency = new ScreenLatency(median, _latencyMax, _latencyMin);
                 }
                 return new ScreenRecorderStats(_codec, _size.Width, _size.Height, _deviceKind, _qualityError,
-                    _framesWritten, _placeholdersWritten, _latencySamples, latency, _lastError);
+                    _framesWritten, _placeholdersWritten, _latencySamples, latency, _lastError,
+                    _sessions.Select(session => session.ToRecord()).ToArray());
             }
         }
     }
@@ -431,28 +453,41 @@ public sealed class ScreenRecorder
             {
                 if (generation != _generation || _capture is not { } capture || _state != State.Running || _ended) return;
                 SizeInt32 content;
+                var restart = false;
                 using (var frame = pool.TryGetNextFrame())
                 {
                     if (frame is null) return;
                     var stamp = frame.SystemRelativeTime.Ticks;
                     RecordLatency((arrival - stamp) / (double)TimeSpan.TicksPerMillisecond);
                     content = frame.ContentSize;
-                    if (Crop(capture.Source, content) is { } crop)
+                    var first = Arrived(capture, arrival);
+                    var crop = Crop(capture.Source, content);
+                    if (first || crop is not null)
                     {
                         var texture = FrameCompositor.Texture(frame.Surface);
                         try
                         {
-                            _compositor!.Compose(texture, crop);
+                            if (first) restart = CheckFirstFrame(capture, texture, content);
+                            if (!restart && crop is { } area)
+                            {
+                                _compositor!.Compose(texture, area);
+                                _pending = true;
+                                var time = _paused ? null : _fileTime(stamp);
+                                if (time is not null) _lastFileTime = time;
+                                Feed(time);
+                            }
                         }
                         finally
                         {
                             Marshal.ReleaseComObject(texture);
                         }
-                        _pending = true;
-                        var time = _paused ? null : _fileTime(stamp);
-                        if (time is not null) _lastFileTime = time;
-                        Feed(time);
                     }
+                }
+                if (restart)
+                {
+                    // Queued with the operations (never closed here: closing waits for this callback).
+                    _ = Serialized(() => Restart(capture));
+                    return;
                 }
                 // A resized window or monitor: frames of the new size from now on (aspect-fitted into the output).
                 if (content.Width > 0 && content.Height > 0 && !content.Equals(capture.PoolSize))
@@ -466,6 +501,42 @@ public sealed class ScreenRecorder
         {
             // Not on the pool's own callback: closing the session there could wait for this callback.
             _ = Task.Run(() => End(ScreenRecorderEnd.WriteFailed, e));
+        }
+    }
+
+    /// <summary>
+    /// Replaces <paramref name="black"/>, a monitor or area capture whose first frame was black and not written, by a
+    /// new capture of the same source (a new item, pool and session), once: the replacement is never restarted.
+    /// </summary>
+    /// <remarks>
+    /// In a Windows 11 ARM64 VM the first frame of the first monitor capture of a process was sometimes composed solid
+    /// black and, the screen being static, Windows.Graphics.Capture sent no other frame, so the whole video stayed black.
+    /// A second capture of the same monitor in the same process (screen off, then on) gave a correct first frame. The
+    /// cause is not proven; this keeps such a video from staying black, and the session stats tell whether the raw
+    /// frame itself was black. A no-op when a later frame was already written or the capture changed meanwhile.
+    /// </remarks>
+    private void Restart(Capture black)
+    {
+        try
+        {
+            lock (_gate)
+            {
+                if (!ReferenceEquals(_capture, black) || _state != State.Running || _ended || !_awaitingFirst) return;
+                Detach();
+            }
+            lock (_statsGate) black.Log.Restarted = true;
+            Close(black);
+            var (item, _) = Item(black.Source);
+            lock (_gate)
+            {
+                if (_state != State.Running || _ended || _capture is not null) return;
+                // _anchor and _awaitingFirst are kept: the replacement's first frame is written at the request's time.
+                _capture = OpenCapture(item, black.Source, replacement: true);
+            }
+        }
+        catch (Exception e)
+        {
+            End(ScreenRecorderEnd.WriteFailed, e);
         }
     }
 
@@ -551,6 +622,43 @@ public sealed class ScreenRecorder
         _pending = false;
     }
 
+    /// <summary>Counts an arrival of <paramref name="capture"/>; true for its first.</summary>
+    private bool Arrived(Capture capture, long arrival)
+    {
+        lock (_statsGate)
+        {
+            capture.Log.Arrivals++;
+            if (capture.Log.FirstArrival is not null) return false;
+            capture.Log.FirstArrival = arrival;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Records the raw statistics of <paramref name="capture"/>'s first frame. True when the frame must not be written
+    /// and the capture restarted (<see cref="Restart"/>): black, of a monitor or area, and not a replacement already.
+    /// A failure to read the statistics is recorded and never stops the frame.
+    /// </summary>
+    private bool CheckFirstFrame(Capture capture, Windows.Win32.Graphics.Direct3D11.ID3D11Texture2D texture, SizeInt32 content)
+    {
+        ScreenFrameSample? sample = null;
+        string? error = null;
+        try
+        {
+            sample = _compositor!.Sample(texture, content.Width, content.Height);
+        }
+        catch (Exception e)
+        {
+            error = $"{e.GetType().Name}: {e.Message}";
+        }
+        lock (_statsGate)
+        {
+            capture.Log.FirstFrame = sample;
+            capture.Log.SampleError = error;
+        }
+        return sample is { Black: true } && capture.Source.Kind != ScreenSourceKind.Window && !capture.IsReplacement;
+    }
+
     private void WriteHeld(VideoTimeline.Sample sample)
     {
         var size = _compositor!.Size;
@@ -601,8 +709,11 @@ public sealed class ScreenRecorder
         return failure;
     }
 
-    /// <summary>A capture of <paramref name="item"/>, started; its first frame waits for the request's anchor.</summary>
-    private Capture OpenCapture(GraphicsCaptureItem item, ScreenSource source)
+    /// <summary>
+    /// A capture of <paramref name="item"/>, started; its first frame waits for the request's anchor.
+    /// <paramref name="replacement"/>: it replaces a capture whose first frame was black (<see cref="Restart"/>).
+    /// </summary>
+    private Capture OpenCapture(GraphicsCaptureItem item, ScreenSource source, bool replacement = false)
     {
         var generation = ++_generation;
         var pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_device!.Direct3DDevice, PixelFormat, 2, item.Size);
@@ -611,10 +722,13 @@ public sealed class ScreenRecorder
         {
             session = pool.CreateCaptureSession(item);
             session.IsCursorCaptureEnabled = _showsCursor;
-            var capture = new Capture(item, source, pool, session, item.Size,
+            var log = new SessionLog(source.Kind);
+            var capture = new Capture(item, source, pool, session, item.Size, log, replacement,
                 (sender, _) => OnFrameArrived(sender, generation),
                 (_, _) => Task.Run(() => OnItemClosed(generation)));
+            log.Started = Now();
             session.StartCapture();
+            lock (_statsGate) _sessions.Add(log);
             _awaitingFirst = true;
             _pending = false;
             return capture;
@@ -725,6 +839,20 @@ public sealed class ScreenRecorder
     /// <summary>QPC now in 100 ns units, the clock of the engine and of <c>SystemRelativeTime</c>.</summary>
     private static long Now() => Stopwatch.GetElapsedTime(0).Ticks;
 
+    /// <summary>The QPC time the process started (now, if its start time cannot be read).</summary>
+    private static long ProcessStartTicks()
+    {
+        try
+        {
+            using var process = Process.GetCurrentProcess();
+            return Now() - (DateTime.Now - process.StartTime).Ticks;
+        }
+        catch (Exception e) when (e is InvalidOperationException or NotSupportedException or System.ComponentModel.Win32Exception)
+        {
+            return Now();
+        }
+    }
+
     private static long? FreeSpace(string folder)
     {
         try
@@ -737,7 +865,26 @@ public sealed class ScreenRecorder
         }
     }
 
-    /// <summary>One capture session: its item, frame pool and session, and the size the pool was made for.</summary>
+    /// <summary>What a capture session did, for <see cref="ScreenCaptureSession"/>; changed under _statsGate.</summary>
+    private sealed class SessionLog(ScreenSourceKind kind)
+    {
+        public long Started { get; set; } // QPC
+        public int Arrivals { get; set; }
+        public long? FirstArrival { get; set; } // QPC
+        public ScreenFrameSample? FirstFrame { get; set; }
+        public string? SampleError { get; set; }
+        public bool Restarted { get; set; }
+
+        public ScreenCaptureSession ToRecord() => new(kind,
+            (Started - ProcessStart) / (double)TimeSpan.TicksPerMillisecond,
+            Arrivals,
+            FirstArrival is { } first ? (first - Started) / (double)TimeSpan.TicksPerMillisecond : null,
+            FirstFrame, SampleError, Restarted);
+    }
+
+    /// <summary>
+    /// One capture session: its item, frame pool and session, the size the pool was made for, and its log.
+    /// </summary>
     private sealed class Capture
     {
         private readonly GraphicsCaptureItem _item;
@@ -747,11 +894,13 @@ public sealed class ScreenRecorder
         private readonly TypedEventHandler<GraphicsCaptureItem, object> _closed;
 
         public Capture(GraphicsCaptureItem item, ScreenSource source, Direct3D11CaptureFramePool pool,
-            GraphicsCaptureSession session, SizeInt32 poolSize,
+            GraphicsCaptureSession session, SizeInt32 poolSize, SessionLog log, bool isReplacement,
             TypedEventHandler<Direct3D11CaptureFramePool, object> frameArrived,
             TypedEventHandler<GraphicsCaptureItem, object> closed)
         {
             _item = item;
+            Log = log;
+            IsReplacement = isReplacement;
             _pool = pool;
             _session = session;
             _frameArrived = frameArrived;
@@ -765,6 +914,11 @@ public sealed class ScreenRecorder
         public ScreenSource Source { get; }
 
         public SizeInt32 PoolSize { get; set; }
+
+        public SessionLog Log { get; }
+
+        /// <summary>It replaces a capture whose first frame was black: never restarted itself.</summary>
+        public bool IsReplacement { get; }
 
         /// <summary>
         /// Stops the capture, each step even when an earlier one failed (<paramref name="failed"/> gets the errors).

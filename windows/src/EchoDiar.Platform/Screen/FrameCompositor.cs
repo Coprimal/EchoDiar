@@ -27,6 +27,7 @@ namespace EchoDiar.Platform.Screen;
 internal sealed class FrameCompositor : IDisposable
 {
     private const float Dpi = 96; // device-independent pixels are pixels
+    private const int SampleStep = 16; // Sample reads every 16th pixel of every 16th row
 
     private static readonly D2D1_COLOR_F Black = new() { a = 1 };
     private static readonly D2D1_COLOR_F White = new() { r = 1, g = 1, b = 1, a = 1 };
@@ -34,6 +35,7 @@ internal sealed class FrameCompositor : IDisposable
     // Every COM object created here, released in reverse order by Dispose. Interface casts of these (QueryInterface
     // on the same wrapper) are not listed: releasing the wrapper releases them.
     private readonly List<object> _owned = [];
+    private readonly ID3D11Device _device; // the CaptureDevice's, not owned
     private readonly ID3D11DeviceContext _context;
     private readonly ID2D1DeviceContext _target;
     private readonly ID3D11Texture2D _render;
@@ -53,6 +55,7 @@ internal sealed class FrameCompositor : IDisposable
         }
         Size = size;
         _placeholderText = placeholderText;
+        _device = device.Device;
         _context = device.Context;
         try
         {
@@ -158,6 +161,63 @@ internal sealed class FrameCompositor : IDisposable
     }
 
     /// <summary>
+    /// Sparse statistics of the raw <paramref name="source"/> (a capture frame as Windows.Graphics.Capture gave it,
+    /// BGRA, before any drawing) over its top-left <paramref name="width"/> x <paramref name="height"/> pixels: every
+    /// 16th pixel of every 16th row. Reads a one-off staging copy of the whole texture (released here), so call it
+    /// rarely (once per capture session). Null when that area is empty. Throws <see cref="COMException"/> when D3D fails.
+    /// </summary>
+    public unsafe ScreenFrameSample? Sample(ID3D11Texture2D source, int width, int height)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        source.GetDesc(out var desc);
+        width = Math.Min(width, (int)desc.Width);
+        height = Math.Min(height, (int)desc.Height);
+        if (width <= 0 || height <= 0) return null;
+
+        desc.Usage = D3D11_USAGE.D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG.D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        _device.CreateTexture2D(desc, null, out var staging);
+        try
+        {
+            _context.CopyResource(staging, source);
+            _context.Map(staging, 0, D3D11_MAP.D3D11_MAP_READ, 0, out var mapped);
+            try
+            {
+                long red = 0, green = 0, blue = 0;
+                int minAlpha = byte.MaxValue, maxAlpha = 0, count = 0, lit = 0;
+                var data = (byte*)mapped.pData;
+                for (var y = 0; y < height; y += SampleStep)
+                {
+                    var row = data + (long)y * mapped.RowPitch;
+                    for (var x = 0; x < width; x += SampleStep)
+                    {
+                        var pixel = row + x * 4;
+                        blue += pixel[0];
+                        green += pixel[1];
+                        red += pixel[2];
+                        minAlpha = Math.Min(minAlpha, pixel[3]);
+                        maxAlpha = Math.Max(maxAlpha, pixel[3]);
+                        if (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0) lit++;
+                        count++;
+                    }
+                }
+                return new ScreenFrameSample((double)red / count, (double)green / count, (double)blue / count,
+                    minAlpha, maxAlpha, count, Black: lit * 100 <= count); // the pointer may light a few
+            }
+            finally
+            {
+                _context.Unmap(staging, 0);
+            }
+        }
+        finally
+        {
+            Marshal.ReleaseComObject(staging);
+        }
+    }
+
+    /// <summary>
     /// The D3D11 texture behind a capture frame's surface (<c>Direct3D11CaptureFrame.Surface</c>), through
     /// IDirect3DDxgiInterfaceAccess. The caller releases it (<see cref="Marshal.ReleaseComObject"/>) before the frame
     /// is disposed.
@@ -209,8 +269,10 @@ internal sealed class FrameCompositor : IDisposable
         int bottom = Math.Clamp(crop.Y + crop.Height, top, (int)desc.Height);
         if (right - left <= 0 || bottom - top <= 0) return;
 
+        // Captured frames are opaque screen content: their alpha is not a coverage to blend with (a monitor's frame
+        // may carry any alpha, 0 included), so it is ignored and every pixel is drawn as opaque.
         _target.CreateBitmapFromDxgiSurface((IDXGISurface)source,
-            BitmapProperties(D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_NONE),
+            BitmapProperties(D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_IGNORE, D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_NONE),
             out var bitmap);
         try
         {
