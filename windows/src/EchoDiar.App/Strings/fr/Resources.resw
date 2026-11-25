@@ -1570,6 +1570,10 @@
     <value>github.com/Coprimal/EchoDiar</value>
     <comment>github.com/Coprimal/EchoDiar</comment>
   </data>
+  <data name="GlobalChat" xml:space="preserve">
+    <value>Chat global</value>
+    <comment>Global Chat</comment>
+  </data>
   <data name="GlobalPauseShortcut" xml:space="preserve">
     <value>Raccourci global de pause</value>
     <comment>Global pause shortcut</comment>

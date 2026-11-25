@@ -697,7 +697,7 @@ struct MainView: View {
                 HStack(spacing: 8) {
                     // `globalChatOpen` is the selected tab: false = Conversations, true = Chat.
                     CapsuleTabs(selection: Binding(get: { model.globalChatOpen }, set: { model.globalChatOpen = $0 }),
-                                tabs: [false, true], title: { $0 ? Text("Chat") : Text("Conversations") },
+                                tabs: [false, true], title: { $0 ? Text("Global Chat") : Text("Conversations") },
                                 drawsTrack: true, trackFill: Palette.surface)
                         .fixedSize()
                     Spacer(minLength: 8)

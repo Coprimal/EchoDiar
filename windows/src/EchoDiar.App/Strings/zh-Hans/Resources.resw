@@ -1518,6 +1518,10 @@
     <value>github.com/Coprimal/EchoDiar</value>
     <comment>github.com/Coprimal/EchoDiar</comment>
   </data>
+  <data name="GlobalChat" xml:space="preserve">
+    <value>全局聊天</value>
+    <comment>Global Chat</comment>
+  </data>
   <data name="GlobalPauseShortcut" xml:space="preserve">
     <value>全局暂停快捷键</value>
     <comment>Global pause shortcut</comment>

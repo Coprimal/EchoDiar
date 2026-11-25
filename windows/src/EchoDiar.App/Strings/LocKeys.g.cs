@@ -417,6 +417,7 @@ public static partial class Loc
         "Gemini CLI denies every tool and loads no MCP server or extension, unless a system-wide admin policy allows them.",
         "General",
         "Get an API key",
+        "Global Chat",
         "Global pause shortcut",
         "Global record shortcut",
         "Grant Access",
