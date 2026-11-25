@@ -179,6 +179,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
     }
 
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        sender === window ? sizer.clamp(frameSize, of: sender) : frameSize
+    }
+
     func windowDidEndLiveResize(_ notification: Notification) {
         if let window = notification.object as? NSWindow { sizer.save(window) }
     }
@@ -279,7 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             if case .conversation = model.route { return true }
             return false
         case #selector(goBack):
-            return model.route != .list || model.globalChatOpen
+            return model.route != .list
         case #selector(toggleSidebar):
             item.title = model.sidebarHidden ? String(localized: "Show Sidebar") : String(localized: "Hide Sidebar")
             switch model.route {
@@ -297,7 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     // MARK: - Esc, Space and the sidebar keys
 
-    /// One local monitor for the main window: Esc goes back (not on the list without the library chat), Space
+    /// One local monitor for the main window: Esc goes back (not on the list, whichever sidebar tab shows), Space
     /// plays or pauses the open transcript, and on the library page (not with the library chat) ⌘⌫ or Del deletes the
     /// selected cards, else the open conversation, and ↑/↓ open the previous or next card. Keys pass through with
     /// other modifiers (⌘, ⌥ or ⌃ for Esc and Space), in other windows, while the Shortcuts tab records a shortcut and
@@ -325,7 +329,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         guard event.modifierFlags.intersection([.command, .option, .control]).isEmpty else { return false }
         if let text = window.firstResponder as? NSTextView, text.isEditable { return false }
         switch event.keyCode {
-        case 53 where (model.route != .list || model.globalChatOpen) && !model.listSelectionActive:  // kVK_Escape
+        case 53 where model.route != .list && !model.listSelectionActive:  // kVK_Escape
             model.goBack()
             return true
         case 49:  // kVK_Space

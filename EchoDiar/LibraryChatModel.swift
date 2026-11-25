@@ -400,7 +400,7 @@ extension AppModel {
     }
 
     /// A reference of a library answer: the conversation at `seconds` in its transcript, or its summary; the library
-    /// chat stays open beside it. Does nothing when the conversation is gone.
+    /// chat stays open beside it (the sidebar's Chat tab). Does nothing when the conversation is gone.
     func openReference(id: UUID, seconds: Double?) {
         guard conversations.contains(where: { $0.id == id }) else { return }
         globalChatOpen = true

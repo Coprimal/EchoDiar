@@ -4,7 +4,9 @@ import AppKit
 /// full screen or below the minimum size.
 @MainActor
 final class MainWindowSizer {
-    private static let minSize = NSSize(width: 860, height: 560)
+    /// 1000 pt wide: beside the 360 pt sidebar a conversation's transcript and AI panel get about 300 pt each, enough for
+    /// the transcript's bar wrapped in two rows (at 860 pt it spilled over the sidebar).
+    private static let minSize = NSSize(width: 1000, height: 560)
     /// When no frame was saved yet.
     private static let defaultSize = NSSize(width: 1080, height: 720)
     /// The key of the wide layout from before the window had one size, so the user's frame stays.
@@ -25,6 +27,14 @@ final class MainWindowSizer {
         }
         window.contentMinSize = Self.minSize
         window.setFrame(frame, display: false)
+    }
+
+    /// A live resize's new frame size, at least the minimum content size. `contentMinSize` alone did not hold: the
+    /// window could be dragged far below it (the SwiftUI hosting resets it), and a too narrow conversation spilled its
+    /// transcript bar over the sidebar.
+    func clamp(_ size: NSSize, of window: NSWindow) -> NSSize {
+        let minimum = window.frameRect(forContentRect: NSRect(origin: .zero, size: Self.minSize)).size
+        return NSSize(width: max(size.width, minimum.width), height: max(size.height, minimum.height))
     }
 
     /// After the user moved or resized the window.

@@ -181,8 +181,9 @@ final class AppModel {
     private(set) var hotKeyError: String?
     /// Why the global pause shortcut could not be registered; nil when registered or off.
     private(set) var pauseHotKeyError: String?
-    /// ⌘F asks the library sidebar's search field to take the focus; false again once it stops editing. Kept until
-    /// the field is on screen (from Calendar, with the library chat open or with the sidebar hidden it is not yet).
+    /// ⌘F (and the sidebar header's search button) asks the library sidebar's search field to expand in the header and
+    /// take the focus; false again once the field has been asked. Kept until the field is on screen (it appears only
+    /// once expanded, and from Calendar or with the sidebar hidden only after that page or the sidebar shows).
     var searchPresented = false
     /// ⌘F on the Settings page asks the Settings sidebar's search field to take the focus.
     var settingsSearchPresented = false
@@ -192,8 +193,9 @@ final class AppModel {
     var listSelectionActive = false
     /// The conversation whose sidebar title is being renamed: opening Chat then leaves the cursor in its field.
     var renamingConversation: UUID?
-    /// The library chat is shown: in place of the cards on the list, or of the sidebar beside a conversation. It lives
-    /// in the sidebar pane: opening it shows the sidebar (written directly, so the two never call each other back).
+    /// The library sidebar's Chat tab is selected (false: its Conversations tab): the library chat in place of the
+    /// cards, beside whatever the detail shows. It lives in the sidebar pane: opening it shows the sidebar (written
+    /// directly, so the two never call each other back). A tab, not a page: Back and Esc leave it alone.
     var globalChatOpen = false {
         didSet { if globalChatOpen { sidebarHidden = false } }
     }
@@ -2159,8 +2161,9 @@ final class AppModel {
         OnboardingWindow.shared.show(model: self)
     }
 
-    /// ⌘F: the library sidebar's search field focused (the library chat closed and the sidebar shown), or on Settings
-    /// the Settings sidebar's. The Calendar page has nothing to search: back to the library first.
+    /// ⌘F and the sidebar header's search button: the library sidebar's search field expanded and focused (the
+    /// Conversations tab selected and the sidebar shown; the view expands the field on `searchPresented`), or on
+    /// Settings the Settings sidebar's. The Calendar page has nothing to search: back to the library first.
     func showSearch() {
         if route == .settings {
             settingsSearchPresented = true
@@ -2177,7 +2180,8 @@ final class AppModel {
         setSidebarHidden(!sidebarHidden)
     }
 
-    /// The one path that hides or shows the library sidebar: hiding it closes the library chat, which lives in it.
+    /// The one path that hides or shows the library sidebar: hiding it closes the library chat, which lives in it (the
+    /// sidebar shows again on its Conversations tab).
     func setSidebarHidden(_ hidden: Bool) {
         if hidden { globalChatOpen = false }
         sidebarHidden = hidden
@@ -2206,12 +2210,13 @@ final class AppModel {
         route = .conversation(id)
     }
 
-    /// Esc, ⌘[ and the toolbar's Back: a conversation or the recording goes to the list (the library chat stays
-    /// open), the list closes the library chat; Settings and the Calendar page go to the page they were opened from,
-    /// or the list when that conversation is gone or that recording has ended.
+    /// Esc, ⌘[ and the toolbar's Back: a conversation or the recording goes to the list (the sidebar keeps its tab);
+    /// the list has nowhere to go back to (the library chat is a sidebar tab, not a page); Settings and the Calendar
+    /// page go to the page they were opened from, or the list when that conversation is gone or that recording has
+    /// ended.
     func goBack() {
         switch route {
-        case .list: globalChatOpen = false
+        case .list: break
         case .conversation, .recording: route = .list
         case .settings: route = returnRoute(settingsReturnRoute)
         case .calendar: route = returnRoute(calendarReturnRoute)

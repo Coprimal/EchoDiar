@@ -694,6 +694,10 @@
     <value>关闭</value>
     <comment>Close</comment>
   </data>
+  <data name="CloseSearch" xml:space="preserve">
+    <value>关闭搜索</value>
+    <comment>Close search</comment>
+  </data>
   <data name="CloseSearchEsc" xml:space="preserve">
     <value>关闭搜索（Esc）</value>
     <comment>Close search (Esc)</comment>
@@ -805,6 +809,10 @@
   <data name="Continue" xml:space="preserve">
     <value>继续</value>
     <comment>Continue</comment>
+  </data>
+  <data name="Conversations" xml:space="preserve">
+    <value>对话</value>
+    <comment>Conversations</comment>
   </data>
   <data name="Copied" xml:space="preserve">
     <value>已拷贝</value>

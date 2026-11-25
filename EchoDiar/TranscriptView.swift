@@ -162,9 +162,16 @@ struct TranscriptView: View {
             }
             // Up to three speaker chips, fewer when the row is short; "+N" lists the others. A column too narrow for
             // one row even without chips (a video's buttons beside the AI panel) wraps it in two.
+            // One `ForEach` over distinct variants: two `ForEach`s with the same ids in one `ViewThatFits` trap in
+            // SwiftUI's size fitting once it measures again (a Summary/Chat switch crashed the app).
             ViewThatFits(in: .horizontal) {
-                ForEach(chipCounts, id: \.self) { controlRow(chips: $0) }
-                ForEach(chipCounts, id: \.self) { wrappedControlRows(chips: $0) }
+                ForEach(rowVariants, id: \.self) { variant in
+                    if variant.wrapped {
+                        wrappedControlRows(chips: variant.chips)
+                    } else {
+                        controlRow(chips: variant.chips)
+                    }
+                }
             }
         }
         .padding(.horizontal, 14)
@@ -307,6 +314,17 @@ struct TranscriptView: View {
     }
 
     private static let maxSpeakerChips = 3
+
+    /// A layout `ViewThatFits` tries for the control row: on one row or wrapped in two, with `chips` speaker chips.
+    private struct RowVariant: Hashable {
+        let wrapped: Bool
+        let chips: Int
+    }
+
+    /// One row with 3, 2, 1, then 0 chips, then the same counts wrapped in two rows.
+    private var rowVariants: [RowVariant] {
+        chipCounts.map { RowVariant(wrapped: false, chips: $0) } + chipCounts.map { RowVariant(wrapped: true, chips: $0) }
+    }
 
     /// The video layout menu, Export video and Delete video (with a video), and Copy, all round.
     private var secondaryActions: some View {

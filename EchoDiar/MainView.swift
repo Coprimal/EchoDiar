@@ -3,17 +3,23 @@ import EchoAudio
 import EchoCore
 import SwiftUI
 
-/// The main window, three pages: the library (the cards as a sidebar with its own search field and pages, then a
-/// conversation, the open recording while recording, or the welcome pane), Settings and the Calendar. The sidebar
-/// button, Back, Record (or Stop and Pause) and a conversation's title on the leading side; a conversation's Reveal in
-/// Finder, Settings, Calendar and the library chat on the trailing side (a conversation's Summary | Chat tabs are in
-/// its AI panel). The library chat takes the sidebar's place.
+/// The main window, three pages: the library (a sidebar with Conversations | Chat tabs and a search button in its
+/// header, over the cards and their pages or the library chat; then a conversation, the open recording while
+/// recording, or the welcome pane), Settings and the Calendar. The sidebar button, Back, Record (or Stop and Pause)
+/// and a conversation's title on the leading side; a conversation's Reveal in Finder, Settings and Calendar on the
+/// trailing side (a conversation's Summary | Chat tabs are in its AI panel, the library chat is the sidebar's Chat
+/// tab).
 struct MainView: View {
     let model: AppModel
     let updater: Updater
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The sidebar's search query.
+    /// The sidebar's search query; empty whenever the search field is collapsed, so the cards are never filtered by
+    /// a query that is not on screen.
     @State private var query = ""
+    /// The sidebar header shows the search field (full width, the tabs hidden) instead of the Conversations | Chat
+    /// tabs: the search button or ⌘F (`model.searchPresented`) expands it; Esc on an empty query, the close button,
+    /// the Chat tab and another page collapse it.
+    @State private var searchExpanded = false
     /// `query` once typing pauses for 200 ms (at once when cleared): what the cards are filtered by.
     @State private var debouncedQuery = ""
     /// Searchable text by conversation (speakers, transcript, summary, chat), read off the main thread only once a
@@ -100,11 +106,24 @@ struct MainView: View {
             forward = Page(new).rawValue >= Page(old).rawValue
             withAnimation(Self.paneAnimation) { shownRoute = new }
             // Another page clears both queries; another entry or the welcome pane keeps the sidebar's. ⌘F on the
-            // Calendar page goes back to the library to focus the sidebar's field there.
+            // Calendar page goes back to the library to focus the sidebar's field there: the field expands for it
+            // (`model.searchPresented`), so it collapses only after this guard, whichever runs first.
             query = ""
             settingsQuery = ""
             guard !(Page(old) == .calendar && model.searchPresented) else { return }
             model.searchPresented = false
+            searchExpanded = false
+        }
+        // ⌘F and the header's search button (both through `showSearch()`) expand the sidebar's field; the field
+        // takes the focus once it is in the window. Also at the first render: ⌘F with no window sets it before this
+        // view exists.
+        .onChange(of: model.searchPresented, initial: true) { _, presented in
+            guard presented, !searchExpanded else { return }
+            withAnimation(reduceMotion ? nil : Self.paneAnimation) { searchExpanded = true }
+        }
+        // The Chat tab, whoever selects it (its tab, a citation), shows no search field.
+        .onChange(of: model.globalChatOpen) { _, open in
+            if open { collapseSearch() }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(WindowGlass().ignoresSafeArea())
@@ -161,21 +180,6 @@ struct MainView: View {
                     Label("Calendar", systemImage: "calendar")
                 }
                 .help("Calendar")
-                Toggle(isOn: Binding(
-                    get: { model.globalChatOpen && Page(model.route) == .library },
-                    set: { open in
-                        // Settings opened from the Calendar page goes back twice, to the library.
-                        if model.route == .settings { model.goBack() }
-                        if model.route == .calendar { model.goBack() }
-                        model.globalChatOpen = open
-                        guard open else { return }
-                        query = ""
-                        model.searchPresented = false
-                    }
-                )) {
-                    Label("Ask across conversations", systemImage: "sparkles")
-                }
-                .help("Ask across conversations")
             }
         }
         .task { model.refreshTargets() }
@@ -203,12 +207,12 @@ struct MainView: View {
         }
     }
 
-    /// On the library page the sidebar button in its own capsule, then Back in its own capsule (not on the list without
-    /// the library chat), the record capsule, then a conversation's title. The record capsule: while idle Record (with
-    /// "Record the screen too" on, it opens the screen source chooser first) and a chevron popover: screen options,
-    /// the target and the language; while recording, Stop (red, pulsing unless paused or Reduce Motion) and
-    /// Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the other buttons go to the overflow menu
-    /// first.
+    /// On the library page the sidebar button in its own capsule, then Back in its own capsule (off the list only: the
+    /// library chat is a sidebar tab, not a page to go back from), the record capsule, then a conversation's title.
+    /// The record capsule: while idle Record (with "Record the screen too" on, it opens the screen source chooser
+    /// first) and a chevron popover: screen options, the target and the language; while recording, Stop (red, pulsing
+    /// unless paused or Reduce Motion) and Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the
+    /// other buttons go to the overflow menu first.
     @ToolbarContentBuilder private var leadingItems: some ToolbarContent {
         if Page(model.route) == .library {
             ToolbarItem(placement: leadingPlacement) {
@@ -219,7 +223,7 @@ struct MainView: View {
             .highVisibilityPriority()
             fixedSpacer
         }
-        if model.route != .list || model.globalChatOpen {
+        if model.route != .list {
             ToolbarItem(placement: leadingPlacement) {
                 SingleToolbarButton(title: "Back", systemImage: "chevron.left", action: model.goBack)
                     .help("Back (Esc)")
@@ -425,9 +429,10 @@ struct MainView: View {
     private static let titleMaxWidth: CGFloat = 360
     private static let titleMinWidth: CGFloat = 120
     /// Approximate widths of the other items: the traffic lights, the sidebar button, Back and the record capsule;
-    /// Reveal in Finder with Delete, Settings, Calendar and the library chat. Only the conversation page has a title.
+    /// Reveal in Finder with Delete, Settings and Calendar (36 pt per button, as `recordingButtonsWidth`). Only the
+    /// conversation page has a title.
     private static let leadingWidth: CGFloat = 302
-    private static let trailingButtonsWidth: CGFloat = 244
+    private static let trailingButtonsWidth: CGFloat = 208
 
     private var updateWidth: CGFloat { showsUpdate ? 52 : 0 }
     /// The record capsule's screen, camera bubble and microphone buttons, there only while recording (a conversation
@@ -528,15 +533,19 @@ struct MainView: View {
             removal: .offset(x: -travel).combined(with: .opacity).animation(.easeOut(duration: 0.1)))
     }
 
-    /// The library page: the cards (or the library chat) as a sidebar, then the detail. The sidebar stays while the
-    /// detail changes; hidden (⌘B, the toolbar's sidebar button), it slides out and the detail takes the window.
+    /// The library page: the sidebar (its header over the cards or the library chat, one well for both tabs), then the
+    /// detail. The sidebar stays while the detail changes; hidden (⌘B, the toolbar's sidebar button), it slides out and
+    /// the detail takes the window.
     private var libraryPage: some View {
         // Both panes pad 12 pt on every side; overlapping those paddings by 6 pt leaves an 18 pt gap between them.
         HStack(spacing: -6) {
             if !model.sidebarHidden {
-                chatOr(libraryWell(libraryPane(selectedID: selectedID)))
-                    .frame(width: 360)
-                    .transition(reduceMotion ? .opacity : .move(edge: .leading).combined(with: .opacity))
+                libraryWell(VStack(spacing: 0) {
+                    sidebarHeader
+                    chatOr(libraryPane(selectedID: selectedID))
+                })
+                .frame(width: 360)
+                .transition(reduceMotion ? .opacity : .move(edge: .leading).combined(with: .opacity))
             }
             detail
         }
@@ -545,12 +554,13 @@ struct MainView: View {
         .padding(.top, -8)
     }
 
-    /// The library chat in place of `list` while it is open; the two cross-fade, whoever toggles it (toolbar, Back,
-    /// Esc, Search).
+    /// The library chat in place of `list` on the sidebar's Chat tab, unframed in the well; the two cross-fade under
+    /// the header, which stays, whoever switches the tab (its tabs, Search, a citation). The new one is there in the
+    /// click's frame, fading in.
     private func chatOr(_ list: some View) -> some View {
         ZStack {
             if model.globalChatOpen {
-                GlobalChatView(model: model).transition(.opacity)
+                GlobalChatView(model: model, framed: false).transition(.opacity)
             } else {
                 list.transition(.opacity)
             }
@@ -558,7 +568,8 @@ struct MainView: View {
         .animation(reduceMotion ? nil : Self.paneAnimation, value: model.globalChatOpen)
     }
 
-    /// The sidebar's cards (or why there are none) on a panel like the detail's, the cards a step lighter.
+    /// The sidebar (its header, then the cards or why there are none, or the library chat) on a panel like the
+    /// detail's, the cards a step lighter.
     private func libraryWell(_ pane: some View) -> some View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         return pane
@@ -588,9 +599,9 @@ struct MainView: View {
         }
     }
 
-    /// The sidebar's search field, then the cards of the current page matching the search (or why there are none),
-    /// then the page bar while there is more than one page. The recording's card stays on top while recording, alone
-    /// when the library is still empty and nothing is searched.
+    /// The cards of the current page matching the search (or why there are none), then the page bar while there is
+    /// more than one page; the search field is in the sidebar header above. The recording's card stays on top while
+    /// recording, alone when the library is still empty and nothing is searched.
     private func libraryPane(selectedID: UUID?) -> some View {
         let list = pagedList
         let size = model.settings.libraryPageSize
@@ -598,8 +609,6 @@ struct MainView: View {
         let range = LibraryPaging.range(page: page, total: list.count, size: size)
         let sections = LibrarySections.sections(from: Array(list[range]), now: .now)
         return VStack(spacing: 0) {
-            sidebarSearchField
-                .padding([.horizontal, .top], 12)
             Group {
                 if sections.isEmpty && model.isRecording && searchTerm.isEmpty {
                     ConversationListView(model: model, sections: [], selectedID: selectedID)
@@ -660,8 +669,66 @@ struct MainView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    /// The sidebar's search field, above the cards and the empty states. ⌘F focuses it (`model.searchPresented`);
-    /// Esc clears the query, then gives up the focus.
+    /// The header's controls, as tall as the recording side panel's and the AI panel's (their headers line up).
+    private static let headerControlHeight: CGFloat = 28
+    /// The tabs with their track (28 pt items, 3 pt inset): the header keeps this height while the search field
+    /// replaces them, so the cards under it do not move.
+    private static let headerHeight: CGFloat = headerControlHeight + 6
+
+    /// The sidebar's header, padded like `RecordingDetailView.sidePanel`'s: the Conversations | Chat tabs (on their
+    /// own track: the well is `Palette.surface` too) and the search button; expanded, the search field across the
+    /// whole width and its close button in their place. The two cross-fade (no animation under Reduce Motion).
+    private var sidebarHeader: some View {
+        ZStack {
+            if searchExpanded {
+                HStack(spacing: 8) {
+                    sidebarSearchField
+                    Button(action: collapseSearch) {
+                        Label("Close search", systemImage: "xmark").labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(BottomBarButtonStyle(height: Self.headerControlHeight, horizontalPadding: 0))
+                    .help("Close search")
+                }
+                .transition(.opacity)
+            } else {
+                HStack(spacing: 8) {
+                    // `globalChatOpen` is the selected tab: false = Conversations, true = Chat.
+                    CapsuleTabs(selection: Binding(get: { model.globalChatOpen }, set: { model.globalChatOpen = $0 }),
+                                tabs: [false, true], title: { $0 ? Text("Chat") : Text("Conversations") },
+                                drawsTrack: true, trackFill: Palette.inputSurface)
+                        .fixedSize()
+                    Spacer(minLength: 8)
+                    // From the Chat tab it shows Conversations first: the search filters the cards.
+                    Button(action: model.showSearch) {
+                        Label("Search conversations", systemImage: "magnifyingglass").labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(BottomBarButtonStyle(height: Self.headerControlHeight, horizontalPadding: 0))
+                    .help("Search conversations")
+                }
+                .transition(.opacity)
+            }
+        }
+        .frame(height: Self.headerHeight)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+    }
+
+    /// Back to the tabs: the query cleared (the cards unfiltered) and the field's editing ended, so typing stops going
+    /// to it while it fades out.
+    private func collapseSearch() {
+        guard searchExpanded else { return }
+        // Only when the field is editing: a click on Close must not take the caret from the chat question.
+        if let window = NSApp.keyWindow, let editor = window.firstResponder as? NSTextView,
+           editor.delegate is SearchTextField.Field {
+            window.makeFirstResponder(nil)
+        }
+        withAnimation(reduceMotion ? nil : Self.paneAnimation) { searchExpanded = false }
+        query = ""
+        model.searchPresented = false
+    }
+
+    /// The sidebar header's search field, expanded. It takes the focus as it appears (`model.searchPresented`); Esc
+    /// clears the query, then collapses it.
     private var sidebarSearchField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -669,7 +736,7 @@ struct MainView: View {
             SearchTextField(text: $query, focusRequest: searchPresented,
                             accessibilityLabel: String(localized: "Search conversations")) {
                 if query.isEmpty {
-                    NSApp.keyWindow?.makeFirstResponder(nil)
+                    collapseSearch()
                 } else {
                     query = ""
                 }
@@ -686,7 +753,7 @@ struct MainView: View {
             }
         }
         .padding(.horizontal, 10)
-        .frame(height: 30)
+        .frame(height: Self.headerControlHeight)
         .modifier(InputCapsule())
     }
 
@@ -769,7 +836,8 @@ struct MainView: View {
 }
 
 /// A search field's text field (the library sidebar's, Settings'), drawn by its container. AppKit's: it takes the
-/// focus asked for before it is in a window (⌘F from the Calendar page, or with the sidebar hidden) once it is.
+/// focus asked for before it is in a window (the library's field just expanded, ⌘F from the Calendar page or with the
+/// sidebar hidden) once it is.
 struct SearchTextField: NSViewRepresentable {
     @Binding var text: String
     /// ⌘F sets it to focus the field; false again once asked.

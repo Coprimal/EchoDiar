@@ -3,14 +3,17 @@ import EchoAI
 import EchoCore
 import SwiftUI
 
-/// The chat across the library (`AppModel.globalChatOpen`): questions answered from the indexed conversations, each
-/// answer with its numbered sources under it. `[n mm:ss]` / `[n]` citations and the sources open the conversation at
-/// that moment or its summary, the chat staying beside it. Laid out like the Chat tab (`AIPanelView`): the messages in
-/// a card, then a bar with the menus, "Start a fresh chat" and History in one row, and the question; in a narrow pane
-/// (the 360 pt sidebar of the wide layout) the model name truncates. With RAG off, an intro and the way to Settings › AI Settings › Library chat.
-/// Padded like `TranscriptView`'s panes, so it fills its slot as it is.
+/// The chat across the library, the library sidebar's Chat tab (`AppModel.globalChatOpen`): questions answered from
+/// the indexed conversations, each answer with its numbered sources under it. `[n mm:ss]` / `[n]` citations and the
+/// sources open the conversation at that moment or its summary, the chat staying beside it in the sidebar. The
+/// messages, then a bar with the menus, "Start a fresh chat" and History in one row, and the question; in the 360 pt
+/// sidebar the model name truncates. With RAG off, an intro and the way to Settings › AI Settings › Library chat.
 struct GlobalChatView: View {
     let model: AppModel
+    /// The messages, the bar and the intro in cards of their own, padded like `TranscriptView`'s panes so the view
+    /// fills its slot as it is; false inside a panel that draws the card (the sidebar's well, under its Conversations
+    /// | Chat header), as `LiveChatView` in the recording's side panel. The History panel keeps its raised card.
+    var framed = true
     @State private var chat: [ChatLog.Message] = []
     /// The open chat's title, when it was resumed from the history with one.
     @State private var chatTitle: String?
@@ -49,13 +52,13 @@ struct GlobalChatView: View {
                 intro
             }
         }
-        .padding(12)
+        .padding(framed ? 12 : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .bottom) { toastView }
         .environment(\.openURL, OpenURLAction(handler: openLink))
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
-        // Opening the chat (or turning RAG on) puts the cursor in the question.
+        // Opening the Chat tab (or turning RAG on) puts the cursor in the question.
         .task(id: model.settings.ragEnabled) {
             guard model.settings.ragEnabled else { return }
             try? await Task.sleep(for: .milliseconds(50))
@@ -93,7 +96,7 @@ struct GlobalChatView: View {
         .frame(maxWidth: 360)
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .modifier(GlassCard(cornerRadius: 20))
+        .modifier(FramedCard(framed: framed, cornerRadius: 20))
     }
 
     // MARK: - Chat
@@ -108,7 +111,7 @@ struct GlobalChatView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .modifier(GlassCard(cornerRadius: 20))
+        .modifier(FramedCard(framed: framed, cornerRadius: 20))
         .overlay(alignment: .trailing) {
             if showingHistory {
                 historyPanel
@@ -362,6 +365,8 @@ struct GlobalChatView: View {
                 .foregroundStyle(.red)
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // Unframed, no outer padding keeps it off the well's edge: inset like the bar's content.
+                .padding(.horizontal, framed ? 0 : 14)
         }
     }
 
@@ -388,7 +393,7 @@ struct GlobalChatView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .modifier(GlassCard(cornerRadius: 20))
+        .modifier(FramedCard(framed: framed, cornerRadius: 20))
     }
 
     @ViewBuilder private var chatButtons: some View {
@@ -416,8 +421,9 @@ struct GlobalChatView: View {
                     NSApp.sendAction(#selector(NSResponder.insertNewlineIgnoringFieldEditor(_:)), to: nil, from: nil)
                     return .handled
                 }
-                // The field has the focus whenever the chat shows, so the window's Esc (go back) never gets the key:
-                // an empty field passes it on. With a question typed, Esc stays the field's own.
+                // The field takes the focus when the Chat tab opens, so the window's Esc (Back: a conversation or the
+                // recording goes to the list, nothing on the list) never gets the key: an empty field passes it on.
+                // The tab stays open either way. With a question typed, Esc stays the field's own.
                 .onKeyPress(.escape) {
                     guard question.isEmpty, !showingHistory else { return .ignored }
                     model.goBack()

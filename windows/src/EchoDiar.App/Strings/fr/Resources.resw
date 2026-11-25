@@ -718,6 +718,10 @@
     <value>Fermer</value>
     <comment>Close</comment>
   </data>
+  <data name="CloseSearch" xml:space="preserve">
+    <value>Fermer la recherche</value>
+    <comment>Close search</comment>
+  </data>
   <data name="CloseSearchEsc" xml:space="preserve">
     <value>Fermer la recherche (Esc)</value>
     <comment>Close search (Esc)</comment>
@@ -829,6 +833,10 @@
   <data name="Continue" xml:space="preserve">
     <value>Continuer</value>
     <comment>Continue</comment>
+  </data>
+  <data name="Conversations" xml:space="preserve">
+    <value>Conversations</value>
+    <comment>Conversations</comment>
   </data>
   <data name="Copied" xml:space="preserve">
     <value>Copié</value>
