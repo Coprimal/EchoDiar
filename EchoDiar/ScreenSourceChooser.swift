@@ -1,4 +1,3 @@
-import AVFoundation
 import AppKit
 import EchoCore
 import EchoScreen
@@ -121,90 +120,6 @@ struct ScreenSourceChooser: View {
 
     private static func displayID(_ screen: NSScreen) -> CGDirectDisplayID? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
-    }
-}
-
-/// The screen part of the record capsule's chevron menu: "Record the screen too" and, while it is on, the screen
-/// recording's options. Switching "Record the screen too" on without the screen permission asks for it (the system
-/// prompt comes only from this click or from "Allow…" in Settings) and stays off, with an alert pointing to System
-/// Settings. Switching the camera bubble or key presses on asks for its permission; without it, an alert points to
-/// System Settings (the option stays on and works once allowed, as in Settings; key presses only after EchoDiar is
-/// reopened).
-struct ScreenRecordingMenuItems: View {
-    let model: AppModel
-
-    var body: some View {
-        Toggle("Record the screen too", isOn: Binding(
-            get: { model.settings.screenRecordingEnabled },
-            set: { on in setEnabled(on) }))
-        if model.settings.screenRecordingEnabled {
-            Toggle("Transcribe this recording", isOn: model.setting(\.screenTranscribes))
-            Toggle("Camera bubble", isOn: Binding(
-                get: { model.settings.screenCamera },
-                set: { on in setCamera(on) }))
-            Toggle("Key presses", isOn: Binding(
-                get: { model.settings.screenKeyStrokes },
-                set: { on in setKeyStrokes(on) }))
-        }
-    }
-
-    private func setEnabled(_ on: Bool) {
-        guard on, !CGPreflightScreenCaptureAccess() else {
-            model.updateSettings { $0.screenRecordingEnabled = on }
-            return
-        }
-        _ = CGRequestScreenCaptureAccess()
-        Self.alert(String(localized: """
-            EchoDiar needs Screen Recording access. Allow it in System Settings, then quit and reopen EchoDiar.
-            """), open: PrivacySettings.openScreenRecording)
-    }
-
-    private func setCamera(_ on: Bool) {
-        model.updateSettings { $0.screenCamera = on }
-        model.screenRecording.setOverlays(model.settings)
-        guard on else { return }
-        let message = String(localized: """
-            EchoDiar needs Camera access to show the camera bubble. Allow it in System Settings.
-            """)
-        switch CameraBubbleController.authorizationStatus {
-        case .notDetermined:
-            Task { [model] in
-                let granted = await CameraBubbleController.requestAccess()
-                // A grant during a running video shows the bubble at once.
-                model.screenRecording.setOverlays(model.settings)
-                if !granted { Self.alert(message, open: PrivacySettings.openCamera) }
-            }
-        case .denied, .restricted:
-            Self.alert(message, open: PrivacySettings.openCamera)
-        default:
-            break
-        }
-    }
-
-    private func setKeyStrokes(_ on: Bool) {
-        model.updateSettings { $0.screenKeyStrokes = on }
-        if on, !KeyStrokeHUDController.hasAccess, KeyStrokeHUDController.requestAccess() != .granted {
-            Self.alert(String(localized: """
-                EchoDiar needs Input Monitoring access to show key presses. Allow it in System Settings, then quit and \
-                reopen EchoDiar.
-                """), open: PrivacySettings.openInputMonitoring)
-        }
-        model.screenRecording.setOverlays(model.settings)
-    }
-
-    /// A sheet on the main window, on the next turn once the menu has closed: "Open System Settings" runs `open`, OK
-    /// only closes. A sheet, not `runModal`, so the main actor's other work goes on while it shows.
-    private static func alert(_ message: String, open: @escaping @MainActor () -> Void) {
-        Task { @MainActor in
-            // The main window is the only one whose delegate is the AppDelegate; the menu was in its toolbar.
-            guard let delegate = NSApp.delegate as? AppDelegate,
-                  let window = NSApp.windows.first(where: { $0.delegate === delegate && $0.isVisible }) else { return }
-            let alert = NSAlert()
-            alert.messageText = message
-            alert.addButton(withTitle: String(localized: "Open System Settings"))
-            alert.addButton(withTitle: String(localized: "OK"))
-            if await alert.beginSheetModal(for: window) == .alertFirstButtonReturn { open() }
-        }
     }
 }
 

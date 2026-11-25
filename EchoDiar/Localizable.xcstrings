@@ -11100,6 +11100,34 @@
         }
       }
     },
+    "Hide the camera bubble" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar la burbuja de cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer la bulle de caméra"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ẩn bong bóng camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏摄像头气泡"
+          }
+        }
+      }
+    },
     "Hide video" : {
       "localizations" : {
         "es" : {
@@ -18621,6 +18649,34 @@
         }
       }
     },
+    "Record the screen to show the camera bubble" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graba la pantalla para mostrar la burbuja de cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrez l’écran pour afficher la bulle de caméra"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi màn hình để hiện bong bóng camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制屏幕以显示摄像头气泡"
+          }
+        }
+      }
+    },
     "Record the screen too" : {
 
     },
@@ -21204,6 +21260,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "再次显示引导"
+          }
+        }
+      }
+    },
+    "Show the camera bubble" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar la burbuja de cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la bulle de caméra"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiện bong bóng camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示摄像头气泡"
           }
         }
       }

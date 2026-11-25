@@ -1498,6 +1498,10 @@
     <value>隐藏边栏（⌘B）</value>
     <comment>Hide Sidebar (⌘B)</comment>
   </data>
+  <data name="HideTheCameraBubble" xml:space="preserve">
+    <value>隐藏摄像头气泡</value>
+    <comment>Hide the camera bubble</comment>
+  </data>
   <data name="HideVideo" xml:space="preserve">
     <value>隐藏视频</value>
     <comment>Hide video</comment>
@@ -2842,6 +2846,10 @@
     <value>从现在开始录制屏幕</value>
     <comment>Record the screen from now on</comment>
   </data>
+  <data name="RecordTheScreenToShowTheCameraBubble" xml:space="preserve">
+    <value>录制屏幕以显示摄像头气泡</value>
+    <comment>Record the screen to show the camera bubble</comment>
+  </data>
   <data name="RecordYourFirstConversation" xml:space="preserve">
     <value>录制你的第一个对话</value>
     <comment>Record your first conversation</comment>
@@ -3233,6 +3241,10 @@
   <data name="ShowSidebarB" xml:space="preserve">
     <value>显示边栏（⌘B）</value>
     <comment>Show Sidebar (⌘B)</comment>
+  </data>
+  <data name="ShowTheCameraBubble" xml:space="preserve">
+    <value>显示摄像头气泡</value>
+    <comment>Show the camera bubble</comment>
   </data>
   <data name="ShowTheCursor" xml:space="preserve">
     <value>显示指针</value>
