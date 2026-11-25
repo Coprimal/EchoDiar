@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-25
+
 ### Added
 
+- A conversation opens in two columns: the transcript beside the summary, chat and notes, with a draggable divider, or stacked on top of each other. Panel headers are compact and sit outside the cards on one row, and the transcript bar is smaller. A new Catch-up tab is part of the right-hand panel.
+- The sidebar has a header with two tabs: Conversations and Global Chat (the chat across the whole library).
 - macOS: screen recording. The chevron next to Record opens a small popover that stays open while you change options (Screen, System audio, Language) and closes on a click outside it or on Esc. Turn on "Record the screen too" (it asks for Screen Recording access the first time) and Record (⌘R) first asks what to record: Entire screen, Window or Portion of the screen. With several displays, the entire screen and a window are picked right on the screen (a camera pointer highlights the display or window under it; click to pick); for a portion, drag a rectangle on any screen. Esc cancels, and the recording starts at the pick. An outline marks what is recorded and follows a recorded window, also to another display. During a recording, the screen button in the record capsule (filled red while the screen is recorded; also in the floating indicator and the menu bar menu) turns the screen on and off as often as you like; turning it on asks what to record again. The video is one small HEVC file in the conversation's folder, on the same time line as the audio, and pauses with it; it covers the whole recording, with a black "Screen recording off" picture where the screen was not recorded. Recordings started from the calendar or a detected meeting start without the screen. If the video stops (low disk space, an error), the audio goes on and the recording says why.
 - macOS: "Transcribe this recording" in the options popover is the same switch as "Transcribe screen recordings" in Settings > Recording > Screen. When it is off, the recording keeps its picture and sound but is not transcribed automatically, live or after Stop ("screen only"), and it stays off for later screen recordings until you turn it back on; "Transcribe" makes a transcript later. Recordings without a transcript are never deleted automatically.
 - macOS: Settings > Recording > Screen: frame rate (15, 20, 30 or 60 fps; 60 asks first), quality (Smaller, Balanced or Sharper), show the cursor, highlight clicks, camera bubble, key presses and "Show all keys". For a meeting window on a Retina MacBook display, Smaller, Balanced and Sharper take about 2.4, 4.9 and 8.4 MB per minute at 15 fps, and 60 fps about 13 MB per minute; scrolling text takes more (about 16 MB per minute at 15 fps). The macOS Screenshot app records the same meeting window about 38 times larger than Balanced at 15 fps.
@@ -28,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The screen and camera icons in the toolbar are dimmed while their buttons are disabled.
+- Windows: Esc closes the sidebar search without the filter coming back, and the speaker chips fit the transcript column instead of being cut off.
 - macOS: a recording no longer loses up to a second of silence at each pause and stop: the audio is filled with silence up to that moment, so the pause times and the video stay in step.
 
 ## [1.6.1] - 2026-11-23
