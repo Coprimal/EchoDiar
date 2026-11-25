@@ -16,7 +16,6 @@ struct CatchUpButton: View {
                 Label("Catch up", systemImage: "list.bullet.clipboard")
             }
             .buttonBorderShape(.capsule)
-            .controlSize(.small)
             .disabled(reason != nil)
         }
         .help(Text(reason ?? help))
@@ -187,20 +186,25 @@ struct CatchUpCardView: View {
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 12)
                             .foregroundStyle(.secondary)
-                        Text("Catch-up at \(Self.timestamp(card.elapsed))")
-                            .font(.callout.weight(.semibold))
-                        if let details {
-                            Text(details)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
+                        // The title on one line; the details only when they fit whole beside it, else in the tooltip.
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 6) {
+                                title
+                                if let details {
+                                    Text(details)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            title
                         }
                         Spacer(minLength: 0)
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .help(details ?? "")
                 .accessibilityValue(open ? Text("Expanded") : Text("Collapsed"))
                 if card.running {
                     Button("Stop", action: stop)
@@ -224,6 +228,12 @@ struct CatchUpCardView: View {
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Palette.inputSurface))
+    }
+
+    private var title: some View {
+        Text("Catch-up at \(Self.timestamp(card.elapsed))")
+            .font(.callout.weight(.semibold))
+            .lineLimit(1)
     }
 
     /// The provider, the model and whether it was stopped.

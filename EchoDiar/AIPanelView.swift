@@ -4,12 +4,13 @@ import EchoCore
 import SwiftUI
 
 /// The open conversation's AI panel, right of its transcript and built like the recording page's side panel: one card
-/// with a header (the Summary | Chat tabs, `AppModel.detailTab`, then menus for the model, every usable provider with
-/// its models, and the output language, the "i" about where the data goes and, on Chat, "Start a fresh chat" and
-/// History, the earlier chats in a panel at the pane's trailing edge) over the selected tab, and the tab's footer
-/// inside the card. Summary shows the kept summaries, the newest first with a menu for the earlier ones; its footer has
-/// "Copy as prompt" and Summarize / Re-summarize. Chat shows questions with streamed answers; its footer is the
-/// question with "Copy as prompt" and Send. `[mm:ss]` citations scroll the transcript beside it to that time.
+/// with a header (the Summary | Catch-up | Chat tabs, `AppModel.detailTab`, Catch-up only with catch-ups, then menus
+/// for the model, every usable provider with its models, and the output language, the "i" about where the data goes
+/// and, on Chat, "Start a fresh chat" and History, the earlier chats in a panel at the pane's trailing edge) over the
+/// selected tab, and the tab's footer inside the card. Summary shows the kept summaries, the newest first with a menu
+/// for the earlier ones; its footer has "Copy as prompt" and Summarize / Re-summarize. Catch-up shows the recording's
+/// catch-ups, read-only, with no footer and the menus hidden. Chat shows questions with streamed answers; its footer is
+/// the question with "Copy as prompt" and Send. `[mm:ss]` citations scroll the transcript beside it to that time.
 struct AIPanelView: View {
     let conversation: Conversation
     let model: AppModel
@@ -51,8 +52,6 @@ struct AIPanelView: View {
     @State private var loaded = false
     /// The catch-ups written while it was recorded (its `catchups.json`), oldest first.
     @State private var catchUps: [CatchUp] = []
-    /// The Catch-ups section under the summary is open.
-    @State private var showingCatchUps = false
     /// The open state the user gave catch-up cards with a click; the others: the newest open, the older ones collapsed.
     @State private var catchUpOpenStates: [UUID: Bool] = [:]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -74,19 +73,18 @@ struct AIPanelView: View {
             VStack(spacing: 10) {
                 if loaded {
                     ZStack {
-                        if tab == .chat {
-                            chatPane
-                                .transition(transition)
-                        } else {
-                            summaryPane
-                                .transition(transition)
+                        switch tab {
+                        case .chat: chatPane.transition(transition)
+                        case .catchUp: catchUpPane.transition(transition)
+                        case .summary: summaryPane.transition(transition)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
                     errorText
                         .padding(.horizontal, 14)
-                    footer
+                    // The catch-ups are read-only: no footer.
+                    if tab != .catchUp { footer }
                 } else {
                     DetailLoadingPane(framed: false)
                 }
@@ -363,58 +361,50 @@ struct AIPanelView: View {
 
     // MARK: - Summary
 
-    /// The summary with the version menu pinned above it, then the Catch-ups bar pinned at the bottom if there are
-    /// catch-ups; a note in the middle while there are neither. The open catch-ups take half the tab beside a summary
-    /// (shown or being written), else the whole of it.
+    /// The summary with the version menu pinned above it; a note in the middle while there is none.
     private var summaryPane: some View {
         Group {
-            if summaryJob == nil && summaries.isEmpty && catchUps.isEmpty {
+            if summaryJob == nil && summaries.isEmpty {
                 Text(emptyNote ?? "No summary yet.")
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                let hasSummary = summaryJob != nil || shownSummary != nil
                 VStack(alignment: .leading, spacing: 0) {
-                    if !(showingCatchUps && !catchUps.isEmpty && !hasSummary) {
-                        if summaryJob == nil, let shown = shownSummary {
-                            versionMenu(shown)
-                                .padding(.horizontal, 14)
-                                .padding(.top, 16)
-                        }
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 8) {
-                                if summaryJob != nil {
-                                    // Until the first text: a remote provider sends no status before it.
-                                    if let text = jobText {
-                                        MarkdownText(text: text)
-                                    } else {
-                                        HStack(spacing: 6) {
-                                            ProgressView().controlSize(.small)
-                                            Text(jobStatus ?? String(localized: "Writing the summary…"))
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                } else if let shown = shownSummary {
-                                    MarkdownText(text: shown.text)
-                                } else {
-                                    Text(emptyNote ?? "No summary yet.")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                    if summaryJob == nil, let shown = shownSummary {
+                        versionMenu(shown)
                             .padding(.horizontal, 14)
-                            // Below the version menu (shown while no summary is being written), its gap stays as
-                            // it was.
-                            .padding(.top, summaryJob == nil ? 10 : 16)
-                            .padding(.bottom, 16)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 16)
+                    }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if summaryJob != nil {
+                                // Until the first text: a remote provider sends no status before it.
+                                if let text = jobText {
+                                    MarkdownText(text: text)
+                                } else {
+                                    HStack(spacing: 6) {
+                                        ProgressView().controlSize(.small)
+                                        Text(jobStatus ?? String(localized: "Writing the summary…"))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            } else if let shown = shownSummary {
+                                MarkdownText(text: shown.text)
+                            } else {
+                                Text(emptyNote ?? "No summary yet.")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        .frame(maxHeight: .infinity)
+                        .padding(.horizontal, 14)
+                        // Below the version menu (shown while no summary is being written), its gap stays as
+                        // it was.
+                        .padding(.top, summaryJob == nil ? 10 : 16)
+                        .padding(.bottom, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    if !catchUps.isEmpty {
-                        catchUpsSection
-                    }
+                    .frame(maxHeight: .infinity)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
@@ -461,55 +451,30 @@ struct AIPanelView: View {
             .joined(separator: " · ")
     }
 
-    /// The catch-ups written while recording, read-only and collapsed until the bar is clicked: newest first, the
-    /// newest open and the others collapsed, each opening or closing with a click on its header, each with Copy. The
-    /// open list scrolls on its own. No stack of its own: the bar and the list sit in the tab's stack, so beside a
-    /// summary the two scrollers share the height equally (as Windows' star rows), else the list takes it all.
-    @ViewBuilder private var catchUpsSection: some View {
-        Divider()
-        Button {
-            withAnimation(reduceMotion ? nil : Motion.standard) { showingCatchUps.toggle() }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: showingCatchUps ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .frame(width: 12)
-                    .foregroundStyle(.secondary)
-                Text("Catch-ups").font(.headline)
-                Text(catchUps.count, format: .number)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
+    /// The Catch-up tab: the catch-ups written while recording, read-only, newest first, the newest open and the
+    /// others collapsed, each opening or closing with a click on its header, each with Copy.
+    private var catchUpPane: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 6) {
+                let providers = model.aiProviders
+                ForEach(Array(catchUps.reversed().enumerated()), id: \.element.id) { index, catchUp in
+                    let open = catchUpOpenStates[catchUp.id] ?? (index == 0)
+                    CatchUpCardView(
+                        card: CatchUpCard(catchUp, providers: providers),
+                        open: open,
+                        toggle: {
+                            withAnimation(reduceMotion ? nil : Motion.standard) {
+                                catchUpOpenStates[catchUp.id] = !open
+                            }
+                        },
+                        stop: {})
+                }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .buttonStyle(.plain)
-        .accessibilityValue(showingCatchUps ? Text("Expanded") : Text("Collapsed"))
-        if showingCatchUps {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    let providers = model.aiProviders
-                    ForEach(Array(catchUps.reversed().enumerated()), id: \.element.id) { index, catchUp in
-                        let open = catchUpOpenStates[catchUp.id] ?? (index == 0)
-                        CatchUpCardView(
-                            card: CatchUpCard(catchUp, providers: providers),
-                            open: open,
-                            toggle: {
-                                withAnimation(reduceMotion ? nil : Motion.standard) {
-                                    catchUpOpenStates[catchUp.id] = !open
-                                }
-                            },
-                            stop: {})
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxHeight: .infinity)
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// Why nothing can run for this conversation.
@@ -531,36 +496,58 @@ struct AIPanelView: View {
 
     /// On one row, as in the recording's side panel: the tabs, then the model and language menus, the "i" and, on
     /// Chat, "Start a fresh chat" and History. Narrower, the language menu shows only its globe, then the model menu
-    /// only its chip; the row never wraps.
+    /// only its chip, then the tabs only their icons, then the "i" goes and the two menus pad their sides less; the
+    /// row never wraps.
     private var header: some View {
         ViewThatFits(in: .horizontal) {
             headerRow(modelLabel: true, languageLabel: true)
             headerRow(modelLabel: true, languageLabel: false)
             headerRow(modelLabel: false, languageLabel: false)
+            headerRow(modelLabel: false, languageLabel: false, iconTabs: true)
+            headerRow(modelLabel: false, languageLabel: false, iconTabs: true, tight: true)
         }
         .frame(height: MainView.headerHeight)
     }
 
-    private func headerRow(modelLabel: Bool, languageLabel: Bool) -> some View {
-        HStack(spacing: 8) {
-            tabs
-            Spacer(minLength: 8)
-            headerMenus(modelLabel: modelLabel, languageLabel: languageLabel)
+    /// `tight`: no "i", the menus with `AIModelMenu.tightPadding`, the tabs and the row's items closer. Off Chat,
+    /// measured with room for Chat's two buttons, so every tab picks the same step. On Catch-up (read-only, nothing to
+    /// run) the menus are hidden but keep their room, for the same reason.
+    private func headerRow(modelLabel: Bool, languageLabel: Bool, iconTabs: Bool = false,
+                           tight: Bool = false) -> some View {
+        let spacing: CGFloat = tight ? 6 : 8
+        return ReservedWidth(extra: model.detailTab == .chat ? 0 : 2 * (Self.menuHeight + spacing)) {
+            HStack(spacing: spacing) {
+                tabs(iconOnly: iconTabs, tight: tight)
+                Spacer(minLength: spacing)
+                if model.detailTab == .catchUp {
+                    headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight).hidden()
+                } else {
+                    headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight)
+                }
+            }
         }
     }
 
-    private var tabs: some View {
+    /// Summary, Catch-up when the conversation has catch-ups, and Chat.
+    private var shownTabs: [AppModel.DetailTab] {
+        catchUps.isEmpty ? TranscriptView.tabs.filter { $0 != .catchUp } : TranscriptView.tabs
+    }
+
+    private func tabs(iconOnly: Bool, tight: Bool) -> some View {
         // On the window, as the sidebar's tabs: a track of the cards' color.
         CapsuleTabs(selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
-                    tabs: TranscriptView.tabs, title: { Text(TranscriptView.tabTitle($0)) },
-                    drawsTrack: true, trackFill: Palette.surface)
+                    tabs: shownTabs,
+                    title: { iconOnly ? TranscriptView.tabIcon($0) : Text(TranscriptView.tabTitle($0)) },
+                    drawsTrack: true, trackFill: Palette.surface, itemPadding: tight ? 8 : 12)
             .fixedSize()
     }
 
-    @ViewBuilder private func headerMenus(modelLabel: Bool, languageLabel: Bool) -> some View {
-        AIModelMenu(model: model, purpose: purpose, height: Self.menuHeight, showsLabel: modelLabel)
-        AILanguageMenu(model: model, height: Self.menuHeight, showsLabel: languageLabel)
-        dataNotesButton(height: Self.menuHeight)
+    @ViewBuilder private func headerMenus(modelLabel: Bool, languageLabel: Bool, tight: Bool) -> some View {
+        let padding = tight ? AIModelMenu.tightPadding : nil
+        AIModelMenu(model: model, purpose: purpose, height: Self.menuHeight, showsLabel: modelLabel,
+                    horizontalPadding: padding)
+        AILanguageMenu(model: model, height: Self.menuHeight, showsLabel: languageLabel, horizontalPadding: padding)
+        if !tight { dataNotesButton(height: Self.menuHeight) }
         if model.detailTab == .chat {
             freshChatButton
             Button {
@@ -778,6 +765,7 @@ struct AIPanelView: View {
         guard !Task.isCancelled else { return }
         (transcript, summaries, summary, chat) = (loaded, versions, versions.last?.text, messages)
         catchUps = catchUpLog?.catchUps ?? []
+        leaveEmptyCatchUpTab()
         shownVersion = nil
         self.loaded = true
     }
@@ -797,6 +785,13 @@ struct AIPanelView: View {
         let log = await Task.detached(priority: .utility) { try? CatchUpLog.load(from: folder) }.value
         guard !Task.isCancelled else { return }
         catchUps = log?.catchUps ?? []
+        leaveEmptyCatchUpTab()
+    }
+
+    /// A conversation without catch-ups has no Catch-up tab: opened on it (the list's arrows keep the tab), it shows
+    /// Summary.
+    private func leaveEmptyCatchUpTab() {
+        if catchUps.isEmpty && model.detailTab == .catchUp { model.detailTab = .summary }
     }
 
     private func start(_ kind: AppModel.AIJob.Kind) {
@@ -873,6 +868,11 @@ struct AIModelMenu: View {
     let height: CGFloat
     /// The model's name beside the chip; false: the chip only (the AI panel's narrow header), the name in the tooltip.
     var showsLabel = true
+    /// nil: `CompactMenu`'s own.
+    var horizontalPadding: CGFloat? = nil
+
+    /// The side padding of the model and language menus in the narrowest headers.
+    static let tightPadding: CGFloat = 8
 
     var body: some View {
         let providers = purpose == .catchUp ? model.aiProviders.filter { $0.kind != .inApp } : model.aiProviders
@@ -900,7 +900,7 @@ struct AIModelMenu: View {
             if showsLabel {
                 AIMenuLabel(title: modelTitle, systemImage: "cpu")
             } else {
-                HStack(spacing: 6) {
+                HStack(spacing: 3) {
                     Image(systemName: "cpu")
                     MenuChevron()
                 }
@@ -908,7 +908,7 @@ struct AIModelMenu: View {
                 .accessibilityValue(Text(verbatim: modelTitle))
             }
         }
-        .modifier(CompactMenu(maxWidth: showsLabel ? 180 : nil, height: height))
+        .modifier(CompactMenu(maxWidth: showsLabel ? 180 : nil, height: height, horizontalPadding: horizontalPadding))
         .layoutPriority(1)
         .help(showsLabel ? helpText : helpText + Text(verbatim: ": \(modelTitle)"))
     }
@@ -951,6 +951,8 @@ struct AILanguageMenu: View {
     let model: AppModel
     let height: CGFloat
     var showsLabel = true
+    /// nil: `CompactMenu`'s own.
+    var horizontalPadding: CGFloat? = nil
 
     var body: some View {
         Menu {
@@ -963,7 +965,7 @@ struct AILanguageMenu: View {
             if showsLabel {
                 AIMenuLabel(title: LanguageOptions.shortCode(model.settings.summaryLanguage), systemImage: "globe")
             } else {
-                HStack(spacing: 6) {
+                HStack(spacing: 3) {
                     Image(systemName: "globe")
                     MenuChevron()
                 }
@@ -971,7 +973,7 @@ struct AILanguageMenu: View {
                 .accessibilityValue(Text(verbatim: LanguageOptions.shortCode(model.settings.summaryLanguage)))
             }
         }
-        .modifier(CompactMenu(maxWidth: nil, height: height))
+        .modifier(CompactMenu(maxWidth: nil, height: height, horizontalPadding: horizontalPadding))
         .help("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)")
     }
 
@@ -1159,6 +1161,24 @@ struct CompactMenu: ViewModifier {
         } else {
             menu.fixedSize()
         }
+    }
+}
+
+/// Its content, measured `extra` wider for a `ViewThatFits` (which asks for the ideal width): a header row whose tab
+/// shows fewer buttons than the other tab picks the same step as that tab, so the tabs' look does not change with the
+/// selected tab. Laid out at the width it gets, with no gap.
+struct ReservedWidth: Layout {
+    let extra: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        var size = content.sizeThatFits(proposal)
+        if proposal.width == nil { size.width += extra }
+        return size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
     }
 }
 

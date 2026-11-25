@@ -13,10 +13,15 @@ struct LiveChatView: View {
     private static let chatEnd = "chatEnd"
     /// The model badge under an answer.
     private static let answerFooterHeight: CGFloat = 22
+    /// "Copied" over the chat's bottom for 2 s after an answer is copied.
+    @State private var toast: LocalizedStringKey?
+    @State private var toastTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 10) {
             chatPane
+                .overlay(alignment: .bottom) { toastView }
             LiveChatInputBar(model: model, framed: framed)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -67,7 +72,7 @@ struct LiveChatView: View {
     @ViewBuilder private func runView(_ run: AppModel.LiveChatRun) -> some View {
         messageView(.user, text: run.question, model: nil)
         if !run.text.isEmpty {
-            messageView(.assistant, text: run.text, model: nil)
+            messageView(.assistant, text: run.text, model: nil, isStreaming: run.isRunning)
         } else if run.isRunning {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
@@ -85,8 +90,10 @@ struct LiveChatView: View {
     }
 
     /// As the conversation chat's messages: the question in a light bubble on the trailing side, the answer as
-    /// Markdown with its model.
-    @ViewBuilder private func messageView(_ role: ChatLog.Message.Role, text: String, model: String?) -> some View {
+    /// Markdown with its model and, once written, Copy.
+    @ViewBuilder private func messageView(
+        _ role: ChatLog.Message.Role, text: String, model: String?, isStreaming: Bool = false
+    ) -> some View {
         if role == .user {
             Text(text)
                 .padding(.horizontal, 10)
@@ -96,15 +103,48 @@ struct LiveChatView: View {
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 MarkdownText(text: text)
-                if let model, !model.isEmpty {
-                    Text(model)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .frame(height: Self.answerFooterHeight)
-                        .background(Capsule().fill(Palette.inputSurface))
+                HStack(spacing: 6) {
+                    if let model, !model.isEmpty {
+                        Text(model)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .frame(height: Self.answerFooterHeight)
+                            .background(Capsule().fill(Palette.inputSurface))
+                    }
+                    if !isStreaming {
+                        Button { copyAnswer(text) } label: {
+                            Label("Copy", systemImage: "square.on.square").labelStyle(.iconOnly).font(.caption2)
+                        }
+                        .buttonStyle(BottomBarButtonStyle(height: Self.answerFooterHeight, horizontalPadding: 0))
+                        .help("Copy the answer")
+                    }
                 }
             }
+        }
+    }
+
+    @ViewBuilder private var toastView: some View {
+        if let toast {
+            Text(toast)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .modifier(GlassCard(cornerRadius: 14))
+                .padding(.bottom, 16)
+                .transition(reduceMotion ? .opacity : .offset(y: 8).combined(with: .opacity))
+        }
+    }
+
+    /// Copies the answer and shows "Copied" for 2 s; a newer copy gets its own 2 s.
+    private func copyAnswer(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        toastTask?.cancel()
+        withAnimation(.snappy(duration: 0.2)) { toast = "Copied" }
+        toastTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            withAnimation(.snappy(duration: 0.2)) { toast = nil }
         }
     }
 }

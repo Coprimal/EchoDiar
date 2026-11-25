@@ -181,7 +181,8 @@ struct RecordingCard: View {
 }
 
 /// The recording in the library page's detail: the header and the calendar suggestion if any, pinned on top, then the
-/// transcript beside a panel with its own Catch-up | Chat tabs. The transcript is the live one, or the wave and why
+/// transcript beside a panel with its own Catch-up | Chat tabs (above it with `AppSettings.stackedPanes`), the gap
+/// between them dragging to resize them. The transcript is the live one, or the wave and why
 /// there is none (the conditions of `AppModel.startRecordingTranscriber`, read from the settings), with the Settings
 /// page that changes it.
 struct RecordingDetailView: View {
@@ -204,12 +205,22 @@ struct RecordingDetailView: View {
         }
     }
 
+    /// A tab's icon, in place of its title in a narrow panel.
+    private static func tabIcon(_ tab: AppModel.RecordingTab) -> Text {
+        switch tab {
+        case .catchUp: Text(Image(systemName: "list.bullet.clipboard")).accessibilityLabel(Text(tabTitle(tab)))
+        case .chat: Text(Image(systemName: "bubble.left.and.bubble.right")).accessibilityLabel(Text(tabTitle(tab)))
+        }
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             RecordingHeader(model: model)
             if let event = model.calendarSuggestion { suggestionRow(event) }
-            HStack(spacing: 12) {
+            let stacked = model.settings.stackedPanes
+            PaneSplit(vertical: stacked, firstMinimum: stacked ? 160 : 240, secondMinimum: stacked ? 200 : 300) {
                 transcript
+            } second: {
                 sidePanel
             }
         }
@@ -217,23 +228,56 @@ struct RecordingDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// One card with a header (the Catch-up | Chat tabs, then the catch-up model, which also answers the chat, the
-    /// answer language and, on the Catch-up tab, Search) over the selected tab, whose own cards it replaces; the
-    /// catch-up search field slides in under the header. Only the selected tab's view: a hidden chat would still take
+    /// A header on the window, as the conversation's AI panel's (the Catch-up | Chat tabs, then the catch-up model,
+    /// which also answers the chat, the answer language and, on the Catch-up tab, Search), over one card with the
+    /// selected tab, whose own cards it replaces; the catch-up search field slides in at the card's top. Only the selected tab's view: a hidden chat would still take
     /// the keyboard focus.
     private var sidePanel: some View {
+        VStack(spacing: MainView.headerGap) {
+            // Narrower, the language menu shows only its globe, then the model menu only its chip, then the tabs only
+            // their icons and the menus pad their sides less; the row never wraps and no menu is squeezed below its
+            // content.
+            ViewThatFits(in: .horizontal) {
+                headerRow(iconTabs: false, modelLabel: true, languageLabel: true)
+                headerRow(iconTabs: false, modelLabel: true, languageLabel: false)
+                headerRow(iconTabs: false, modelLabel: false, languageLabel: false)
+                headerRow(iconTabs: true, modelLabel: false, languageLabel: false)
+            }
+            .frame(height: MainView.headerHeight)
+            VStack(spacing: 0) {
+                if model.recordingTab == .catchUp && searchingCatchUps {
+                    catchUpSearchField
+                        .padding([.horizontal, .top], 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                switch model.recordingTab {
+                case .catchUp: CatchUpPanel(model: model, framed: false, query: searchingCatchUps ? catchUpQuery : "")
+                case .chat: LiveChatView(model: model, framed: false)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .modifier(GlassCard(cornerRadius: 14))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private func headerRow(iconTabs: Bool, modelLabel: Bool, languageLabel: Bool) -> some View {
         let selection = Binding<AppModel.RecordingTab>(
             get: { model.recordingTab },
             set: { model.recordingTab = $0 })
-        return VStack(spacing: 10) {
+        // On Chat, measured with room for Catch-up's Search, so both tabs pick the same step.
+        return ReservedWidth(extra: selection.wrappedValue == .catchUp ? 0 : Self.menuHeight + 8) {
             HStack(spacing: 8) {
-                // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
-                CapsuleTabs(selection: selection, tabs: Self.panelTabs, title: { Text(Self.tabTitle($0)) },
-                            drawsTrack: true, trackFill: Palette.inputSurface)
+                // On the window, as the conversation's AI panel tabs: a track of the cards' color.
+                CapsuleTabs(selection: selection, tabs: Self.panelTabs,
+                            title: { iconTabs ? Self.tabIcon($0) : Text(Self.tabTitle($0)) },
+                            drawsTrack: true, trackFill: Palette.surface)
                     .fixedSize()
                 Spacer(minLength: 8)
-                AIModelMenu(model: model, purpose: .catchUp, height: Self.menuHeight)
-                AILanguageMenu(model: model, height: Self.menuHeight)
+                let padding = iconTabs ? AIModelMenu.tightPadding : nil
+                AIModelMenu(model: model, purpose: .catchUp, height: Self.menuHeight, showsLabel: modelLabel,
+                            horizontalPadding: padding)
+                AILanguageMenu(model: model, height: Self.menuHeight, showsLabel: languageLabel, horizontalPadding: padding)
                 if selection.wrappedValue == .catchUp {
                     Button { setCatchUpSearch(!searchingCatchUps) } label: {
                         Image(systemName: "magnifyingglass")
@@ -244,20 +288,7 @@ struct RecordingDetailView: View {
                     .accessibilityLabel("Search catch-ups")
                 }
             }
-            .padding(.horizontal, 10)
-            if selection.wrappedValue == .catchUp && searchingCatchUps {
-                catchUpSearchField
-                    .padding(.horizontal, 10)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-            switch selection.wrappedValue {
-            case .catchUp: CatchUpPanel(model: model, framed: false, query: searchingCatchUps ? catchUpQuery : "")
-            case .chat: LiveChatView(model: model, framed: false)
-            }
         }
-        .padding(.top, 10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .modifier(GlassCard(cornerRadius: 14))
     }
 
     /// Filters the catch-ups as typed (as the sidebar's search field); Esc clears the query, then closes the field.

@@ -23,7 +23,7 @@ final class AppModel {
     enum Route: Equatable { case list, conversation(UUID), recording, settings, calendar }
 
     /// The tab of the open conversation's AI panel, beside its transcript.
-    enum DetailTab { case summary, chat }
+    enum DetailTab { case summary, catchUp, chat }
 
     /// The recording page's right panel: Catch-up | Chat.
     enum RecordingTab { case catchUp, chat }
@@ -1125,10 +1125,10 @@ final class AppModel {
                 if wasRecording && !isRecording {
                     if route == .recording {
                         pendingOpenFolder = activeFolder
-                        // Summary, whose Catch-ups section has the recording's catch-ups; a chat going on during
-                        // the recording carries on in Chat.
+                        // The same tab: the recording's catch-ups in Catch-up (Summary when it has none, see
+                        // `AIPanelView`); a chat going on during the recording carries on in Chat.
                         pendingOpenTab = switch recordingTab {
-                        case .catchUp: .summary
+                        case .catchUp: .catchUp
                         case .chat: .chat
                         }
                         route = .list

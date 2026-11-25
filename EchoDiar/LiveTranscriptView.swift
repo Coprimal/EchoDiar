@@ -11,6 +11,9 @@ struct LiveTranscriptView: View {
     /// The default cloud provider's name, for the cloud realtime status.
     var providerName: String?
 
+    /// The card's side padding, also the captions' inside their scroll view.
+    private static let inset: CGFloat = 14
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Group {
@@ -23,18 +26,20 @@ struct LiveTranscriptView: View {
             .font(.caption)
             .foregroundStyle(statusIsError ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
             .help(failureMessage ?? "")
+            .padding(.horizontal, Self.inset)
+            // Edge to edge, so its scroller sits on the card's trailing edge; the text keeps `inset` inside.
             if !snapshot.lines.isEmpty || !snapshot.tentative.isEmpty {
                 LiveCaptionsTextView(
                     lines: snapshot.lines, tentative: snapshot.tentative, name: Self.name,
-                    color: { NSColor(Self.color($0)) })
+                    color: { NSColor(Self.color($0)) }, horizontalInset: Self.inset)
             }
             if snapshot.displayOnly {
                 Text("The saved transcript is made after Stop and can differ.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, Self.inset)
             }
         }
-        .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .modifier(GlassCard(cornerRadius: 14))

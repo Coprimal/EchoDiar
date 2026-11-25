@@ -202,6 +202,8 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
 
         let scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
+        // No scroller (nor its track, with "Show scroll bars: Always") until the text overflows.
+        scrollView.autohidesScrollers = true
         scrollView.drawsBackground = false
         scrollView.contentView.drawsBackground = false
         scrollView.contentView.postsBoundsChangedNotifications = true
@@ -629,9 +631,12 @@ struct LiveCaptionsTextView: View {
     let tentative: [RecordingTranscriber.Tentative]
     let name: (RecordingTranscriber.Speaker) -> String
     let color: (RecordingTranscriber.Speaker) -> NSColor
+    /// The text's distance from the scroll view's sides (the scroller sits over the trailing one).
+    var horizontalInset: CGFloat = 0
 
     var body: some View {
-        LiveCaptionsRepresentable(lines: lines, tentative: tentative, name: name, color: color)
+        LiveCaptionsRepresentable(lines: lines, tentative: tentative, name: name, color: color,
+                                  horizontalInset: horizontalInset)
     }
 }
 
@@ -641,10 +646,13 @@ private struct LiveCaptionsRepresentable: NSViewRepresentable {
     let tentative: [RecordingTranscriber.Tentative]
     let name: (RecordingTranscriber.Speaker) -> String
     let color: (RecordingTranscriber.Speaker) -> NSColor
+    let horizontalInset: CGFloat
 
     func makeCoordinator() -> LiveCaptionsCoordinator { LiveCaptionsCoordinator() }
 
-    func makeNSView(context: Context) -> NSScrollView { context.coordinator.makeScrollView() }
+    func makeNSView(context: Context) -> NSScrollView {
+        context.coordinator.makeScrollView(horizontalInset: horizontalInset)
+    }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.update(lines: lines, tentative: tentative, name: name, color: color)
@@ -679,7 +687,7 @@ private final class LiveCaptionsCoordinator: NSObject {
         return paragraph
     }()
 
-    func makeScrollView() -> NSScrollView {
+    func makeScrollView(horizontalInset: CGFloat) -> NSScrollView {
         let textView = LiveCaptionsNSTextView(usingTextLayoutManager: true)
         textView.isEditable = false
         textView.isSelectable = true
@@ -688,7 +696,7 @@ private final class LiveCaptionsCoordinator: NSObject {
         textView.importsGraphics = false
         textView.usesFontPanel = false
         textView.drawsBackground = false
-        textView.textContainerInset = .zero
+        textView.textContainerInset = NSSize(width: horizontalInset, height: 0)
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
@@ -701,6 +709,8 @@ private final class LiveCaptionsCoordinator: NSObject {
 
         let scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
+        // No scroller (nor its track, with "Show scroll bars: Always") until the text overflows.
+        scrollView.autohidesScrollers = true
         scrollView.drawsBackground = false
         scrollView.contentView.drawsBackground = false
         scrollView.documentView = textView

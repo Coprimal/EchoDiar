@@ -5399,6 +5399,7 @@
       }
     },
     "Catch-ups" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -22244,6 +22245,62 @@
         }
       }
     },
+    "Show the transcript above the panel" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar la transcripción encima del panel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la transcription au-dessus du volet"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiện bản chép lời phía trên khung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将转录显示在面板上方"
+          }
+        }
+      }
+    },
+    "Show the transcript beside the panel" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar la transcripción junto al panel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la transcription à côté du volet"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiện bản chép lời bên cạnh khung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将转录显示在面板旁边"
+          }
+        }
+      }
+    },
     "Show video" : {
       "localizations" : {
         "es" : {
@@ -22522,6 +22579,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在屏幕上以圆形气泡显示你的摄像头画面。"
+          }
+        }
+      }
+    },
+    "Side by Side" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lado a lado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Côte à côte"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cạnh nhau"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左右排列"
           }
         }
       }
@@ -22922,6 +23007,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "语音转文字 API"
+          }
+        }
+      }
+    },
+    "Stack Panes" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apilar paneles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empiler les volets"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xếp chồng hai khung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下排列"
           }
         }
       }

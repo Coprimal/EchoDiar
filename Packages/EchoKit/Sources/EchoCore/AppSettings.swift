@@ -144,6 +144,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var realtimeAsFinal: Bool
     /// Conversations per page in the library sidebar; offered sizes are `LibraryPaging.sizeOptions`.
     public var libraryPageSize: Int
+    /// The conversation's and the recording's two panes are stacked (the transcript on top) instead of side by side.
+    public var stackedPanes: Bool
     /// Screen recording frame rate, one of `screenFPSOptions`; any other value reads as 15.
     public var screenFPS: Int
     /// Screen recording encoder quality, in `screenQualityRange`.
@@ -242,6 +244,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         cloudLiveModelID: String? = nil,
         realtimeAsFinal: Bool = false,
         libraryPageSize: Int = 100,
+        stackedPanes: Bool = false,
         screenFPS: Int = 15,
         screenQuality: Double = 0.75,
         screenShowsCursor: Bool = true,
@@ -323,6 +326,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.cloudLiveModelID = cloudLiveModelID
         self.realtimeAsFinal = realtimeAsFinal
         self.libraryPageSize = libraryPageSize
+        self.stackedPanes = stackedPanes
         self.screenFPS = screenFPS
         self.screenQuality = screenQuality
         self.screenShowsCursor = screenShowsCursor
@@ -366,7 +370,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case deleteWithoutConfirmation, globalHotKey, globalHotKeyEnabled, globalPauseHotKey, globalPauseHotKeyEnabled
         case autoExcludedProviderIDs, providerAvailabilityMigrated, aiSettingsMigrated
         case cloudLiveSource, cloudLiveModelID, realtimeAsFinal
-        case libraryPageSize
+        case libraryPageSize, stackedPanes
         case screenFPS, screenQuality, screenShowsCursor, screenShowsClicks, screenTranscribes, screenSource
         case transcriptVideoLayout
         case screenCamera, screenKeyStrokes, screenAllKeys, screenRecordingEnabled
@@ -460,6 +464,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         cloudLiveModelID = try container.decodeIfPresent(String.self, forKey: .cloudLiveModelID)
         realtimeAsFinal = try container.decodeIfPresent(Bool.self, forKey: .realtimeAsFinal) ?? false
         libraryPageSize = try container.decodeIfPresent(Int.self, forKey: .libraryPageSize) ?? 100
+        stackedPanes = try container.decodeIfPresent(Bool.self, forKey: .stackedPanes) ?? false
         let fps = try container.decodeIfPresent(Int.self, forKey: .screenFPS) ?? 15
         screenFPS = Self.screenFPSOptions.contains(fps) ? fps : 15
         screenQuality = Self.clamped(

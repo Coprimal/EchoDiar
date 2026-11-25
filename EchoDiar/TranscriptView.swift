@@ -10,7 +10,7 @@ extension Notification.Name {
 
 /// One conversation inside the main window (its title, date, duration and size and Reveal in Finder are in the
 /// toolbar), in two columns split like the recording page: the transcript on the left (under the video, if any), the
-/// AI panel with its Summary | Chat tabs on the right, half and half at first, the gap between them dragging to resize.
+/// AI panel with its Summary | Catch-up | Chat tabs on the right, half and half at first, the gap between them dragging to resize.
 /// The transcript ends with a bar of playback, actions and speakers (click to rename). The segments are one selectable
 /// text; a click on a segment's timestamp or name plays from its start; Space plays or pauses. Playback lives here, so
 /// it goes on whichever tab the panel shows.
@@ -62,7 +62,7 @@ struct TranscriptView: View {
     }
 
     var body: some View {
-        PaneSplit(vertical: false, firstMinimum: 280, secondMinimum: 300) {
+        PaneSplit(vertical: stacked, firstMinimum: stacked ? 200 : 280, secondMinimum: stacked ? 200 : 300) {
             // Until the files are read, a light pane (under the video pane's placeholder when there is a video), so
             // the click that opened the conversation shows at once.
             VStack(spacing: 10) {
@@ -103,8 +103,11 @@ struct TranscriptView: View {
         }
     }
 
-    /// The AI panel's tabs, in order.
-    static let tabs: [AppModel.DetailTab] = [.summary, .chat]
+    /// The AI panel's tabs, in order; Catch-up only for a conversation with catch-ups (`AIPanelView.shownTabs`).
+    static let tabs: [AppModel.DetailTab] = [.summary, .catchUp, .chat]
+
+    /// The transcript column above the AI panel instead of beside it (the toolbar's Stack Panes).
+    private var stacked: Bool { model.settings.stackedPanes }
 
     /// Moving right, the new body comes in a little from the trailing side and the old one leaves toward the leading
     /// side; the other way round moving left. The old body fades out faster, so the two never show through each other.
@@ -128,7 +131,17 @@ struct TranscriptView: View {
     static func tabTitle(_ tab: AppModel.DetailTab) -> LocalizedStringKey {
         switch tab {
         case .summary: "Summary"
+        case .catchUp: "Catch-up"
         case .chat: "Chat"
+        }
+    }
+
+    /// A tab's icon, in place of its title in a narrow AI panel.
+    static func tabIcon(_ tab: AppModel.DetailTab) -> Text {
+        switch tab {
+        case .summary: Text(Image(systemName: "text.alignleft")).accessibilityLabel(Text(tabTitle(tab)))
+        case .catchUp: Text(Image(systemName: "list.bullet.clipboard")).accessibilityLabel(Text(tabTitle(tab)))
+        case .chat: Text(Image(systemName: "bubble.left.and.bubble.right")).accessibilityLabel(Text(tabTitle(tab)))
         }
     }
 
@@ -649,12 +662,13 @@ struct TranscriptView: View {
         .modifier(GlassCard(cornerRadius: 20))
     }
 
-    /// `main` (the transcript card, or its loading pane) with the video pane above it; alone without a video or when
-    /// `transcriptVideoLayout` hides it.
+    /// `main` (the transcript card, or its loading pane) with the video pane above it, or left of it while the two
+    /// panes are stacked (the column is then wide and short); alone without a video or when `transcriptVideoLayout`
+    /// hides it.
     @ViewBuilder
     private func withVideoPane<Main: View>(@ViewBuilder _ main: () -> Main) -> some View {
         if showsVideoPane {
-            PaneSplit(vertical: true, firstMinimum: 120, secondMinimum: 160) {
+            PaneSplit(vertical: !stacked, firstMinimum: stacked ? 200 : 120, secondMinimum: stacked ? 280 : 160) {
                 VideoPaneView(playback: playback, clip: videoClip, conversationID: conversation.id)
             } second: {
                 main()
@@ -941,12 +955,13 @@ private struct SpeakerChipShape: ViewModifier {
     }
 }
 
-/// Two cards side by side (the transcript column and the AI panel) or stacked (the video pane over the transcript),
-/// split half and half at first, with a 10 pt gap between them that drags to resize them (a resize pointer over it).
+/// Two cards side by side (the transcript column and the AI panel, or the recording's transcript and side panel) or
+/// stacked (the video pane over the transcript; those two panes with `AppSettings.stackedPanes`), split half and half
+/// at first, with a 10 pt gap between them that drags to resize them (a resize pointer over it).
 /// No divider line: unlike `HSplitView` and `VSplitView`, whose divider cannot be hidden, the cards' own edges
 /// separate them, and two short grip lines in the gap's middle show it resizes (a bit brighter on hover and while
 /// dragged).
-private struct PaneSplit<First: View, Second: View>: View {
+struct PaneSplit<First: View, Second: View>: View {
     let vertical: Bool
     let firstMinimum: CGFloat
     let secondMinimum: CGFloat
@@ -964,7 +979,8 @@ private struct PaneSplit<First: View, Second: View>: View {
     var body: some View {
         GeometryReader { geometry in
             let total = max((vertical ? geometry.size.height : geometry.size.width) - Self.gap, 0)
-            let length = clamped(total * fraction, total: total)
+            // Whole points, so the gap and its grip lines sit on the pixel grid and both lines draw alike.
+            let length = clamped(total * fraction, total: total).rounded()
             let layout = vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
             layout {
                 first.frame(width: vertical ? nil : length, height: vertical ? length : nil)
@@ -991,13 +1007,13 @@ private struct PaneSplit<First: View, Second: View>: View {
     /// Two parallel lines across the gap's middle, along the edges it moves: vertical between columns, horizontal
     /// between stacked panes.
     private var grip: some View {
-        let layout = vertical ? AnyLayout(VStackLayout(spacing: 3)) : AnyLayout(HStackLayout(spacing: 3))
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 2)) : AnyLayout(HStackLayout(spacing: 2))
         let active = hovered || dragStart != nil
         return layout {
             ForEach(0..<2, id: \.self) { _ in
                 Capsule()
                     .fill(active ? Color.white.opacity(0.4) : Palette.switchOffFill)
-                    .frame(width: vertical ? 18 : 2, height: vertical ? 2 : 18)
+                    .frame(width: vertical ? 14 : 1, height: vertical ? 1 : 14)
             }
         }
         .animation(Motion.hover, value: active)

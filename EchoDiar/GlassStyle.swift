@@ -166,13 +166,16 @@ struct CapsuleTabs<Tab: Hashable>: View {
     var drawsTrack = false
     /// The fill of a drawn track; another one where the tabs sit on a `Palette.surface` card.
     var trackFill = Palette.surface
+    /// Each tab's side padding; less for icon-only tabs in a narrow header.
+    var itemPadding: CGFloat = 12
     @Namespace private var namespace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 2) {
             ForEach(tabs, id: \.self) { tab in
-                Item(tab: tab, title: title(tab), selected: tab == selection, namespace: namespace) {
+                Item(tab: tab, title: title(tab), selected: tab == selection, namespace: namespace,
+                     padding: itemPadding) {
                     withAnimation(animation) { selection = tab }
                 }
             }
@@ -212,6 +215,7 @@ struct CapsuleTabs<Tab: Hashable>: View {
         let title: Text
         let selected: Bool
         let namespace: Namespace.ID
+        let padding: CGFloat
         let action: () -> Void
         @State private var hovered = false
         /// A toolbar button's highlight.
@@ -223,7 +227,7 @@ struct CapsuleTabs<Tab: Hashable>: View {
                     .font(.callout)
                     .lineLimit(1)
                     .foregroundStyle(selected ? Color.white : Color.secondary)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, padding)
                     .frame(height: Self.height)
                     .background {
                         if hovered && !selected { Capsule().fill(Palette.hoverFill) }

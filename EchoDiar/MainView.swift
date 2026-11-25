@@ -164,6 +164,7 @@ struct MainView: View {
             // Pushes the other capsules to the trailing edge.
             flexibleSpacer
             updateItem
+            layoutItem
             revealItem
             ToolbarItemGroup {
                 Toggle(isOn: Binding(
@@ -435,6 +436,8 @@ struct MainView: View {
     private static let trailingButtonsWidth: CGFloat = 208
 
     private var updateWidth: CGFloat { showsUpdate ? 52 : 0 }
+    /// The layout button's capsule and the gap after it.
+    private var layoutWidth: CGFloat { showsLayoutItem ? 52 : 0 }
     /// The record capsule's screen, camera bubble and microphone buttons, there only while recording (a conversation
     /// can be open meanwhile).
     private var recordingButtonsWidth: CGFloat { model.isRecording ? 36 + 36 + 36 : 0 }
@@ -443,11 +446,34 @@ struct MainView: View {
     /// pushing buttons into the overflow menu.
     private var titleWidth: CGFloat {
         min(Self.titleMaxWidth,
-            windowWidth - Self.leadingWidth - Self.trailingButtonsWidth - updateWidth - recordingButtonsWidth)
+            windowWidth - Self.leadingWidth - Self.trailingButtonsWidth - updateWidth - layoutWidth
+                - recordingButtonsWidth)
     }
 
     /// Too short a title is left out.
     private var titleFits: Bool { titleWidth >= Self.titleMinWidth }
+
+    /// In its own capsule while the detail shows a conversation or the recording: stacks their two panes (the
+    /// transcript on top) or puts them back side by side; the icon is the layout it switches to.
+    @ToolbarContentBuilder private var layoutItem: some ToolbarContent {
+        if showsLayoutItem {
+            let stacked = model.settings.stackedPanes
+            ToolbarItem {
+                SingleToolbarButton(title: stacked ? "Side by Side" : "Stack Panes",
+                                    systemImage: stacked ? "rectangle.split.2x1" : "rectangle.split.1x2") {
+                    withAnimation(reduceMotion ? nil : Motion.standard) {
+                        model.updateSettings { $0.stackedPanes.toggle() }
+                    }
+                }
+                .help(stacked ? "Show the transcript beside the panel" : "Show the transcript above the panel")
+            }
+            fixedSpacer
+        }
+    }
+
+    private var showsLayoutItem: Bool {
+        toolbarConversation != nil || (model.route == .recording && model.isRecording)
+    }
 
     /// A conversation's Reveal in Finder and Delete menu (the audio or the whole conversation) in one capsule, before
     /// Settings.

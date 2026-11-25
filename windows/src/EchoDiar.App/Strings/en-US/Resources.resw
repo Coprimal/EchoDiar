@@ -3514,6 +3514,14 @@
     <value>Show the recordings list</value>
     <comment>Show the recordings list</comment>
   </data>
+  <data name="ShowTheTranscriptAboveThePanel" xml:space="preserve">
+    <value>Show the transcript above the panel</value>
+    <comment>Show the transcript above the panel</comment>
+  </data>
+  <data name="ShowTheTranscriptBesideThePanel" xml:space="preserve">
+    <value>Show the transcript beside the panel</value>
+    <comment>Show the transcript beside the panel</comment>
+  </data>
   <data name="ShowVideo" xml:space="preserve">
     <value>Show video</value>
     <comment>Show video</comment>
@@ -3565,6 +3573,10 @@
   <data name="ShowsYourCameraInARoundBubbleOnScreen" xml:space="preserve">
     <value>Shows your camera in a round bubble on screen.</value>
     <comment>Shows your camera in a round bubble on screen.</comment>
+  </data>
+  <data name="SideBySide" xml:space="preserve">
+    <value>Side by Side</value>
+    <comment>Side by Side</comment>
   </data>
   <data name="SimulateState" xml:space="preserve">
     <value>Simulate state</value>
@@ -3633,6 +3645,10 @@
   <data name="SpeechToTextAPIs" xml:space="preserve">
     <value>Speech-to-text APIs</value>
     <comment>Speech-to-text APIs</comment>
+  </data>
+  <data name="StackPanes" xml:space="preserve">
+    <value>Stack Panes</value>
+    <comment>Stack Panes</comment>
   </data>
   <data name="Start" xml:space="preserve">
     <value>Start</value>
