@@ -140,7 +140,7 @@ internal sealed class TrayIcon : IDisposable
         else
         {
             // Off while the update installs: it closes the app.
-            items.Add(Item(Loc.T("Start recording"), () => _ = _model.StartRecordingAsync(_model.SelectedTarget),
+            items.Add(Item(Loc.T("Start recording"), _model.RequestRecording,
                 enabled: !_model.IsStarting && !_model.Updater.IsInstalling));
         }
         if (_model.DetectedMeetingName is { } app)
@@ -192,8 +192,8 @@ internal sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Stop, Language and the silent-tap item (macOS
-    /// addRecordingItems).
+    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Record/Stop Recording Screen, Stop, Language and the
+    /// silent-tap item (macOS addRecordingItems).
     /// </summary>
     private void AddRecordingItems(List<NotifyIconMenuItem> items, RecordingEngine.Snapshot snapshot)
     {
@@ -203,6 +203,13 @@ internal sealed class TrayIcon : IDisposable
         // While the system mutes the mic, only the system can unmute it (macOS addRecordingItems).
         items.Add(Item(Loc.T(snapshot.SystemMicMuted ? "Microphone muted in system settings"
             : snapshot.MicMuted ? "Unmute Microphone" : "Mute Microphone"), _model.ToggleMicMute, enabled: !snapshot.SystemMicMuted));
+        if (Features.ScreenRecording)
+        {
+            // Turning the screen on is not offered while paused, nor once the video ended on an error (macOS screenItem).
+            var screenOn = _model.ScreenOn;
+            items.Add(Item(Loc.T(screenOn ? "Stop Recording Screen" : "Record Screen"), _model.ToggleScreenRecording,
+                enabled: screenOn || !paused && _model.CanStartDuringRecording));
+        }
         items.Add(Item(Loc.T("Stop recording"), () => _ = _model.StopRecordingAsync()));
         items.Add(LanguageItem());
         if (snapshot.SilentTapSuspected)

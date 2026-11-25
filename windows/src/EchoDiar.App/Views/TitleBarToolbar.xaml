@@ -107,10 +107,10 @@
                 </Button>
 
                 <!--
-                    Idle: Record and its options (the system audio target and the language), a split button with no fill
+                    Idle: Record and its options (the screen options, the system audio target and the language), a split button with no fill
                     at rest and the default hover, pressed and menu-open fills. The options stay open while they are
-                    picked and close on a click outside them or on Esc (macOS RecordingOptionsPopover). Recording: Stop
-                    and Pause or Resume.
+                    picked and close on a click outside them or on Esc (macOS RecordingOptionsPopover). Recording: Stop,
+                    the screen on or off, and Pause or Resume.
                 -->
                 <StackPanel x:Name="RecordGroup" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <SplitButton
@@ -125,11 +125,29 @@
                         <SplitButton.Flyout>
                             <Flyout x:Name="TargetMenu" Placement="BottomEdgeAlignedLeft">
                                 <StackPanel MinWidth="240" Spacing="4">
+                                    <!--
+                                        The screen options (macOS RecordingOptionsPopover screenItems), shown only with
+                                        Features.ScreenRecording (code-behind): "Record the screen too (Beta)", then
+                                        "Transcribe this recording" under it, listed always and enabled only while the
+                                        screen option is on.
+                                    -->
+                                    <StackPanel x:Name="ScreenOptionsPanel" Spacing="4" Visibility="Collapsed">
+                                        <TextBlock
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{local:T Text='Screen'}" />
+                                        <CheckBox x:Name="ScreenRecordingCheckBox" />
+                                        <CheckBox
+                                            x:Name="ScreenTranscribesCheckBox"
+                                            Margin="28,0,0,0"
+                                            Content="{local:T Text='Transcribe this recording'}" />
+                                        <Border Height="1" Margin="0,4" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                    </StackPanel>
                                     <TextBlock
                                         Style="{StaticResource CaptionTextBlockStyle}"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         Text="{local:T Text='System audio'}" />
-                                    <!-- "All system audio" and the apps with audio (code-behind). -->
+                                    <!-- "All system audio", "No system audio" (screen recording) and the apps with audio (code-behind). -->
                                     <StackPanel x:Name="TargetsPanel" />
                                     <Border Height="1" Margin="0,4" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
                                     <TextBlock
@@ -157,6 +175,34 @@
                             FontSize="16"
                             Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                             Glyph="&#xE71A;" />
+                    </Button>
+                    <!--
+                        Screen on or off in this recording (macOS MainView recordButtons): off, it opens the screen
+                        picker, whose pick turns it on; red while the screen is recorded. Shown only with
+                        Features.ScreenRecording (code-behind).
+                    -->
+                    <Button
+                        x:Name="ScreenButton"
+                        Width="32"
+                        Height="32"
+                        Padding="0"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="Collapsed">
+                        <!-- Off: the button's own colour, dimmed while disabled; on (never disabled): red. -->
+                        <Grid>
+                            <FontIcon
+                                x:Name="ScreenOffIcon"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="16"
+                                Glyph="&#xE714;" />
+                            <FontIcon
+                                x:Name="ScreenOnIcon"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="16"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Glyph="&#xE714;"
+                                Visibility="Collapsed" />
+                        </Grid>
                     </Button>
                     <Button
                         x:Name="PauseButton"

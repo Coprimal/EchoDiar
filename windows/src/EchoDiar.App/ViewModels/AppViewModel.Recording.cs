@@ -42,11 +42,18 @@ public sealed partial class AppViewModel
     /// <summary>Cancelled on quit: queued compressions never start.</summary>
     private readonly CancellationTokenSource _compressionCancel = new();
 
-    /// <summary>What Record records: null for all system audio, else the app picked in the Record menu.</summary>
+    /// <summary>
+    /// What Record records: null for all system audio, else the app picked in the Record menu. Picking one clears
+    /// <see cref="SystemAudioOff"/> (macOS <c>targetBinding</c>).
+    /// </summary>
     public AudioProcessGroup? SelectedTarget
     {
         get => _selectedTarget;
-        set => SetProperty(ref _selectedTarget, value);
+        set
+        {
+            SetProperty(ref _selectedTarget, value);
+            SystemAudioOff = false;
+        }
     }
 
     /// <summary>The recorded app's name from the start until the recording ends; null for all system audio.</summary>
@@ -215,7 +222,8 @@ public sealed partial class AppViewModel
         {
             var transcribed = prior is null ? null : await prior;
             if (_closing) return;
-            var autoTranscribe = Settings.AutoTranscribe;
+            // Not for a "screen only" recording (macOS transcribesFirst: autoTranscribes(with:)).
+            var autoTranscribe = session?.AutoTranscribes(Settings) == true;
             var needsNoModel = NeedsNoModel(transcribed);
             // Read here, not when the job starts: a deferred job would hold the CAF uncompressed until energy saver is off,
             // and a cloud confirmation (macOS consentPending) until it is answered.
@@ -299,8 +307,9 @@ public sealed partial class AppViewModel
 
     /// <summary>
     /// Queues the folder once compression is done, when "Transcribe automatically" is on (a failed compression leaves
-    /// the CAF, which is used instead). Skipped when the folder has no usable audio or session, already has a
-    /// transcript, or its last transcription failed (macOS <c>transcribe(after:)</c>). <paramref name="prior"/> goes to the job.
+    /// the CAF, which is used instead). Skipped when the folder has no usable audio or session, is marked "screen only"
+    /// (<see cref="RecordingSession.AutoTranscribes(AppSettings)"/>), already has a transcript, or its last
+    /// transcription failed (macOS <c>transcribe(after:)</c>). <paramref name="prior"/> goes to the job.
     /// </summary>
     private async Task TranscribeAfterAsync(CompressionResult result, PriorTranscription? prior = null)
     {
@@ -311,7 +320,11 @@ public sealed partial class AppViewModel
             return;
         }
         var (session, conversation) = await Task.Run(() => (ReadSession(result.Folder), ReadConversation(result.Folder)));
-        if (session is null || conversation?.HasTranscript == true || conversation?.Status == ConversationStatus.TranscriptionFailed) return;
+        if (session is null || !session.AutoTranscribes(Settings) || conversation?.HasTranscript == true
+            || conversation?.Status == ConversationStatus.TranscriptionFailed)
+        {
+            return;
+        }
         _ = SubmitTranscription(result.Folder, session, prior: prior);
     }
 

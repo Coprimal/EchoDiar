@@ -374,7 +374,7 @@
       }
     },
     "(Beta)" : {
-      "comment" : "Windows only: Views/TitleBarToolbar.xaml.cs, Views/Settings/RecordingSettingsPage.xaml.cs.",
+      "comment" : "Windows only: Views/TitleBarToolbar.xaml.cs.",
       "extractionState" : "manual",
       "localizations" : {
         "es" : {

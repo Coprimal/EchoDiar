@@ -21,7 +21,8 @@ namespace EchoDiar.App.Views;
 
 /// <summary>
 /// The floating pill's window and content (macOS FloatingPillView.swift and PillHostingView): the recording
-/// indicator (a muted mic's glyph included), its controls on hover (Pause or Resume, Mute or Unmute, Stop, Language),
+/// indicator (a muted mic's glyph included), its controls on hover (Pause or Resume, Mute or Unmute, the screen on or
+/// off, Stop, Language),
 /// and the meeting and calendar prompts in its place. <see cref="Services.FloatingPillController"/> owns it: it styles, shows,
 /// hides, places and closes it. The window reports its content's size in physical pixels and the user's drags
 /// (pointer capture on the capsule: the window has no title bar). A press may make the pill the foreground window: once
@@ -66,6 +67,7 @@ public sealed partial class FloatingPillWindow : Window
     private double _scale;
     private bool? _shownPaused;
     private (bool Muted, bool SystemMuted)? _shownMuted;
+    private bool? _shownScreenOn;
     private SizeInt32 _reportedSize;
 
     public FloatingPillWindow(AppViewModel model)
@@ -85,6 +87,8 @@ public sealed partial class FloatingPillWindow : Window
 
         PauseButton.Click += (_, _) => _ = _model.TogglePauseAsync();
         MuteButton.Click += (_, _) => _model.ToggleMicMute();
+        ScreenButton.Click += (_, _) => _model.ToggleScreenRecording();
+        ScreenButton.Visibility = Features.ScreenRecording ? Visibility.Visible : Visibility.Collapsed;
         StopButton.Click += (_, _) => _ = _model.StopRecordingAsync();
         RecordPromptButton.Click += (_, _) => OnRecordPromptClick();
         JoinButton.Click += (_, _) => OnJoinClick();
@@ -131,6 +135,7 @@ public sealed partial class FloatingPillWindow : Window
         _model.PropertyChanged += OnModelChanged;
         _shownPaused = null;
         _shownMuted = null;
+        _shownScreenOn = null;
         Update();
     }
 
@@ -165,6 +170,8 @@ public sealed partial class FloatingPillWindow : Window
             case nameof(AppViewModel.Settings):
             case nameof(AppViewModel.AutoStartedAppName):
             case nameof(AppViewModel.PillPrompt):
+            case nameof(AppViewModel.ScreenOn):
+            case nameof(AppViewModel.CanStartDuringRecording):
                 Update();
                 break;
         }
@@ -211,6 +218,7 @@ public sealed partial class FloatingPillWindow : Window
 
         // The snapshot changes at 15 Hz: a tooltip set again each time would close under the pointer.
         UpdateMuteButton(snapshot.MicMuted, snapshot.SystemMicMuted);
+        UpdateScreenButton(paused);
         if (paused == _shownPaused) return;
         _shownPaused = paused;
         AutomationProperties.SetName(DotGrid, Loc.T(paused ? "Paused" : "Recording"));
@@ -232,6 +240,25 @@ public sealed partial class FloatingPillWindow : Window
         var name = systemMuted ? Loc.T("Microphone muted in system settings") : title;
         AutomationProperties.SetName(MuteButton, name);
         ToolTipService.SetToolTip(MuteButton, name);
+    }
+
+    /// <summary>
+    /// The screen on or off, as the toolbar's (macOS screenToggle): turning it on is off while paused or once the video
+    /// ended on an error; turning it off works while paused. Its icon, name and tooltip are set again only when the
+    /// screen turns on or off.
+    /// </summary>
+    private void UpdateScreenButton(bool paused)
+    {
+        if (!Features.ScreenRecording) return;
+        var screenOn = _model.ScreenOn;
+        ScreenButton.IsEnabled = screenOn || !paused && _model.CanStartDuringRecording;
+        if (screenOn == _shownScreenOn) return;
+        _shownScreenOn = screenOn;
+        ScreenOffIcon.Visibility = screenOn ? Visibility.Collapsed : Visibility.Visible;
+        ScreenOnIcon.Visibility = screenOn ? Visibility.Visible : Visibility.Collapsed;
+        var label = Loc.T(screenOn ? "Stop recording the screen" : "Record the screen");
+        AutomationProperties.SetName(ScreenButton, label);
+        ToolTipService.SetToolTip(ScreenButton, label);
     }
 
     /// <summary>The hover controls show or hide; the muted mic's glyph shows only while they are hidden.</summary>
@@ -359,8 +386,8 @@ public sealed partial class FloatingPillWindow : Window
         MeterTrack.CornerRadius = MeterFill.CornerRadius = new CornerRadius(2 * scale);
         // Icon-only buttons: their padding stands in for macOS's 12 pt spacing.
         Controls.Spacing = 4 * scale;
-        foreach (var button in new[] { PauseButton, MuteButton, StopButton, LanguageButton }) button.Padding = new Thickness(4 * scale);
-        PauseIcon.FontSize = MuteIcon.FontSize = StopIcon.FontSize = GlobeIcon.FontSize = 13 * scale;
+        foreach (var button in new[] { PauseButton, MuteButton, ScreenButton, StopButton, LanguageButton }) button.Padding = new Thickness(4 * scale);
+        PauseIcon.FontSize = MuteIcon.FontSize = ScreenOffIcon.FontSize = ScreenOnIcon.FontSize = StopIcon.FontSize = GlobeIcon.FontSize = 13 * scale;
         MutedIcon.FontSize = 11 * scale;
         UpdateMeter();
     }

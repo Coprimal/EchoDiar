@@ -144,6 +144,9 @@ public sealed class ScreenRecorder
     private Timer? _diskTimer;
     private volatile bool _paused;
 
+    /// <summary>Completed once <see cref="End"/> has finished the file, before <see cref="Ended"/> is raised.</summary>
+    private readonly TaskCompletionSource _endFinished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     // Under _statsGate
     private VideoCodec? _codec;
     private ScreenGeometry.Size _size;
@@ -241,8 +244,9 @@ public sealed class ScreenRecorder
     /// Closes the capture, pads the last picture to <paramref name="fileTime"/> and finalizes the file (macOS
     /// <c>stop(at:)</c>). Pass the engine's file time read just before the audio stops, so the video ends with the
     /// audio; null reads it here (once the engine has stopped or while paused: the last file time seen). No-op when
-    /// not started or after <see cref="Ended"/>. Throws when the last write or the finalize failed (the error is also
-    /// in <see cref="ScreenRecorderStats.LastError"/>).
+    /// not started or after <see cref="Ended"/>; when the video is ending on its own meanwhile, completes once that end
+    /// has finished the file. Throws when the last write or the finalize failed (the error is also in
+    /// <see cref="ScreenRecorderStats.LastError"/>).
     /// </summary>
     public Task StopAsync(double? fileTime = null) => Serialized(() => Stop(fileTime));
 
@@ -386,24 +390,45 @@ public sealed class ScreenRecorder
 
     private void Stop(double? fileTime)
     {
-        Capture? capture;
+        Capture? capture = null;
+        var running = false;
         lock (_gate)
         {
-            if (_state != State.Running || _ended) return;
-            capture = Detach();
-            StopTimers();
+            if (_state == State.Running && !_ended)
+            {
+                running = true;
+                capture = Detach();
+                StopTimers();
+            }
+        }
+        if (!running)
+        {
+            WaitForEnd();
+            return;
         }
         Close(capture);
 
-        Exception? failure;
-        CaptureDevice? device;
+        Exception? failure = null;
+        CaptureDevice? device = null;
+        var endedMeanwhile = false;
         lock (_gate)
         {
-            if (_state != State.Running || _ended) return; // ended meanwhile: the file is finished
-            failure = Finish(fileTime ?? FileTimeNow() ?? _lastFileTime ?? 0);
-            device = _device;
-            _device = null;
-            _state = State.Stopped;
+            if (_state != State.Running || _ended)
+            {
+                endedMeanwhile = true;
+            }
+            else
+            {
+                failure = Finish(fileTime ?? FileTimeNow() ?? _lastFileTime ?? 0);
+                device = _device;
+                _device = null;
+                _state = State.Stopped;
+            }
+        }
+        if (endedMeanwhile)
+        {
+            WaitForEnd();
+            return;
         }
         Close(device);
         if (failure is not null) throw failure;
@@ -421,17 +446,24 @@ public sealed class ScreenRecorder
             capture = Detach();
             StopTimers();
         }
-        Close(capture);
-
-        CaptureDevice? device;
-        lock (_gate)
+        try
         {
-            Finish(FileTimeNow() ?? _lastFileTime ?? 0);
-            device = _device;
-            _device = null;
-            _state = State.Stopped;
+            Close(capture);
+
+            CaptureDevice? device;
+            lock (_gate)
+            {
+                Finish(FileTimeNow() ?? _lastFileTime ?? 0);
+                device = _device;
+                _device = null;
+                _state = State.Stopped;
+            }
+            Close(device);
         }
-        Close(device);
+        finally
+        {
+            _endFinished.TrySetResult(); // a Stop that found the video ending waits for this
+        }
         try
         {
             Ended?.Invoke(reason);
@@ -749,6 +781,17 @@ public sealed class ScreenRecorder
         _generation++;
         _pending = false;
         return capture;
+    }
+
+    /// <summary>
+    /// Once the video ended on its own (<see cref="End"/>, not serialized with the operations, may still be writing),
+    /// waits until its file is finished; returns at once otherwise (not started, or stopped).
+    /// </summary>
+    private void WaitForEnd()
+    {
+        bool ended;
+        lock (_gate) ended = _ended;
+        if (ended) _endFinished.Task.Wait();
     }
 
     private void StopTimers()

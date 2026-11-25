@@ -636,7 +636,8 @@ public sealed partial class AppViewModel
     /// <summary>
     /// Why the next (or current) recording has no cloud live transcript although the default ASR is a cloud engine,
     /// auto-transcribe and "Transcribe while recording" are on, and a live source is picked (macOS
-    /// <c>cloudLiveBlock</c>); null when it runs, when the source is "off", or when the default engines are local. The
+    /// <c>cloudLiveBlock</c>); null when it runs, when the source is "off", when the default engines are local, or while
+    /// the current recording is marked "screen only" (it has no live transcript). The
     /// same checks as <see cref="AttachRecordingTranscriberAsync"/>, with the current settings and the installed models
     /// as last read (<see cref="InstalledModelIds"/>, no disk read).
     /// </summary>
@@ -645,7 +646,11 @@ public sealed partial class AppViewModel
         get
         {
             var settings = Settings;
-            if (!settings.AutoTranscribe || !settings.TranscribeWhileRecording || DefaultCloudConfig is not { } config) return null;
+            if (!RecordingSession.AutoTranscribes(_recordingSkipsTranscription, settings) || !settings.TranscribeWhileRecording
+                || DefaultCloudConfig is not { } config)
+            {
+                return null;
+            }
             return settings.CloudLiveSource switch
             {
                 CloudLiveSource.Local => CloudLiveEntry(RecordingLanguage, settings, IsInstalledAsRead) is null
