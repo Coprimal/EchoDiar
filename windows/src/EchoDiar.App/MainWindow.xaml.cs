@@ -456,8 +456,9 @@ public sealed partial class MainWindow : Window
             if (!_closing) _model.SearchTerm = SearchBox.Text;
         };
         SearchBox.TextChanged += (_, _) => OnSearchTextChanged();
-        // The inner text field handles Esc first.
-        SearchBox.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnSearchKeyDown), handledEventsToo: true);
+        // Before the box sees it: AutoSuggestBox's own Esc puts back the typed text after a clear, which brought the
+        // filter back once the box was collapsed (seen in Windows VM 2).
+        SearchBox.PreviewKeyDown += OnSearchKeyDown;
     }
 
     /// <summary>A tab picked in the header; only a pick that differs from the model's tab is written.</summary>
