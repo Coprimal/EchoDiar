@@ -502,6 +502,10 @@
     <value>Atrás (Esc)</value>
     <comment>Back (Esc)</comment>
   </data>
+  <data name="BackgroundBlurIsNotAvailableTheCameraBubbleShowsNoPicture" xml:space="preserve">
+    <value>El desenfoque del fondo no está disponible. La burbuja de cámara no muestra imagen.</value>
+    <comment>Background blur is not available. The camera bubble shows no picture.</comment>
+  </data>
   <data name="Balanced" xml:space="preserve">
     <value>Equilibrado</value>
     <comment>Balanced</comment>
@@ -521,6 +525,10 @@
   <data name="BeforeYouRecord" xml:space="preserve">
     <value>Antes de grabar</value>
     <comment>Before you record</comment>
+  </data>
+  <data name="Beta" xml:space="preserve">
+    <value>(beta)</value>
+    <comment>(Beta)</comment>
   </data>
   <data name="BilledBy" xml:space="preserve">
     <value>facturado por {0}</value>
@@ -585,6 +593,10 @@
   <data name="Camera" xml:space="preserve">
     <value>Cámara</value>
     <comment>Camera</comment>
+  </data>
+  <data name="CameraAccessIsOffTurnOnEchoDiarInWindowsSettingsPrivacySecur" xml:space="preserve">
+    <value>El acceso a la cámara está desactivado. Activa EchoDiar en Configuración de Windows › Privacidad y seguridad › Cámara.</value>
+    <comment>Camera access is off. Turn on EchoDiar in Windows Settings › Privacy &amp; security › Camera.</comment>
   </data>
   <data name="CameraBubble" xml:space="preserve">
     <value>Burbuja de cámara</value>
@@ -1358,6 +1370,14 @@
     <value>EchoDiar, grabación en pausa</value>
     <comment>EchoDiar, recording paused</comment>
   </data>
+  <data name="EchoDiarRecordingPaused_2" xml:space="preserve">
+    <value>EchoDiar, grabación en pausa — {0}</value>
+    <comment>EchoDiar, recording paused — %@</comment>
+  </data>
+  <data name="EchoDiarRecording_2" xml:space="preserve">
+    <value>EchoDiar, grabando — {0}</value>
+    <comment>EchoDiar, recording — %@</comment>
+  </data>
   <data name="EchoDiarRecordsTheOtherPeopleOnTheCallFromYourMacSAudioTheTe" xml:space="preserve">
     <value>EchoDiar graba a las demás personas de la llamada a partir del audio de tu Mac. La prueba reproduce un sonido corto y escucha si llega. macOS pide el permiso de Grabación de audio del sistema la primera vez.</value>
     <comment>EchoDiar records the other people on the call from your Mac's audio. The test plays a short sound and listens for it. macOS asks for System Audio Recording permission the first time.</comment>
@@ -1505,6 +1525,10 @@
   <data name="FileSize" xml:space="preserve">
     <value>Tamaño del archivo</value>
     <comment>File size</comment>
+  </data>
+  <data name="FilesCanBeSeveralTimesLarger" xml:space="preserve">
+    <value>Los archivos pueden ser varias veces más grandes.</value>
+    <comment>Files can be several times larger.</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>Los archivos pueden ser varias veces más grandes. En una prueba similar a una reunión, la grabación de una ventana ocupó unos {0} MB por minuto a 60 fps, frente a {1} MB por minuto a 15 fps.</value>
@@ -2121,6 +2145,10 @@
   <data name="MBMin" xml:space="preserve">
     <value>{0} (~{1} MB/min)</value>
     <comment>%@ (~%@ MB/min)</comment>
+  </data>
+  <data name="MP4Video" xml:space="preserve">
+    <value>Vídeo MP4</value>
+    <comment>MP4 video</comment>
   </data>
   <data name="MacOSAppliesThePermissionOnceEchoDiarIsQuitAndOpenedAgain" xml:space="preserve">
     <value>macOS aplica el permiso cuando EchoDiar se cierra y se vuelve a abrir.</value>
@@ -3058,9 +3086,17 @@
     <value>Grabar la pantalla</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAnd" xml:space="preserve">
+    <value>Grabar la pantalla y {0}</value>
+    <comment>Record the screen and %@</comment>
+  </data>
   <data name="RecordTheScreenAndR" xml:space="preserve">
     <value>Grabar la pantalla y {0} (⌘R)</value>
     <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophone" xml:space="preserve">
+    <value>Grabar la pantalla y el micrófono</value>
+    <comment>Record the screen and the microphone</comment>
   </data>
   <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
     <value>Grabar la pantalla y el micrófono (⌘R)</value>
@@ -4134,6 +4170,10 @@
     <value>La pantalla también se graba</value>
     <comment>The screen is recorded too</comment>
   </data>
+  <data name="TheScreenRecordingIsMovedToTheRecycleBinEverythingElseInTheC" xml:space="preserve">
+    <value>La grabación de pantalla se traslada a la Papelera de reciclaje. Todo lo demás de la conversación se conserva.</value>
+    <comment>The screen recording is moved to the Recycle Bin. Everything else in the conversation stays.</comment>
+  </data>
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>La grabación de pantalla se traslada a la Papelera. Todo lo demás de la conversación se conserva.</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
@@ -4358,6 +4398,10 @@
     <value>Este modelo en tiempo real no etiqueta a los hablantes, así que el diarizador se ejecuta sobre la grabación después de Detener; un diarizador en la nube pide su propio consentimiento.</value>
     <comment>This realtime model labels no speakers, so the diarizer runs on the recording after Stop; a cloud diarizer asks for its own consent.</comment>
   </data>
+  <data name="ThisVideoUsesHEVCInstallHEVCVideoExtensionsFromTheMicrosoftS" xml:space="preserve">
+    <value>Este vídeo usa HEVC. Instala Extensiones de vídeo HEVC desde Microsoft Store para reproducirlo.</value>
+    <comment>This video uses HEVC. Install HEVC Video Extensions from the Microsoft Store to play it.</comment>
+  </data>
   <data name="Title" xml:space="preserve">
     <value>Título</value>
     <comment>Title</comment>
@@ -4501,6 +4545,10 @@
   <data name="TranscriptsSummariesAndChatsStayPlaybackAndReTranscribingAre" xml:space="preserve">
     <value>Las transcripciones, los resúmenes y los chats se conservan; ya no se podrá reproducir ni volver a transcribir.</value>
     <comment>Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.</comment>
+  </data>
+  <data name="TrayIconWhileRecording" xml:space="preserve">
+    <value>Icono de la bandeja al grabar</value>
+    <comment>Tray icon while recording</comment>
   </data>
   <data name="TryAgainLater" xml:space="preserve">
     <value>Inténtalo de nuevo más tarde.</value>

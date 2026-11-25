@@ -64,7 +64,7 @@ public static class SettingsSearch
         new(General, "General", "\uE713", [], GeneralSettingsPage.SearchEntries, (model, _) => new GeneralSettingsPage(model)),
         new(
             Recording, "Recording", "\uE7C8", RecordingSettingsPage.SubTabs, RecordingSettingsPage.SearchEntries,
-            (model, _) => new RecordingSettingsPage(model)),
+            (model, showDialog) => new RecordingSettingsPage(model) { ShowDialog = showDialog }),
         new(Calendar, "Calendar", "\uE787", [], CalendarSettingsPage.SearchEntries, (model, _) => new CalendarSettingsPage(model)),
         new(
             Transcription, "Transcription", "\uE8D6", [], TranscriptionSettingsPage.SearchEntries,
