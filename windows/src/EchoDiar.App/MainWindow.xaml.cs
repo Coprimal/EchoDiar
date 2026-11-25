@@ -413,7 +413,7 @@ public sealed partial class MainWindow : Window
     {
         var hidden = _model.Route.Kind is RouteKind.Settings or RouteKind.Calendar || _model.SidebarHidden;
         SidebarColumn.Width = new GridLength(hidden ? 0 : 360);
-        SidebarCard.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
+        SidebarPane.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>
@@ -644,7 +644,7 @@ public sealed partial class MainWindow : Window
             case InAppAction.OpenChat when route == RouteKind.Conversation:
                 _model.RequestChat();
                 return true;
-            // The AI panel's Copy as prompt, on Summary and Chat: always beside the transcript.
+            // The AI panel's Copy as prompt, on Summary only (macOS): always beside the transcript.
             case InAppAction.CopyPrompt when route == RouteKind.Conversation
                 && RouteHost.Content is ConversationView conversation:
                 return conversation.CopyPrompt();
@@ -668,16 +668,16 @@ public sealed partial class MainWindow : Window
                 return true;
             // Esc first ends a selection of cards (macOS listSelectionActive), wherever the focus is: a Ctrl-click does
             // not move the focus into the list.
-            case InAppAction.Back when plain && SidebarCard.Visibility == Visibility.Visible && _library.HasSelection:
+            case InAppAction.Back when plain && SidebarPane.Visibility == Visibility.Visible && _library.HasSelection:
                 _library.ClearSelection();
                 return true;
             // Delete deletes a selection of cards (asking first), wherever the focus is, as Esc ends it.
-            case InAppAction.DeleteSelection when plain && SidebarCard.Visibility == Visibility.Visible && _library.HasSelection:
+            case InAppAction.DeleteSelection when plain && SidebarPane.Visibility == Visibility.Visible && _library.HasSelection:
                 _library.DeleteSelection();
                 return true;
             // Else the open conversation, unless the focus is in a text field, anywhere in the library's cards (the list
             // deletes a focused card; a button on a card is not the open conversation) or in another list or its item.
-            case InAppAction.DeleteSelection when plain && route == RouteKind.Conversation && SidebarCard.Visibility == Visibility.Visible
+            case InAppAction.DeleteSelection when plain && route == RouteKind.Conversation && SidebarPane.Visibility == Visibility.Visible
                 && !_model.GlobalChatOpen && !InTextInput(focused) && !(focused is DependencyObject inCards && InLibrary(inCards))
                 && focused is not (Selector or SelectorItem):
                 return _library.DeleteOpen();
@@ -754,7 +754,7 @@ public sealed partial class MainWindow : Window
     {
         if (_closing || _model.IsCapturingHotKey || PopupOpen()) return false;
         if (_model.Route.Kind is not (RouteKind.List or RouteKind.Conversation or RouteKind.Recording)) return false;
-        if (_model.GlobalChatOpen || _model.SidebarHidden || SidebarCard.Visibility != Visibility.Visible) return false;
+        if (_model.GlobalChatOpen || _model.SidebarHidden || SidebarPane.Visibility != Visibility.Visible) return false;
         if (_library.HasSelection) return false;
         var focused = RootGrid.XamlRoot is { } root ? FocusManager.GetFocusedElement(root) : null;
         if (UsesArrows(focused)) return false;

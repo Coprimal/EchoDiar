@@ -252,11 +252,16 @@
 
                 <!--
                     As macOS: the note in place of playback once the audio is gone, Re-transcribe and Summarize, Copy, then
-                    the speaker chips at the trailing edge; on a row of their own under the buttons when the column is too
-                    narrow for both (macOS wrappedControlRows).
+                    the speaker chips at the trailing edge. One row, never wrapped (macOS controlRow): fewer chips when it
+                    is short ("+N" lists the others), then Re-transcribe and Summarize as icons with their title in the
+                    tooltip (FitControlRow).
                 -->
-                <views:WrapPairPanel x:Name="ControlRow">
-                    <Grid ColumnSpacing="8">
+                <Grid x:Name="ControlRow" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid x:Name="ControlButtons" ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
@@ -284,6 +289,7 @@
                                     Width="16"
                                     Height="16"
                                     IsActive="True" />
+                                <!-- Collapsed in the compact row: the status is then the panel's tooltip. -->
                                 <TextBlock
                                     x:Name="TranscribingText"
                                     VerticalAlignment="Center"
@@ -300,14 +306,27 @@
                                     <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE71A;" />
                                 </Button>
                             </StackPanel>
+                            <!-- Its title, or in the compact row a refresh icon (its chevron stays). -->
                             <DropDownButton
                                 x:Name="RetranscribeButton"
-                                Content="{local:T Text='Re-transcribe'}">
+                                AutomationProperties.Name="{local:T Text='Re-transcribe'}">
+                                <Grid>
+                                    <TextBlock x:Name="RetranscribeText" Text="{local:T Text='Re-transcribe'}" />
+                                    <FontIcon
+                                        x:Name="RetranscribeIcon"
+                                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                        FontSize="14"
+                                        Glyph="&#xE72C;"
+                                        Visibility="Collapsed" />
+                                </Grid>
                                 <DropDownButton.Flyout>
                                     <MenuFlyout x:Name="RetranscribeMenu" Placement="TopEdgeAlignedRight" />
                                 </DropDownButton.Flyout>
                             </DropDownButton>
-                            <!-- Opens the Summary tab, and starts a summary when there is none; a ring while it is written. -->
+                            <!--
+                                Opens the Summary tab, and starts a summary when there is none; a ring while it is written. In
+                                the compact row a document icon (or the ring alone), the title in the tooltip.
+                            -->
                             <Button x:Name="SummarizeButton" Visibility="Collapsed">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <ProgressRing
@@ -315,6 +334,13 @@
                                         Width="16"
                                         Height="16"
                                         IsActive="False"
+                                        Visibility="Collapsed" />
+                                    <FontIcon
+                                        x:Name="SummarizeIcon"
+                                        VerticalAlignment="Center"
+                                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                        FontSize="14"
+                                        Glyph="&#xE8A5;"
                                         Visibility="Collapsed" />
                                     <TextBlock x:Name="SummarizeText" VerticalAlignment="Center" />
                                 </StackPanel>
@@ -356,6 +382,7 @@
                     <!-- As many chips as fit, then "+N" (ChipRowPanel): a narrow row never cuts a chip off. -->
                     <views:ChipRowPanel
                         x:Name="ChipsPanel"
+                        Grid.Column="1"
                         HorizontalAlignment="Right"
                         Spacing="6">
                         <!-- The rename field of a chip: Enter saves, Esc or a click elsewhere cancels. -->
@@ -371,7 +398,7 @@
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
                     </views:ChipRowPanel>
-                </views:WrapPairPanel>
+                </Grid>
             </StackPanel>
         </Border>
 

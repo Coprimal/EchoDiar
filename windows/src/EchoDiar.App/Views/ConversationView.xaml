@@ -12,11 +12,22 @@
     xmlns:local="using:EchoDiar.App"
     xmlns:views="using:EchoDiar.App.Views">
 
+    <!--
+        The title and details are above the transcript column only: the AI panel spans both rows, so its header (on the
+        window, above its card) lines up with the sidebar's header, as on macOS. The two columns keep their minimums;
+        the gap writes their widths (not saved). The transcript's is the wider. Neither its control row nor the panel's
+        header wraps: narrower, their buttons and menus show their icons only.
+    -->
     <Grid Margin="0,8,12,12" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="300" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="*" MinWidth="280" />
+        </Grid.ColumnDefinitions>
 
         <StackPanel Padding="4,0" Spacing="2">
             <Grid>
@@ -42,67 +53,56 @@
                 TextWrapping="NoWrap" />
         </StackPanel>
 
+        <views:TranscriptView x:Name="TranscriptPane" Grid.Row="1" Visibility="Collapsed" />
+
         <!--
-            The two columns keep their minimums; the gap writes their widths (not saved). The transcript's is the wider:
-            its first row of buttons (Re-transcribe, Summarize, Copy) cannot wrap, while the panel's header can.
+            The transcript until its files are read (macOS DetailLoadingPane): the card it shows in, from the click's
+            frame; the ring fades in only once the reading takes 150 ms, so a fast load does not flash it.
         -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="300" />
-                <ColumnDefinition Width="10" />
-                <ColumnDefinition Width="*" MinWidth="280" />
-            </Grid.ColumnDefinitions>
+        <Border
+            x:Name="LoadingPane"
+            Grid.Row="1"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource OverlayCornerRadius}">
+            <ProgressRing
+                x:Name="LoadingRing"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsActive="False"
+                Opacity="0" />
+        </Border>
 
-            <views:TranscriptView x:Name="TranscriptPane" Visibility="Collapsed" />
-
-            <!--
-                The transcript until its files are read (macOS DetailLoadingPane): the card it shows in, from the click's
-                frame; the ring fades in only once the reading takes 150 ms, so a fast load does not flash it.
-            -->
-            <Border
-                x:Name="LoadingPane"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource OverlayCornerRadius}">
-                <ProgressRing
-                    x:Name="LoadingRing"
+        <!--
+            The 10 px gap with its grip, two short lines in the middle; the secondary text brush, faded at rest to
+            the strong stroke colour, full on hover, drag and keyboard focus.
+        -->
+        <views:PaneSplitter Grid.RowSpan="2" Grid.Column="1" AutomationProperties.Name="{local:T Text='Resize'}">
+            <!-- At rest from the start (PaneSplitter's RestOpacity), so a new conversation does not fade it. -->
+            <Grid Background="Transparent" Opacity="0.7">
+                <StackPanel
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    IsActive="False"
-                    Opacity="0" />
-            </Border>
+                    Orientation="Horizontal"
+                    Spacing="3">
+                    <Rectangle
+                        Width="2"
+                        Height="18"
+                        Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                        RadiusX="1"
+                        RadiusY="1" />
+                    <Rectangle
+                        Width="2"
+                        Height="18"
+                        Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                        RadiusX="1"
+                        RadiusY="1" />
+                </StackPanel>
+            </Grid>
+        </views:PaneSplitter>
 
-            <!--
-                The 10 px gap with its grip, two short lines in the middle; the secondary text brush, faded at rest to
-                the strong stroke colour, full on hover, drag and keyboard focus.
-            -->
-            <views:PaneSplitter Grid.Column="1" AutomationProperties.Name="{local:T Text='Resize'}">
-                <!-- At rest from the start (PaneSplitter's RestOpacity), so a new conversation does not fade it. -->
-                <Grid Background="Transparent" Opacity="0.7">
-                    <StackPanel
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Orientation="Horizontal"
-                        Spacing="3">
-                        <Rectangle
-                            Width="2"
-                            Height="18"
-                            Fill="{ThemeResource TextFillColorSecondaryBrush}"
-                            RadiusX="1"
-                            RadiusY="1" />
-                        <Rectangle
-                            Width="2"
-                            Height="18"
-                            Fill="{ThemeResource TextFillColorSecondaryBrush}"
-                            RadiusX="1"
-                            RadiusY="1" />
-                    </StackPanel>
-                </Grid>
-            </views:PaneSplitter>
-
-            <!-- Its header from the click's frame, its own loading ring until its files are read. -->
-            <views:AIPanelView x:Name="AIPanel" Grid.Column="2" />
-        </Grid>
+        <!-- Its header from the click's frame, its own loading ring until its files are read. -->
+        <views:AIPanelView x:Name="AIPanel" Grid.RowSpan="2" Grid.Column="2" />
     </Grid>
 </UserControl>

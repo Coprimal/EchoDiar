@@ -101,6 +101,11 @@ public sealed partial class TranscriptView : UserControl
     private int _chipsShown;
 
     private string? _retranscribeTip;
+    private string? _transcribingTip;
+    private string? _summarizeTip;
+
+    /// <summary>What <see cref="FitControlRow"/> last fitted: the width, the chips and the buttons' state.</summary>
+    private object? _rowFitted;
     private string? _stepTip;
     private string? _failureTip;
     private string? _retryTip;
@@ -115,6 +120,7 @@ public sealed partial class TranscriptView : UserControl
     {
         InitializeComponent();
         ChipsPanel.ShownChanged += OnChipsShown;
+        ControlRow.SizeChanged += (_, _) => FitControlRow();
         FollowUserScrolling();
         SegmentText.PreviewKeyDown += OnTextPreviewKeyDown;
         // Also when the text already handled it: RichTextBlock's own menu (Copy, Select All, removed in the XAML) may
@@ -224,6 +230,7 @@ public sealed partial class TranscriptView : UserControl
             case nameof(TranscriptViewModel.Speakers):
             case nameof(TranscriptViewModel.CanRename):
                 UpdateChips();
+                FitControlRow();
                 break;
             default:
                 Update();
@@ -844,6 +851,8 @@ public sealed partial class TranscriptView : UserControl
         var stopping = _model.IsStopping(_transcript.ConversationId);
         TranscribingPanel.Visibility = Shown(transcribing);
         TranscribingText.Text = Loc.T(stopping ? "Stopping…" : "Transcribing…");
+        // Also its only text in the compact row (macOS help(status)).
+        SetTip(TranscribingPanel, TranscribingText.Text, ref _transcribingTip);
         StopTranscriptionButton.Visibility = Shown(stopping || _model.CanStopTranscription(_transcript.ConversationId));
         StopTranscriptionButton.IsEnabled = !stopping;
         RetranscribeButton.Visibility = Shown(!transcribing);
@@ -856,7 +865,8 @@ public sealed partial class TranscriptView : UserControl
 
     /// <summary>
     /// With lines only (macOS <c>summaryButton</c>): "Summary" once there is one, else "Summarize"; disabled with a
-    /// ring and "Summarizing…" while this conversation's summary is written.
+    /// ring and "Summarizing…" while this conversation's summary is written. The title is the tooltip too, the only
+    /// text in the compact row.
     /// </summary>
     private void UpdateSummarize()
     {
@@ -869,6 +879,46 @@ public sealed partial class TranscriptView : UserControl
         SummarizingRing.IsActive = summarizing;
         SummarizeText.Text = text;
         AutomationProperties.SetName(SummarizeButton, text);
+        SetTip(SummarizeButton, text, ref _summarizeTip);
+        FitControlRow();
+    }
+
+    /// <summary>
+    /// The control row on one row, never wrapped (macOS <c>controlRow(chips:compact:)</c>): Re-transcribe and Summarize
+    /// with their titles while they fit beside the narrowest chips ("+N" alone, <see cref="ChipRowPanel"/> fits the
+    /// chips to the rest), else as their icons (Re-transcribe's refresh with its chevron, Summarize's document, the
+    /// rings alone while a job runs), their titles in the tooltips. Decided from the natural widths, outside the layout
+    /// pass (the row's SizeChanged, a button or the chips that changed), so a title shown again to be measured never
+    /// makes the layout loop.
+    /// </summary>
+    private void FitControlRow()
+    {
+        var width = ControlRow.ActualWidth;
+        if (width <= 0) return;
+        var key = (width, _chipSpeakers, ChipsPanel.Children.Count, TranscribingPanel.Visibility, TranscribingText.Text,
+            RetranscribeButton.Visibility, (SummarizeButton.Visibility, SummarizeText.Text, SummarizingRing.Visibility,
+            StopTranscriptionButton.Visibility, AudioRemovedNote.Visibility));
+        if (key.Equals(_rowFitted)) return;
+        _rowFitted = key;
+        var natural = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        ShowCompactActions(false);
+        ControlButtons.Measure(natural);
+        ChipsPanel.Measure(natural);
+        // Half a pixel of slack: layout rounding may give a little less than the measured width.
+        var fits = ControlButtons.DesiredSize.Width + ControlRow.ColumnSpacing + ChipsPanel.MinimumWidth <= width + 0.5;
+        if (!fits) ShowCompactActions(true);
+        // Measured at their natural width above: the next layout pass measures them with the row's width again.
+        ControlRow.InvalidateMeasure();
+    }
+
+    /// <summary>Re-transcribe, "Transcribing…" and Summarize with their titles, or as their icons only.</summary>
+    private void ShowCompactActions(bool compact)
+    {
+        RetranscribeText.Visibility = Shown(!compact);
+        RetranscribeIcon.Visibility = Shown(compact);
+        TranscribingText.Visibility = Shown(!compact);
+        SummarizeText.Visibility = Shown(!compact);
+        SummarizeIcon.Visibility = Shown(compact && SummarizingRing.Visibility != Visibility.Visible);
     }
 
     // Menus
@@ -1020,8 +1070,9 @@ public sealed partial class TranscriptView : UserControl
             button.Click += (_, _) => OpenRename(chip, button);
             ChipsPanel.Children.Add(button);
         }
-        // Always the last child: the panel arranges it only while some speakers have no chip on screen.
-        var more = new Button { IsEnabled = enabled };
+        // Always the last child: the panel arranges it only while some speakers have no chip on screen. Its count until
+        // the panel tells how many chips show (OnChipsShown), so it is measured with its text from the first.
+        var more = new Button { Content = $"+{Math.Max(1, speakers.Count - MaxSpeakerChips)}", IsEnabled = enabled };
         AutomationProperties.SetName(more, Loc.T("Show the other speakers"));
         ToolTipService.SetToolTip(more, Loc.T("Show the other speakers"));
         more.Click += (_, _) => OpenMoreSpeakers(speakers.Skip(_chipsShown).ToList(), more);

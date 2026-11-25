@@ -16,8 +16,8 @@ using VirtualKey = Windows.System.VirtualKey;
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The open conversation's AI panel beside its transcript, with its Summary | Chat tabs in the header (macOS
-/// AIPanelView.swift, with its AIModelMenu, AILanguageMenu, AISetupHints and WebLinkConfirmation); the tab is
+/// The open conversation's AI panel beside its transcript, with its Summary | Chat tabs in the header above its card
+/// (macOS AIPanelView.swift, with its AIModelMenu, AILanguageMenu, AISetupHints and WebLinkConfirmation); the tab is
 /// <see cref="AppViewModel.DetailTab"/>. The state is <see cref="AIPanelViewModel"/>; the jobs run in
 /// <see cref="AppViewModel"/>, one per conversation, so one goes on when the page changes and the conversation's other
 /// tab shows it as busy, with Stop. Answers are Markdown rendered by <see cref="MarkdownView"/> (at most every 120 ms
@@ -102,7 +102,7 @@ public sealed partial class AIPanelView : UserControl
 
         ToolTipService.SetToolTip(LanguageButton,
             Loc.T("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)"));
-        HeaderPanel.Shrinking = ModelButton;
+        HeaderRow.SizeChanged += (_, _) => FitHeader();
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
         VersionMenu.Opening += (_, _) => BuildVersionMenu();
         ModelMenu.Opening += (_, _) => BuildModelMenu();
@@ -114,7 +114,6 @@ public sealed partial class AIPanelView : UserControl
         SummarizeButton.Click += (_, _) => _panel?.Summarize();
         SendButton.Click += (_, _) => Ask();
         SummaryCopyButton.Click += (_, _) => CopyPrompt();
-        ChatCopyButton.Click += (_, _) => CopyPrompt();
         FreshChatButton.Click += (_, _) => _panel?.StartFreshChat();
         HistoryButton.Click += (_, _) => ShowHistory(HistoryButton.IsChecked == true);
         CloseHistoryButton.Click += (_, _) => ShowHistory(false);
@@ -224,6 +223,7 @@ public sealed partial class AIPanelView : UserControl
         FreshChatButton.Visibility = Shown(chat);
         HistoryButton.Visibility = Shown(chat);
         if (!chat) ShowHistory(false);
+        FitHeader();
     }
 
     /// <summary>A tab picked in the header; only a pick that differs from the model's tab is written.</summary>
@@ -701,6 +701,7 @@ public sealed partial class AIPanelView : UserControl
         var language = _model.Settings.SummaryLanguage;
         LanguageText.Text = LanguageOptions.ShortCode(language);
         DataNotesButton.Visibility = Shown(DataNotes().Count > 0);
+        FitHeader();
 
         SetupHints.Visibility = Shown(current is null);
         var windowsAI = AIMenus.WindowsAIHint(providers);
@@ -723,7 +724,51 @@ public sealed partial class AIPanelView : UserControl
         }
     }
 
-    /// <summary>Summarize, Re-summarize or Stop; Send or Stop; Copy as prompt, a fresh chat; each enabled when it can run.</summary>
+    /// <summary>What <see cref="FitHeader"/> last fitted: the width, the labels and the buttons shown.</summary>
+    private (double Width, string Model, string Language, DetailTab Tab, Visibility Notes)? _headerFitted;
+
+    /// <summary>
+    /// The header on one row, never wrapped (macOS <c>headerRow(modelLabel:languageLabel:)</c>): with both names when
+    /// everything fits, else the language as its globe only, then the model as its chip only too, the names in their
+    /// tooltips. Decided from the natural widths, outside the layout pass (the header's SizeChanged, a name or a button
+    /// that changed), so a name shown again to be measured never makes the layout loop. Too narrow even then, the
+    /// menus are clipped at the trailing edge.
+    /// </summary>
+    private void FitHeader()
+    {
+        var width = HeaderRow.ActualWidth;
+        if (width <= 0) return;
+        var key = (width, ModelText.Text, LanguageText.Text, _tab, DataNotesButton.Visibility);
+        if (_headerFitted == key) return;
+        _headerFitted = key;
+        var natural = new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity);
+        PanelTabsTrack.Measure(natural);
+        var step = 0;
+        for (; step < 2; step++)
+        {
+            ShowHeaderLabels(model: true, language: step == 0);
+            HeaderMenus.Measure(natural);
+            // Half a pixel of slack: layout rounding may give a little less than the measured width.
+            if (PanelTabsTrack.DesiredSize.Width + HeaderRow.ColumnSpacing + HeaderMenus.DesiredSize.Width <= width + 0.5) break;
+        }
+        if (step == 2) ShowHeaderLabels(model: false, language: false);
+        // Measured at their natural width above: the next layout pass measures them with the header's width again.
+        HeaderRow.InvalidateMeasure();
+    }
+
+    /// <summary>The model's and the language's names beside their icons, or only in their tooltips.</summary>
+    private void ShowHeaderLabels(bool model, bool language)
+    {
+        ModelText.Visibility = Shown(model);
+        LanguageText.Visibility = Shown(language);
+        var help = Loc.T("Model for summaries and questions");
+        ToolTipService.SetToolTip(ModelButton, model ? help : $"{help}: {ModelText.Text}");
+        // The globe alone has no text to be read out (macOS accessibilityLabel("Language")).
+        if (language) LanguageButton.ClearValue(AutomationProperties.NameProperty);
+        else AutomationProperties.SetName(LanguageButton, $"{Loc.T("Language")}: {LanguageText.Text}");
+    }
+
+    /// <summary>Summarize, Re-summarize or Stop; Send or Stop; Copy as prompt (Summary), a fresh chat; each enabled when it can run.</summary>
     private void UpdateActions()
     {
         if (_panel is null || _model is null) return;
@@ -741,9 +786,7 @@ public sealed partial class AIPanelView : UserControl
         SendButton.IsEnabled = _panel.CanRun(AIPurpose.Chat) && QuestionBox.Text.Trim().Length > 0;
         FreshChatButton.IsEnabled = _panel.Chat.Count > 0 && !questionRunning && !_model.ChatChanging;
 
-        var hasTranscript = _panel.Transcript is not null;
-        SummaryCopyButton.IsEnabled = hasTranscript;
-        ChatCopyButton.IsEnabled = hasTranscript;
+        SummaryCopyButton.IsEnabled = _panel.Transcript is not null;
     }
 
     /// <summary>
@@ -804,13 +847,13 @@ public sealed partial class AIPanelView : UserControl
     // Copy
 
     /// <summary>
-    /// Copy as prompt (macOS <c>copyPrompt</c>, Ctrl+Shift+C): the transcript as a summary prompt, or in Chat with the
-    /// typed question; kept out of the clipboard history and the cloud clipboard (macOS: transient, this Mac only). False
-    /// without a transcript.
+    /// Copy as prompt (macOS <c>copyPrompt</c>, Ctrl+Shift+C), on Summary only: the transcript as a summary prompt,
+    /// without a question; kept out of the clipboard history and the cloud clipboard (macOS: transient, this Mac only).
+    /// False on Chat or without a transcript.
     /// </summary>
     internal bool CopyPrompt()
     {
-        if (_panel?.CopyPrompt(_tab == DetailTab.Chat ? QuestionBox.Text : null) is not { } prompt) return false;
+        if (_tab == DetailTab.Chat || _panel?.CopyPrompt(null) is not { } prompt) return false;
         CopyText(prompt, Loc.T("Copied — paste into any chat"), transient: true);
         return true;
     }

@@ -49,92 +49,92 @@
                     </Grid.ColumnDefinitions>
 
                     <!--
-                        The library sidebar as one card (macOS libraryWell): its header over the cards or the library chat
-                        (ListHost). The header (macOS sidebarHeader, laid out like RecordingView's SidePanel): the
-                        Conversations | Chat tabs in a track of their own (GlobalChatOpen) and the search button;
-                        expanded (the button, Ctrl+F), the search box across the width and its close button in their
-                        place, at the tabs' height so the cards under it do not move.
+                        The library sidebar (macOS libraryPage): its header on the window, then one card (macOS
+                        libraryWell) with the cards or the library chat (ListHost). The header (macOS sidebarHeader), at
+                        the AI panel header's height: the Conversations | Global Chat tabs in a track (GlobalChatOpen) and
+                        the search button; expanded (the button, Ctrl+F), the search box across the width and its close
+                        button in their place, at the tabs' height so the card under it does not move.
                     -->
-                    <Border
-                        x:Name="SidebarCard"
-                        Margin="12,8,12,12"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource OverlayCornerRadius}">
-                        <Grid RowSpacing="8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
+                    <Grid x:Name="SidebarPane" Margin="12,8,12,12" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                            <Border x:Name="SidebarHeader" Margin="10,10,10,0">
-                                <Grid>
-                                    <Grid x:Name="SidebarTabsRow" ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <!-- A track of its own: the sidebar is a card too, so the tabs would blend into it. -->
-                                        <Border
-                                            Padding="2"
-                                            VerticalAlignment="Center"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="{StaticResource OverlayCornerRadius}">
-                                            <SelectorBar x:Name="SidebarTabsBar" Padding="0">
-                                                <SelectorBarItem x:Name="ConversationsTab" Text="{local:T Text='Conversations'}" />
-                                                <SelectorBarItem x:Name="ChatTab" Text="{local:T Text='Chat'}" />
-                                            </SelectorBar>
-                                        </Border>
-                                        <!-- From the Chat tab it shows Conversations first: the search filters the cards. -->
-                                        <Button
-                                            x:Name="SearchButton"
-                                            Grid.Column="2"
-                                            VerticalAlignment="Center"
-                                            AutomationProperties.Name="{local:T Text='Search conversations'}"
-                                            ToolTipService.ToolTip="{local:T Text='Search conversations'}">
-                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
-                                        </Button>
-                                    </Grid>
-
-                                    <!-- Filters the cards as typed (macOS sidebarSearchField); Esc clears it, then collapses it. -->
-                                    <Grid
-                                        x:Name="SearchRow"
+                        <Border x:Name="SidebarHeader">
+                            <Grid>
+                                <Grid x:Name="SidebarTabsRow" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <!-- On the window, as the AI panel's tabs: a track of the cards' fill. -->
+                                    <Border
+                                        Padding="2"
                                         VerticalAlignment="Center"
-                                        ColumnSpacing="8"
-                                        Visibility="Collapsed">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <AutoSuggestBox
-                                            x:Name="SearchBox"
-                                            AutomationProperties.Name="{local:T Text='Search conversations'}"
-                                            PlaceholderText="{local:T Text='Search conversations'}"
-                                            QueryIcon="Find" />
-                                        <Button
-                                            x:Name="CloseSearchButton"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            AutomationProperties.Name="{local:T Text='Close search'}"
-                                            ToolTipService.ToolTip="{local:T Text='Close search'}">
-                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
-                                        </Button>
-                                    </Grid>
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource OverlayCornerRadius}">
+                                        <SelectorBar x:Name="SidebarTabsBar" Padding="0">
+                                            <SelectorBarItem x:Name="ConversationsTab" Text="{local:T Text='Conversations'}" />
+                                            <SelectorBarItem x:Name="ChatTab" Text="{local:T Text='Global Chat'}" />
+                                        </SelectorBar>
+                                    </Border>
+                                    <!-- From the Chat tab it shows Conversations first: the search filters the cards. -->
+                                    <Button
+                                        x:Name="SearchButton"
+                                        Grid.Column="2"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="{local:T Text='Search conversations'}"
+                                        ToolTipService.ToolTip="{local:T Text='Search conversations'}">
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
+                                    </Button>
                                 </Grid>
-                            </Border>
 
+                                <!-- Filters the cards as typed (macOS sidebarSearchField); Esc clears it, then collapses it. -->
+                                <Grid
+                                    x:Name="SearchRow"
+                                    VerticalAlignment="Center"
+                                    ColumnSpacing="8"
+                                    Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <AutoSuggestBox
+                                        x:Name="SearchBox"
+                                        AutomationProperties.Name="{local:T Text='Search conversations'}"
+                                        PlaceholderText="{local:T Text='Search conversations'}"
+                                        QueryIcon="Find" />
+                                    <Button
+                                        x:Name="CloseSearchButton"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="{local:T Text='Close search'}"
+                                        ToolTipService.ToolTip="{local:T Text='Close search'}">
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Grid.Row="1"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource OverlayCornerRadius}">
+                            <!-- 8 px under the card's top edge, as under the header when it was inside the card. -->
                             <ContentControl
                                 x:Name="ListHost"
-                                Grid.Row="1"
+                                Margin="0,8,0,0"
                                 HorizontalContentAlignment="Stretch"
                                 VerticalContentAlignment="Stretch"
                                 IsTabStop="False" />
-                        </Grid>
-                    </Border>
+                        </Border>
+                    </Grid>
 
                     <!-- The recording page, one conversation, the welcome pane or Settings. -->
                     <ContentControl

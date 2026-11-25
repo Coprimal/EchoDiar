@@ -354,8 +354,9 @@ public sealed class AIPanelViewModel
     }
 
     /// <summary>
-    /// The transcript as a prompt for any chat app (macOS <c>copyPrompt</c>): a summary prompt, or with
-    /// <paramref name="question"/> (Chat) a question prompt, in the summary language setting; null without a transcript.
+    /// The transcript as a prompt for any chat app (macOS <c>copyPrompt</c>): a summary prompt (the panel's Summary passes
+    /// no question), or with <paramref name="question"/> a question prompt, in the summary language setting; null
+    /// without a transcript.
     /// </summary>
     public string? CopyPrompt(string? question) =>
         Conversation is { } conversation && Transcript is { } transcript

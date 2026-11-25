@@ -109,7 +109,7 @@ public sealed partial class ConversationView : UserControl
     /// <summary>Space on the conversation (macOS <c>togglePlayback</c>): what the playback bar's play button does.</summary>
     internal void TogglePlayback() => _playback.TogglePlay();
 
-    /// <summary>Ctrl+Shift+C: the AI panel's Copy as prompt for its tab; false when it copied nothing.</summary>
+    /// <summary>Ctrl+Shift+C: the AI panel's Copy as prompt on Summary; false when it copied nothing (or on Chat).</summary>
     internal bool CopyPrompt() => AIPanel.CopyPrompt();
 
     /// <summary>Esc on Chat closes the History panel first; false when it was not open.</summary>

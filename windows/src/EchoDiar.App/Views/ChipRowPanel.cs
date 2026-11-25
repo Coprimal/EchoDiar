@@ -23,6 +23,9 @@ public sealed partial class ChipRowPanel : Panel
     /// <summary>The chips shown changed; the handler updates "+N" (the last child) and its list.</summary>
     public event Action<int>? ShownChanged;
 
+    /// <summary>The narrowest the row gets, from the last measure: "+N" alone, or nothing without chips.</summary>
+    public double MinimumWidth => Children.Count == 0 ? 0 : Children[Children.Count - 1].DesiredSize.Width;
+
     /// <summary>Whether "+N" shows with <paramref name="shown"/> chips on screen.</summary>
     public bool MoreShows(int shown) => shown < Children.Count - 1 || Extra > 0;
 
@@ -43,8 +46,8 @@ public sealed partial class ChipRowPanel : Panel
         var more = Children[count - 1];
         var height = 0.0;
         foreach (var child in Children) height = Math.Max(height, child.DesiredSize.Height);
-        // The natural size (WrapPairPanel asks it first): every chip, and nothing reported, or "+N" would flip between
-        // the natural and the fitted count on every layout pass.
+        // The natural size (TranscriptView.FitControlRow asks it): every chip, and nothing reported, or "+N" would flip
+        // between the natural and the fitted count on every layout pass.
         if (double.IsInfinity(availableSize.Width)) return new Size(RowWidth(chips, more), height);
         // Fewer chips until the row fits; "+N" shows whenever a chip is left out, or for the speakers past three.
         var shown = chips;
