@@ -21,10 +21,10 @@ using VirtualKey = Windows.System.VirtualKey;
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The Transcript tab of the conversation page (macOS TranscriptView.swift) for a <see cref="TranscriptViewModel"/> and
-/// the page's <see cref="PlaybackController"/>: the segments as one selectable text (macOS TranscriptTextView; a click
-/// on a start or a name plays from the segment; the one under the play head has a fill, and the text follows it while
-/// playing until the user scrolls), the version menu, the transcription's state, the speaker notes, playback, the
+/// The transcript of the conversation page, left of its AI panel (macOS TranscriptView.swift), for a
+/// <see cref="TranscriptViewModel"/> and the page's <see cref="PlaybackController"/>: the segments as one selectable
+/// text (macOS TranscriptTextView; a click on a start or a name plays from the segment; the one under the play head has
+/// a fill, and the text follows it while playing until the user scrolls), the version menu, the transcription's state, the speaker notes, playback, the
 /// speaker chips with their rename field, Copy, Re-transcribe and Summarize.
 /// </summary>
 public sealed partial class TranscriptView : UserControl

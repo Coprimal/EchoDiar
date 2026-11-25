@@ -18,8 +18,8 @@ namespace EchoDiar.App.ViewModels;
 
 public enum RouteKind { List, Conversation, Recording, Settings, Calendar }
 
-/// <summary>The conversation page's tab (macOS <c>AppModel.DetailTab</c>).</summary>
-public enum DetailTab { Transcript, Summary, Chat }
+/// <summary>The tab of the conversation's AI panel, beside its transcript (macOS <c>AppModel.DetailTab</c>).</summary>
+public enum DetailTab { Summary, Chat }
 
 /// <summary>The recording page's right panel tab (macOS <c>AppModel.RecordingTab</c>): Catch-up | Chat.</summary>
 public enum RecordingTab { CatchUp, Chat }
@@ -92,7 +92,8 @@ public sealed partial class AppViewModel : ObservableObject
     /// <summary>The library page the Calendar page was opened from.</summary>
     private Route _calendarReturnRoute = Route.List;
 
-    private DetailTab _detailTab = DetailTab.Transcript;
+    private DetailTab _detailTab = DetailTab.Summary;
+    private int _chatFocusRequests;
     private AppSettings _settings = new();
     private IReadOnlyList<Conversation> _conversations = [];
     private RecordingEngine.Snapshot _recordingSnapshot = new();
@@ -149,11 +150,22 @@ public sealed partial class AppViewModel : ObservableObject
         }
     }
 
-    /// <summary>The conversation page's tab: kept while another conversation opens from the sidebar.</summary>
+    /// <summary>The AI panel's tab: kept while another conversation opens from the sidebar.</summary>
     public DetailTab DetailTab
     {
         get => _detailTab;
         set => SetProperty(ref _detailTab, value);
+    }
+
+    /// <summary>
+    /// Bumped by an explicit request for the open conversation's Chat (Ctrl+I), so its question takes the focus even
+    /// when Chat is already the tab; a conversation merely opened on Chat leaves the focus to the list (macOS
+    /// <c>chatFocusRequests</c>).
+    /// </summary>
+    public int ChatFocusRequests
+    {
+        get => _chatFocusRequests;
+        private set => SetProperty(ref _chatFocusRequests, value);
     }
 
     /// <summary>The conversation whose sidebar title is being renamed: opening Chat then leaves the cursor in its field.</summary>
@@ -500,13 +512,20 @@ public sealed partial class AppViewModel : ObservableObject
     // Navigation
 
     /// <summary>
-    /// Shows the conversation: on its Transcript tab from the library list, on the shown tab from the sidebar (macOS
-    /// ConversationCard <c>open</c>).
+    /// Shows the conversation: with Summary in its AI panel from the library list, on the shown tab from the sidebar
+    /// (macOS ConversationCard <c>open</c>).
     /// </summary>
     public void Open(Guid id)
     {
-        if (Route.Kind == RouteKind.List) DetailTab = DetailTab.Transcript;
+        if (Route.Kind == RouteKind.List) DetailTab = DetailTab.Summary;
         Route = Route.ForConversation(id);
+    }
+
+    /// <summary>Ctrl+I: the open conversation's Chat tab, with the cursor in its question (macOS <c>requestChat</c>).</summary>
+    public void RequestChat()
+    {
+        DetailTab = DetailTab.Chat;
+        ChatFocusRequests++;
     }
 
     public void ShowRecording() => Route = Route.Recording;
@@ -920,7 +939,8 @@ public sealed partial class AppViewModel : ObservableObject
     /// </summary>
     private async Task FinishRecordingAsync(string folder, RecordingTranscriber? transcriber)
     {
-        // The recording page's tab at Stop, before a new recording can reset it.
+        // The recording page's tab at Stop, before a new recording can reset it: Catch-up opens Summary, whose
+        // Catch-ups bar has the recording's catch-ups; a chat going on during the recording carries on in Chat.
         var openTab = RecordingTab == RecordingTab.Chat ? DetailTab.Chat : DetailTab.Summary;
         var prior = transcriber is null ? null : FinishRecordingTranscriberAsync(transcriber);
         if (_closing) return;
@@ -938,7 +958,7 @@ public sealed partial class AppViewModel : ObservableObject
                 }
                 else
                 {
-                    DetailTab = DetailTab.Transcript;
+                    DetailTab = DetailTab.Summary;
                     Route = Route.List;
                 }
             }

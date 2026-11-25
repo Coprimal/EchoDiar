@@ -3226,6 +3226,10 @@
     <value>Reset</value>
     <comment>Reset</comment>
   </data>
+  <data name="Resize" xml:space="preserve">
+    <value>Resize</value>
+    <comment>Resize</comment>
+  </data>
   <data name="RestartEchoDiarToApply" xml:space="preserve">
     <value>Restart EchoDiar to apply.</value>
     <comment>Restart EchoDiar to apply.</comment>

@@ -22,7 +22,7 @@ namespace EchoDiar.App.Views;
 /// Reveal and Delete, always shown and enabled on a conversation; Settings (opens the Settings page, or goes back from
 /// it), Calendar (the same for the Calendar page), Ask across conversations (opens or closes the library chat); Update
 /// while an App Installer update is available and nothing runs that installing would cut off (macOS hides it while
-/// recording). At the right edge: a conversation's tabs (a SelectorBar) or a Settings section's inner tabs. It also
+/// recording). At the right edge: a Settings section's inner tabs (a conversation's tabs are in its AI panel). It also
 /// hosts the window's dialogs (it lives as long as the window): the delete confirmations (of this conversation, and of
 /// the library's cards and selection), "Recording problem", the cloud confirmations (audio for transcription,
 /// transcripts for the library index), the update's confirmation and answers, and the Settings pages' confirmations
@@ -51,9 +51,6 @@ public sealed partial class TitleBarToolbar : UserControl
     /// <summary>The inner tabs or their selection are being set from the model: not a pick.</summary>
     private bool _syncingSettingsTabs;
 
-    /// <summary>The tabs or their selection are being set from the model: not a pick.</summary>
-    private bool _syncingTabs;
-
     /// <summary>Record's tooltip, "Record" and the target; set again only when the target changes.</summary>
     private string? _recordTip;
 
@@ -80,8 +77,6 @@ public sealed partial class TitleBarToolbar : UserControl
         DeleteMenu.Opening += (_, _) => UpdateDeleteMenu();
         DeleteAudioItem.Click += async (_, _) => await DeleteShownAsync(audioOnly: true);
         DeleteConversationItem.Click += async (_, _) => await DeleteShownAsync(audioOnly: false);
-        TabsBar.SelectedItem = TranscriptTab;
-        TabsBar.SelectionChanged += (_, _) => OnTabSelected();
         SettingsTabsBar.SelectionChanged += (_, _) => OnSettingsTabSelected();
         // A start that failed before the window was shown still gets its dialog.
         Loaded += (_, _) => ShowNextDialog();
@@ -159,9 +154,6 @@ public sealed partial class TitleBarToolbar : UserControl
             case nameof(AppViewModel.PendingEmbeddingConsent):
                 ShowNextDialog();
                 break;
-            case nameof(AppViewModel.DetailTab):
-                UpdateTabs();
-                break;
             case nameof(AppViewModel.AIJobs):
                 UpdateUpdateButton();
                 break;
@@ -214,7 +206,6 @@ public sealed partial class TitleBarToolbar : UserControl
         var onConversation = conversation is not null;
         RevealButton.IsEnabled = onConversation;
         DeleteButton.IsEnabled = conversation is not null && _model.CanDelete(conversation);
-        UpdateTabs();
         TitleText.Text = conversation?.Title ?? _model.Route.Kind switch
         {
             RouteKind.Settings => Loc.T("Settings"),
@@ -242,44 +233,6 @@ public sealed partial class TitleBarToolbar : UserControl
         var label = Loc.T(_model.SidebarHidden ? "Show Sidebar" : "Hide Sidebar");
         AutomationProperties.SetName(SidebarButton, label);
         ToolTipService.SetToolTip(SidebarButton, label);
-    }
-
-    // Tabs
-
-    /// <summary>
-    /// Shows the conversation's tabs with the model's tab selected; each set only when it changes (the recording's
-    /// snapshot calls this at 15 Hz). The recording page has its own Catch-up | Chat in its right panel.
-    /// </summary>
-    private void UpdateTabs()
-    {
-        if (_model is null) return;
-        var visibility = Shown(ShownConversation() is not null);
-        if (TabsBar.Visibility != visibility) TabsBar.Visibility = visibility;
-        var item = _model.DetailTab switch
-        {
-            DetailTab.Summary => SummaryTab,
-            DetailTab.Chat => ChatTab,
-            _ => TranscriptTab,
-        };
-        _syncingTabs = true;
-        try
-        {
-            if (TabsBar.SelectedItem != item) TabsBar.SelectedItem = item;
-        }
-        finally
-        {
-            _syncingTabs = false;
-        }
-    }
-
-    /// <summary>A picked tab shows on the conversation page.</summary>
-    private void OnTabSelected()
-    {
-        if (_syncingTabs || _model is null || TabsBar.Visibility != Visibility.Visible
-            || TabsBar.SelectedItem is not { } item) return;
-        _model.DetailTab = item == SummaryTab ? DetailTab.Summary
-            : item == ChatTab ? DetailTab.Chat
-            : DetailTab.Transcript;
     }
 
     // Update

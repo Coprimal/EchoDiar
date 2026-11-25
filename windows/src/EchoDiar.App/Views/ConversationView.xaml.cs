@@ -14,8 +14,8 @@ namespace EchoDiar.App.Views;
 
 /// <summary>
 /// One conversation (macOS MainView.swift detail and toolbar title): the title, renamed in place, and the details; then
-/// the toolbar's tab. It owns the transcript's state and the player, which stay while Summary or Chat shows, so
-/// playback goes on there (macOS TranscriptView stays mounted across tabs).
+/// the transcript with playback on the left and the AI panel with its Summary | Chat tabs on the right (macOS
+/// TranscriptView), side by side, so playback goes on whichever tab shows. It owns the transcript's state and the player.
 /// </summary>
 public sealed partial class ConversationView : UserControl
 {
@@ -50,7 +50,7 @@ public sealed partial class ConversationView : UserControl
     /// <summary>Fades the loading pane's ring in after <see cref="SpinnerDelay"/>.</summary>
     private readonly DispatcherQueueTimer _spinnerTimer;
 
-    /// <summary>The loading pane shows; null before the first <see cref="UpdateTab"/>.</summary>
+    /// <summary>The transcript's loading pane shows; null before the first <see cref="UpdateTranscriptShown"/>.</summary>
     private bool? _loadingShown;
 
     public ConversationView(AppViewModel model, Guid id)
@@ -70,7 +70,6 @@ public sealed partial class ConversationView : UserControl
             LoadingRing.IsActive = true;
             LoadingRing.Opacity = 1;
         };
-        AIPanel.HasLoadedChanged += UpdateTab;
         TitleText.DoubleTapped += (_, e) =>
         {
             e.Handled = true;
@@ -87,7 +86,7 @@ public sealed partial class ConversationView : UserControl
             TranscriptPane.Attach(_model, _transcript, _playback);
             AIPanel.Attach(_model, _id, OpenCitation);
             Update();
-            UpdateTab();
+            UpdateTranscriptShown();
             OpenLibraryCitation();
         };
         Unloaded += (_, _) =>
@@ -107,11 +106,11 @@ public sealed partial class ConversationView : UserControl
         };
     }
 
-    /// <summary>Space on the Transcript tab (macOS <c>togglePlayback</c>): what the playback bar's play button does.</summary>
+    /// <summary>Space on the conversation (macOS <c>togglePlayback</c>): what the playback bar's play button does.</summary>
     internal void TogglePlayback() => _playback.TogglePlay();
 
-    /// <summary>Ctrl+Shift+C on Summary or Chat: the AI panel's Copy as prompt; false when it copied nothing.</summary>
-    internal bool CopyPrompt() => _model.DetailTab != DetailTab.Transcript && AIPanel.CopyPrompt();
+    /// <summary>Ctrl+Shift+C: the AI panel's Copy as prompt for its tab; false when it copied nothing.</summary>
+    internal bool CopyPrompt() => AIPanel.CopyPrompt();
 
     /// <summary>Esc on Chat closes the History panel first; false when it was not open.</summary>
     internal bool CloseHistory() => _model.DetailTab == DetailTab.Chat && AIPanel.CloseHistory();
@@ -128,9 +127,6 @@ public sealed partial class ConversationView : UserControl
             case nameof(AppViewModel.Settings):
                 _playback.SetChannels(_model.Settings.PlaybackChannels);
                 break;
-            case nameof(AppViewModel.DetailTab):
-                UpdateTab();
-                break;
             case nameof(AppViewModel.PendingTranscriptTime):
                 OpenLibraryCitation();
                 break;
@@ -144,13 +140,13 @@ public sealed partial class ConversationView : UserControl
     }
 
     /// <summary>
-    /// Another version shows: the same audio highlights its segments. The first read shows the tab. A citation waits for
-    /// the transcript.
+    /// Another version shows: the same audio highlights its segments. The first read shows the transcript. A citation
+    /// waits for the transcript.
     /// </summary>
     private void OnTranscriptChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(TranscriptViewModel.Lines)) LoadPlayback();
-        if (e.PropertyName == nameof(TranscriptViewModel.HasLoaded)) UpdateTab();
+        if (e.PropertyName == nameof(TranscriptViewModel.HasLoaded)) UpdateTranscriptShown();
         ShowPendingTime();
     }
 
@@ -184,15 +180,13 @@ public sealed partial class ConversationView : UserControl
     }
 
     /// <summary>
-    /// Transcript shows the transcript and playback; Summary and Chat the AI panel (playback goes on). Each once its
-    /// files are read, the loading pane until then (macOS c45b593).
+    /// The transcript and playback once its files are read, the loading pane in its column until then (macOS c45b593);
+    /// the AI panel beside it shows its own.
     /// </summary>
-    private void UpdateTab()
+    private void UpdateTranscriptShown()
     {
-        var transcript = _model.DetailTab == DetailTab.Transcript;
-        var loaded = transcript ? _transcript.HasLoaded : AIPanel.HasLoaded;
-        TranscriptPane.Visibility = transcript && loaded ? Visibility.Visible : Visibility.Collapsed;
-        AIPanel.Visibility = !transcript && loaded ? Visibility.Visible : Visibility.Collapsed;
+        var loaded = _transcript.HasLoaded;
+        TranscriptPane.Visibility = loaded ? Visibility.Visible : Visibility.Collapsed;
         ShowLoadingPane(!loaded);
     }
 
@@ -206,18 +200,17 @@ public sealed partial class ConversationView : UserControl
         LoadingRing.Opacity = 0;
         LoadingPane.Visibility = loading ? Visibility.Visible : Visibility.Collapsed;
         if (loading) _spinnerTimer.Start();
-        StartupTrace.Write($"conversation {_id} {_model.DetailTab}: {(loading ? "loading pane" : "content")} shown");
+        StartupTrace.Write($"conversation {_id} transcript: {(loading ? "loading pane" : "content")} shown");
     }
 
     /// <summary>
-    /// A <c>[mm:ss]</c> citation of an answer (macOS <c>openTranscript(conversationID:at:)</c>): the Transcript tab, at
-    /// that time once the transcript is read.
+    /// A <c>[mm:ss]</c> citation of an answer (macOS <c>openTranscript(conversationID:at:)</c>): the transcript beside the
+    /// panel at that time, once it is read; the panel's tab stays.
     /// </summary>
     private void OpenCitation(double seconds)
     {
         if (_model.IsClosing) return;
         _pendingTime = seconds;
-        _model.DetailTab = DetailTab.Transcript;
         ShowPendingTime();
     }
 

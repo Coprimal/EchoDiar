@@ -4,9 +4,9 @@
     the window's title bar (MainWindow.SetTitleBar): the logo, the page's or the conversation's title and, for a
     conversation, its date and duration; all of it drags the window, the caption buttons sit at its right. The toolbar
     row below, from the left: the sidebar button (library pages), Back, the record group, Reveal and Delete, Settings,
-    Calendar and Ask across conversations, Update; at the right edge the conversation's tabs (or a Settings section's
-    inner tabs). Icon buttons are 32 x 32 subtle buttons with 16 px Segoe Fluent Icons; 4 px between the buttons of a
-    group, 8 px between groups.
+    Calendar and Ask across conversations, Update; at the right edge a Settings section's inner tabs (a conversation's
+    Summary | Chat tabs are in its AI panel). Icon buttons are 32 x 32 subtle buttons with 16 px Segoe Fluent Icons;
+    4 px between the buttons of a group, 8 px between groups.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.TitleBarToolbar"
@@ -70,8 +70,8 @@
         </Grid>
 
         <!--
-            The toolbar: ordinary content, it does not drag the window. The spacer takes the free space, so the tabs keep
-            to the right edge. Margins space the columns, since a collapsed group's column would keep a ColumnSpacing.
+            The toolbar: ordinary content, it does not drag the window. The spacer takes the free space, so the Settings
+            tabs keep to the right edge. Margins space the columns, since a collapsed group's column would keep a ColumnSpacing.
         -->
         <Grid x:Name="ToolbarGrid" Grid.Row="1" Padding="8,0,8,0">
             <Grid.ColumnDefinitions>
@@ -278,21 +278,6 @@
                     </Grid>
                 </Button>
             </StackPanel>
-
-            <!--
-                The conversation page's tab (AppViewModel.DetailTab): Transcript, or Summary and Chat (the AI panel). Never
-                shown with the Settings tabs below, which take the same place.
-            -->
-            <SelectorBar
-                x:Name="TabsBar"
-                Grid.Column="3"
-                Padding="0"
-                VerticalAlignment="Center"
-                Visibility="Collapsed">
-                <SelectorBarItem x:Name="TranscriptTab" Text="{local:T Text='Transcript'}" />
-                <SelectorBarItem x:Name="SummaryTab" Text="{local:T Text='Summary'}" />
-                <SelectorBarItem x:Name="ChatTab" Text="{local:T Text='Chat'}" />
-            </SelectorBar>
 
             <!--
                 The shown Settings section's inner tabs (macOS settingsTabsItem), built per section; collapsed for a

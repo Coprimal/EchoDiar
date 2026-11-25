@@ -504,10 +504,10 @@ public sealed partial class MainWindow : Window
                 _model.ShowLibrary();
                 return true;
             case InAppAction.OpenChat when route == RouteKind.Conversation:
-                _model.DetailTab = DetailTab.Chat;
+                _model.RequestChat();
                 return true;
-            // Where the AI panel's Copy as prompt button is: Summary and Chat.
-            case InAppAction.CopyPrompt when route == RouteKind.Conversation && _model.DetailTab != DetailTab.Transcript
+            // The AI panel's Copy as prompt, on Summary and Chat: always beside the transcript.
+            case InAppAction.CopyPrompt when route == RouteKind.Conversation
                 && RouteHost.Content is ConversationView conversation:
                 return conversation.CopyPrompt();
             // On Settings, Ctrl+F focuses the page's own search box (macOS settingsSearchPresented), once the key is done.
@@ -555,8 +555,10 @@ public sealed partial class MainWindow : Window
             case InAppAction.Back when route != RouteKind.List || _model.GlobalChatOpen:
                 _model.GoBack();
                 return true;
-            case InAppAction.PlayPause when route == RouteKind.Conversation && _model.DetailTab == DetailTab.Transcript
-                && RouteHost.Content is ConversationView conversation && !TakesSpace(focused):
+            // The transcript and its player are always beside the AI panel; a text field (above) and a control reached with
+            // the keyboard (TakesSpace) keep their Space.
+            case InAppAction.PlayPause when route == RouteKind.Conversation && RouteHost.Content is ConversationView conversation
+                && !TakesSpace(focused):
                 conversation.TogglePlayback();
                 return true;
             default:

@@ -768,6 +768,7 @@ public static partial class Loc
         "Reserved by EchoDiar: %@",
         "Reserved by EchoDiar: none",
         "Reset",
+        "Resize",
         "Restart EchoDiar to apply.",
         "Resume",
         "Resume Recording",

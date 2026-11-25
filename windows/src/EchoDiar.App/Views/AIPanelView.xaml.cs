@@ -10,13 +10,15 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.UI.ViewManagement;
 using VirtualKey = Windows.System.VirtualKey;
 
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The Summary or Chat tab of the open conversation (macOS AIPanelView.swift, with its AIModelMenu, AILanguageMenu,
-/// AISetupHints and WebLinkConfirmation). The state is <see cref="AIPanelViewModel"/>; the jobs run in
+/// The open conversation's AI panel beside its transcript, with its Summary | Chat tabs in the header (macOS
+/// AIPanelView.swift, with its AIModelMenu, AILanguageMenu, AISetupHints and WebLinkConfirmation); the tab is
+/// <see cref="AppViewModel.DetailTab"/>. The state is <see cref="AIPanelViewModel"/>; the jobs run in
 /// <see cref="AppViewModel"/>, one per conversation, so one goes on when the page changes and the conversation's other
 /// tab shows it as busy, with Stop. Answers are Markdown rendered by <see cref="MarkdownView"/> (at most every 120 ms
 /// while streaming, as the model batches the text, and once more when saved); <c>[mm:ss]</c> citations call the seek
@@ -26,8 +28,16 @@ namespace EchoDiar.App.Views;
 /// </summary>
 public sealed partial class AIPanelView : UserControl
 {
+    /// <summary>How long the loading state shows without its ring: a ring shown for a frame or two reads as a flicker.</summary>
+    private static readonly TimeSpan SpinnerDelay = TimeSpan.FromMilliseconds(150);
+
+    private static readonly UISettings UISettings = new();
+
     private readonly DispatcherQueueTimer _toastTimer;
     private readonly DispatcherQueueTimer _focusTimer;
+
+    /// <summary>Fades the loading ring in after <see cref="SpinnerDelay"/>.</summary>
+    private readonly DispatcherQueueTimer _spinnerTimer;
 
     private AppViewModel? _model;
     private AIPanelViewModel? _panel;
@@ -43,10 +53,13 @@ public sealed partial class AIPanelView : UserControl
     /// <summary>The streamed answer at the end of the messages: its status row, or its text once the first arrives.</summary>
     private StackPanel? _streamSlot;
 
-    /// <summary><see cref="HasLoaded"/> as last announced by <see cref="HasLoadedChanged"/>.</summary>
+    /// <summary><see cref="HasLoaded"/> as last shown: the tab's pane and footer instead of the loading ring.</summary>
     private bool _loadedSeen;
 
-    /// <summary>Chat opened before the files were read: the question takes the cursor once they are.</summary>
+    /// <summary>
+    /// An explicit switch to Chat (a tab click, Ctrl+I) before the files were read: the question takes the cursor once
+    /// they are. Never set merely because the panel opens on Chat: ↑/↓ through the cards and Space must keep working.
+    /// </summary>
     private bool _focusPending;
 
     /// <summary>The Catch-ups section under the summary is open; collapsed for each conversation.</summary>
@@ -76,9 +89,21 @@ public sealed partial class AIPanelView : UserControl
                 QuestionBox.Focus(FocusState.Programmatic);
             }
         };
+        _spinnerTimer = DispatcherQueue.CreateTimer();
+        _spinnerTimer.Interval = SpinnerDelay;
+        _spinnerTimer.IsRepeating = false;
+        _spinnerTimer.Tick += (t, _) =>
+        {
+            t.Stop();
+            LoadingRing.OpacityTransition = UISettings.AnimationsEnabled ? new ScalarTransition() : null;
+            LoadingRing.IsActive = true;
+            LoadingRing.Opacity = 1;
+        };
 
         ToolTipService.SetToolTip(LanguageButton,
             Loc.T("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)"));
+        HeaderPanel.Shrinking = ModelButton;
+        PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
         VersionMenu.Opening += (_, _) => BuildVersionMenu();
         ModelMenu.Opening += (_, _) => BuildModelMenu();
         LanguageMenu.Opening += (_, _) => BuildLanguageMenu();
@@ -103,11 +128,8 @@ public sealed partial class AIPanelView : UserControl
         };
     }
 
-    /// <summary>The first read of the conversation's files has returned; until then its page shows the loading pane.</summary>
-    public bool HasLoaded => _panel?.HasLoaded == true;
-
-    /// <summary>Raised on the UI thread once <see cref="HasLoaded"/> turns true.</summary>
-    public event Action? HasLoadedChanged;
+    /// <summary>The first read of the conversation's files has returned; until then the header shows over the loading ring.</summary>
+    private bool HasLoaded => _panel?.HasLoaded == true;
 
     /// <summary>Shows conversation <paramref name="id"/>; <paramref name="seek"/> opens the transcript at a citation's time.</summary>
     public void Attach(AppViewModel model, Guid id, Action<double> seek)
@@ -120,8 +142,9 @@ public sealed partial class AIPanelView : UserControl
         _model.PropertyChanged += OnModelChanged;
         _model.AIJobTextChanged += OnJobTextChanged;
         _panel.Attach();
-        _tab = model.DetailTab == DetailTab.Chat ? DetailTab.Chat : DetailTab.Summary;
+        _tab = model.DetailTab;
         UpdateTab();
+        ShowLoading(true);
         Update();
     }
 
@@ -129,6 +152,7 @@ public sealed partial class AIPanelView : UserControl
     {
         _toastTimer.Stop();
         _focusTimer.Stop();
+        _spinnerTimer.Stop();
         if (_model is not null)
         {
             _model.PropertyChanged -= OnModelChanged;
@@ -155,13 +179,25 @@ public sealed partial class AIPanelView : UserControl
         CatchUpCards.Children.Clear();
     }
 
+    /// <summary>
+    /// A switch to Chat while the panel shows, or Ctrl+I on Chat (<see cref="AppViewModel.ChatFocusRequests"/>), puts the
+    /// cursor in the question once the files are read (macOS: on a change of the tab only, never when it opens on Chat).
+    /// </summary>
     private void OnModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_model is not { IsClosing: false } model || e.PropertyName != nameof(AppViewModel.DetailTab)) return;
-        if (model.DetailTab == DetailTab.Transcript) return;
-        _tab = model.DetailTab;
-        UpdateTab();
-        Update();
+        if (_model is not { IsClosing: false } model) return;
+        switch (e.PropertyName)
+        {
+            case nameof(AppViewModel.DetailTab) when model.DetailTab != _tab:
+                _tab = model.DetailTab;
+                UpdateTab();
+                if (_tab == DetailTab.Chat) FocusQuestionOnceLoaded();
+                Update();
+                break;
+            case nameof(AppViewModel.ChatFocusRequests) when _tab == DetailTab.Chat:
+                FocusQuestionOnceLoaded();
+                break;
+        }
     }
 
     /// <summary>The streamed text or status of a job changed: this conversation's only redraws its answer.</summary>
@@ -173,29 +209,45 @@ public sealed partial class AIPanelView : UserControl
     }
 
     /// <summary>
-    /// The tab's pane and bottom bar: Summary's menus are model, "i", language; Chat's are model, language, "i", a fresh
-    /// chat and History, with the question row under them. Opening Chat puts the cursor in the question, once the files
-    /// are read.
+    /// The tab selected in the header, its pane and footer: Summary's actions, or Chat's question row with a fresh chat
+    /// and History in the header. Leaving Chat closes the History panel.
     /// </summary>
     private void UpdateTab()
     {
         var chat = _tab == DetailTab.Chat;
+        var item = chat ? ChatPanelTab : SummaryPanelTab;
+        if (PanelTabsBar.SelectedItem != item) PanelTabsBar.SelectedItem = item;
         SummaryPane.Visibility = Shown(!chat);
         ChatPane.Visibility = Shown(chat);
         SummaryActions.Visibility = Shown(!chat);
         QuestionRow.Visibility = Shown(chat);
         FreshChatButton.Visibility = Shown(chat);
         HistoryButton.Visibility = Shown(chat);
-        var order = chat
-            ? new FrameworkElement[] { ModelButton, LanguageButton, DataNotesButton, FreshChatButton, HistoryButton }
-            : [ModelButton, DataNotesButton, LanguageButton, FreshChatButton, HistoryButton];
-        if (!order.SequenceEqual(MenusPanel.Children.OfType<FrameworkElement>()))
-        {
-            MenusPanel.Children.Clear();
-            foreach (var element in order) MenusPanel.Children.Add(element);
-        }
-        if (chat) FocusQuestionOnceLoaded();
-        else ShowHistory(false);
+        if (!chat) ShowHistory(false);
+    }
+
+    /// <summary>A tab picked in the header; only a pick that differs from the model's tab is written.</summary>
+    private void OnPanelTabSelected()
+    {
+        if (_model is not { IsClosing: false } model || PanelTabsBar.SelectedItem is not { } item) return;
+        var picked = item == ChatPanelTab ? DetailTab.Chat : DetailTab.Summary;
+        if (picked != model.DetailTab) model.DetailTab = picked;
+    }
+
+    /// <summary>
+    /// The header at once; until the files are read, the loading ring in place of the tab's pane and footer, faded in
+    /// only after <see cref="SpinnerDelay"/> (macOS <c>DetailLoadingPane(framed: false)</c>).
+    /// </summary>
+    private void ShowLoading(bool loading)
+    {
+        _spinnerTimer.Stop();
+        LoadingRing.IsActive = false;
+        LoadingRing.Opacity = 0;
+        LoadingRing.Visibility = Shown(loading);
+        ContentHost.Visibility = Shown(!loading);
+        Footer.Visibility = Shown(!loading);
+        if (loading) _spinnerTimer.Start();
+        Services.StartupTrace.Write($"conversation {_panel?.ConversationId} AI panel: {(loading ? "loading ring" : "content")} shown");
     }
 
     /// <summary>The question takes the cursor now if the files are read, else once they are (macOS: once loaded).</summary>
@@ -205,14 +257,14 @@ public sealed partial class AIPanelView : UserControl
         if (!_focusPending) _focusTimer.Start();
     }
 
-    /// <summary>Everything from the state: the panes, the error, the bottom bar.</summary>
+    /// <summary>Everything from the state: the panes, the error, the header's menus, the footer.</summary>
     private void Update()
     {
         if (_model is not { IsClosing: false } || _panel is null) return;
         if (_panel.HasLoaded && !_loadedSeen)
         {
             _loadedSeen = true;
-            HasLoadedChanged?.Invoke();
+            ShowLoading(false);
             if (_focusPending && _tab == DetailTab.Chat) FocusQuestionOnceLoaded();
         }
         UpdateSummary();
@@ -629,10 +681,10 @@ public sealed partial class AIPanelView : UserControl
         }
     }
 
-    // Bottom bar
+    // Header and footer
 
     /// <summary>
-    /// The bottom bar's tab (macOS <c>purpose</c>): Chat's questions use the chat default, the Summary tab the summary
+    /// The panel's tab (macOS <c>purpose</c>): Chat's questions use the chat default, the Summary tab the summary
     /// default.
     /// </summary>
     private AIPurpose Purpose => _tab == DetailTab.Chat ? AIPurpose.Chat : AIPurpose.Summary;

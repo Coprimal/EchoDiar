@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The Transcript tab (macOS TranscriptView.swift): the segments in a card, with the version menu pinned above them,
-    then a bar with the transcription's state, the speaker notes, playback, the speaker chips (click to rename), Copy
-    and Re-transcribe.
+    The conversation's transcript, left of its AI panel (macOS TranscriptView.swift): the segments in a card, with the
+    version menu pinned above them, then a bar with the transcription's state, the speaker notes, playback, the speaker
+    chips (click to rename), Copy and Re-transcribe.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.TranscriptView"
@@ -252,18 +252,109 @@
 
                 <!--
                     As macOS: the note in place of playback once the audio is gone, Re-transcribe and Summarize, Copy, then
-                    the speaker chips at the trailing edge.
+                    the speaker chips at the trailing edge; on a row of their own under the buttons when the column is too
+                    narrow for both (macOS wrappedControlRows).
                 -->
-                <Grid x:Name="ControlRow" ColumnSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                <views:WrapPairPanel x:Name="ControlRow">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            VerticalAlignment="Center">
+                            <!-- The speakers without a chip; a click on one renames it. -->
+                            <FlyoutBase.AttachedFlyout>
+                                <Flyout x:Name="MoreSpeakersFlyout" Placement="Top">
+                                    <StackPanel x:Name="MoreSpeakersList" MinWidth="180" Spacing="2" />
+                                </Flyout>
+                            </FlyoutBase.AttachedFlyout>
+                            <!-- In place of Re-transcribe while a job is queued or runs, with Stop ("Stopping…" once clicked). -->
+                            <StackPanel
+                                x:Name="TranscribingPanel"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed">
+                                <ProgressRing
+                                    Width="16"
+                                    Height="16"
+                                    IsActive="True" />
+                                <TextBlock
+                                    x:Name="TranscribingText"
+                                    VerticalAlignment="Center"
+                                    Text="{local:T Text='Transcribing…'}" />
+                                <Button
+                                    x:Name="StopTranscriptionButton"
+                                    Width="32"
+                                    Height="32"
+                                    Padding="0"
+                                    Style="{StaticResource SubtleButtonStyle}"
+                                    AutomationProperties.Name="{local:T Text='Stop transcription'}"
+                                    ToolTipService.ToolTip="{local:T Text='Stop transcription'}"
+                                    Visibility="Collapsed">
+                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE71A;" />
+                                </Button>
+                            </StackPanel>
+                            <DropDownButton
+                                x:Name="RetranscribeButton"
+                                Content="{local:T Text='Re-transcribe'}">
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout x:Name="RetranscribeMenu" Placement="TopEdgeAlignedRight" />
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                            <!-- Opens the Summary tab, and starts a summary when there is none; a ring while it is written. -->
+                            <Button x:Name="SummarizeButton" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ProgressRing
+                                        x:Name="SummarizingRing"
+                                        Width="16"
+                                        Height="16"
+                                        IsActive="False"
+                                        Visibility="Collapsed" />
+                                    <TextBlock x:Name="SummarizeText" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                x:Name="CopyButton"
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Copy transcript'}"
+                                IsEnabled="False"
+                                ToolTipService.ToolTip="{local:T Text='Copy transcript'}">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE8C8;" />
+                            </Button>
+                        </StackPanel>
+
+                        <!-- In place of playback once the audio was moved to the Recycle Bin. -->
+                        <StackPanel
+                            x:Name="AudioRemovedNote"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="{local:T Text='Playback and re-transcribing are no longer possible. The transcript, summary and chat stay.'}"
+                            Visibility="Collapsed">
+                            <FontIcon
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="12"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Glyph="&#xE74F;" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="{local:T Text='Audio has been removed'}" />
+                        </StackPanel>
+                    </Grid>
 
                     <StackPanel
                         x:Name="ChipsPanel"
-                        Grid.Column="2"
                         HorizontalAlignment="Right"
                         Orientation="Horizontal"
                         Spacing="6">
@@ -280,97 +371,7 @@
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
                     </StackPanel>
-
-                    <StackPanel
-                        Grid.Column="1"
-                        Orientation="Horizontal"
-                        Spacing="6"
-                        VerticalAlignment="Center">
-                        <!-- The speakers without a chip; a click on one renames it. -->
-                        <FlyoutBase.AttachedFlyout>
-                            <Flyout x:Name="MoreSpeakersFlyout" Placement="Top">
-                                <StackPanel x:Name="MoreSpeakersList" MinWidth="180" Spacing="2" />
-                            </Flyout>
-                        </FlyoutBase.AttachedFlyout>
-                        <!-- In place of Re-transcribe while a job is queued or runs, with Stop ("Stopping…" once clicked). -->
-                        <StackPanel
-                            x:Name="TranscribingPanel"
-                            Orientation="Horizontal"
-                            Spacing="8"
-                            VerticalAlignment="Center"
-                            Visibility="Collapsed">
-                            <ProgressRing
-                                Width="16"
-                                Height="16"
-                                IsActive="True" />
-                            <TextBlock
-                                x:Name="TranscribingText"
-                                VerticalAlignment="Center"
-                                Text="{local:T Text='Transcribing…'}" />
-                            <Button
-                                x:Name="StopTranscriptionButton"
-                                Width="32"
-                                Height="32"
-                                Padding="0"
-                                Style="{StaticResource SubtleButtonStyle}"
-                                AutomationProperties.Name="{local:T Text='Stop transcription'}"
-                                ToolTipService.ToolTip="{local:T Text='Stop transcription'}"
-                                Visibility="Collapsed">
-                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE71A;" />
-                            </Button>
-                        </StackPanel>
-                        <DropDownButton
-                            x:Name="RetranscribeButton"
-                            Content="{local:T Text='Re-transcribe'}">
-                            <DropDownButton.Flyout>
-                                <MenuFlyout x:Name="RetranscribeMenu" Placement="TopEdgeAlignedRight" />
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
-                        <!-- Opens the Summary tab, and starts a summary when there is none; a ring while it is written. -->
-                        <Button x:Name="SummarizeButton" Visibility="Collapsed">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <ProgressRing
-                                    x:Name="SummarizingRing"
-                                    Width="16"
-                                    Height="16"
-                                    IsActive="False"
-                                    Visibility="Collapsed" />
-                                <TextBlock x:Name="SummarizeText" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button
-                            x:Name="CopyButton"
-                            Width="32"
-                            Height="32"
-                            Padding="0"
-                            Style="{StaticResource SubtleButtonStyle}"
-                            AutomationProperties.Name="{local:T Text='Copy transcript'}"
-                            IsEnabled="False"
-                            ToolTipService.ToolTip="{local:T Text='Copy transcript'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE8C8;" />
-                        </Button>
-                    </StackPanel>
-
-                    <!-- In place of playback once the audio was moved to the Recycle Bin. -->
-                    <StackPanel
-                        x:Name="AudioRemovedNote"
-                        Orientation="Horizontal"
-                        Spacing="6"
-                        VerticalAlignment="Center"
-                        ToolTipService.ToolTip="{local:T Text='Playback and re-transcribing are no longer possible. The transcript, summary and chat stay.'}"
-                        Visibility="Collapsed">
-                        <FontIcon
-                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                            FontSize="12"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Glyph="&#xE74F;" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            Style="{StaticResource CaptionTextBlockStyle}"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="{local:T Text='Audio has been removed'}" />
-                    </StackPanel>
-                </Grid>
+                </views:WrapPairPanel>
             </StackPanel>
         </Border>
 

@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The Summary or Chat tab of the open conversation (macOS AIPanelView.swift): Summary shows the kept summaries (the
-    newest first with a menu for the earlier ones), then the Catch-ups bar pinned at the bottom (collapsed until it is
-    clicked), and Summarize / Re-summarize / Stop; Chat shows the questions with
-    their streamed answers, the History panel at the trailing edge, and the question row. The bottom bar has the model
-    and language menus with the "i" (where the data goes), Copy as prompt and the tab's action. Fluent cards in theme
+    The open conversation's AI panel, right of its transcript (macOS AIPanelView.swift), built like the recording page's
+    SidePanel: one card with a header (the Summary | Chat tabs in a track of their own, the model and language menus,
+    the "i" about where the data goes and, on Chat, a fresh chat and History) over the tab's pane, then its footer
+    inside the card. Summary shows the kept summaries (the newest first with a menu for the earlier ones), then the
+    Catch-ups bar pinned at the bottom (collapsed until it is clicked); its footer has Copy as prompt and Summarize /
+    Re-summarize / Stop. Chat shows the questions with their streamed answers and the History panel at the trailing
+    edge; its footer is the question row. Until the files are read, the header over a loading ring. Fluent theme
     resources (Light and Dark); the messages, menus and history rows are built in code.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.AIPanelView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:EchoDiar.App">
+    xmlns:local="using:EchoDiar.App"
+    xmlns:views="using:EchoDiar.App.Views">
 
     <UserControl.Resources>
         <Style x:Key="PaneStyle" TargetType="Border">
@@ -63,185 +66,307 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid RowSpacing="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Border Style="{StaticResource PaneStyle}">
+        <Grid RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <!-- Summary: the version menu over the summary, the Catch-ups bar if any; a note while there are neither. -->
-        <Border x:Name="SummaryPane" Style="{StaticResource PaneStyle}">
-            <Grid>
-                <TextBlock x:Name="SummaryEmptyText" Style="{StaticResource EmptyNoteStyle}" />
-                <Grid x:Name="SummaryContent">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition x:Name="SummaryRow" Height="*" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition x:Name="CatchUpsCardsRow" Height="0" />
-                    </Grid.RowDefinitions>
+            <!--
+                The header (as RecordingView's SidePanel): the tabs, then at the trailing edge the model (it trims first
+                when narrow), the language, the "i" and, on Chat, a fresh chat and History; the menus open downwards.
+                Too narrow for both, the menus go to a row of their own under the tabs (WrapPairPanel).
+            -->
+            <views:WrapPairPanel x:Name="HeaderPanel" Margin="10,10,10,0">
+                <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
+                <Border
+                    Padding="2"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource OverlayCornerRadius}">
+                    <SelectorBar x:Name="PanelTabsBar" Padding="0">
+                        <SelectorBarItem x:Name="SummaryPanelTab" Text="{local:T Text='Summary'}" />
+                        <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
+                    </SelectorBar>
+                </Border>
+                <!-- Margins space the menus: a collapsed one's column would keep a ColumnSpacing. -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <DropDownButton
-                        x:Name="VersionButton"
-                        MaxWidth="260"
-                        Margin="14,16,14,0"
-                        ToolTipService.ToolTip="{local:T Text='Earlier summaries of this conversation'}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                        x:Name="ModelButton"
+                        MaxWidth="180"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        ToolTipService.ToolTip="{local:T Text='Model for summaries and questions'}">
+                        <!-- A Grid, not a horizontal StackPanel: its star column gives the name a finite width to trim with "…". -->
+                        <Grid ColumnSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
                             <TextBlock
-                                x:Name="VersionText"
+                                x:Name="ModelText"
+                                Grid.Column="1"
                                 MaxLines="1"
                                 TextTrimming="CharacterEllipsis"
                                 TextWrapping="NoWrap" />
-                        </StackPanel>
+                        </Grid>
                         <DropDownButton.Flyout>
-                            <MenuFlyout x:Name="VersionMenu" Placement="BottomEdgeAlignedLeft" />
+                            <MenuFlyout x:Name="ModelMenu" Placement="BottomEdgeAlignedRight" />
                         </DropDownButton.Flyout>
                     </DropDownButton>
-                    <ScrollViewer x:Name="SummaryScroller" Grid.Row="1">
-                        <StackPanel x:Name="SummaryBody" Padding="14,10,14,16" Spacing="8">
-                            <StackPanel x:Name="SummaryStatusPanel" Orientation="Horizontal" Spacing="6">
-                                <ProgressRing
-                                    Width="16"
-                                    Height="16"
-                                    MinWidth="0"
-                                    MinHeight="0"
-                                    IsActive="True" />
-                                <TextBlock
-                                    x:Name="SummaryStatusText"
-                                    VerticalAlignment="Center"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                            <RichTextBlock x:Name="SummaryText" />
-                            <!-- No summary yet, above the catch-ups. -->
-                            <TextBlock
-                                x:Name="SummaryNoneText"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{StaticResource BodyTextBlockStyle}"
-                                TextWrapping="Wrap"
-                                Visibility="Collapsed" />
+                    <DropDownButton
+                        x:Name="LanguageButton"
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
+                            <TextBlock x:Name="LanguageText" />
                         </StackPanel>
-                    </ScrollViewer>
-                    <!--
-                        The Catch-ups bar (macOS catchUpsSection), pinned under the summary a line below it: read-only,
-                        newest first, cards built in code in their own scroller; the code sets the rows' heights.
-                    -->
-                    <Border
-                        x:Name="CatchUpsSection"
-                        Grid.Row="2"
-                        Padding="14,6"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="0,1,0,0"
-                        Visibility="Collapsed">
-                        <Button
-                            x:Name="CatchUpsHeader"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Left"
-                            Style="{StaticResource SubtleButtonStyle}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon
-                                    x:Name="CatchUpsChevron"
-                                    Width="12"
-                                    VerticalAlignment="Center"
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                    FontSize="10"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    Glyph="&#xE76C;" />
-                                <TextBlock
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                                    Text="{local:T Text='Catch-ups'}" />
-                                <TextBlock
-                                    x:Name="CatchUpsCount"
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource CaptionStyle}" />
-                            </StackPanel>
-                        </Button>
-                    </Border>
-                    <ScrollViewer x:Name="CatchUpsScroller" Grid.Row="3">
-                        <StackPanel
-                            x:Name="CatchUpCards"
-                            Padding="14,0,14,16"
-                            Spacing="6"
-                            Visibility="Collapsed" />
-                    </ScrollViewer>
+                        <DropDownButton.Flyout>
+                            <MenuFlyout x:Name="LanguageMenu" Placement="BottomEdgeAlignedRight" />
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
+                    <Button
+                        x:Name="DataNotesButton"
+                        Grid.Column="2"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{local:T Text='About where data goes'}"
+                        ToolTipService.ToolTip="{local:T Text='About where data goes'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE946;" />
+                        <Button.Flyout>
+                            <Flyout x:Name="DataNotesFlyout" Placement="Bottom">
+                                <StackPanel x:Name="DataNotesPanel" MaxWidth="280" Spacing="8" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button
+                        x:Name="FreshChatButton"
+                        Grid.Column="3"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
+                        ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
+                    </Button>
+                    <ToggleButton
+                        x:Name="HistoryButton"
+                        Grid.Column="4"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{local:T Text='History'}"
+                        ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                    </ToggleButton>
                 </Grid>
-            </Grid>
-        </Border>
+            </views:WrapPairPanel>
 
-        <!-- Chat: the messages, or a note while there are none; the History panel over the trailing edge. -->
-        <Border x:Name="ChatPane" Style="{StaticResource PaneStyle}" Visibility="Collapsed">
-            <Grid>
-                <TextBlock x:Name="ChatEmptyText" Style="{StaticResource EmptyNoteStyle}" />
-                <ScrollViewer x:Name="ChatScroller">
-                    <StackPanel x:Name="MessagesPanel" Padding="14,16" Spacing="20" />
-                </ScrollViewer>
-                <Border
-                    x:Name="HistoryPanel"
-                    Width="260"
-                    Margin="8"
-                    HorizontalAlignment="Right"
-                    Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{StaticResource OverlayCornerRadius}"
-                    Visibility="Collapsed">
+            <!-- Until the files are read (macOS DetailLoadingPane, unframed): the ring fades in once that takes 150 ms. -->
+            <ProgressRing
+                x:Name="LoadingRing"
+                Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsActive="False"
+                Opacity="0" />
+
+            <!-- The tab's pane, once the files are read. -->
+            <Grid x:Name="ContentHost" Grid.Row="1" Visibility="Collapsed">
+                <!-- Summary: the version menu over the summary, the Catch-ups bar if any; a note while there are neither. -->
+                <Border x:Name="SummaryPane">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid Padding="14,10,6,4" ColumnSpacing="4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                Style="{StaticResource BodyStrongTextBlockStyle}"
-                                Text="{local:T Text='History'}" />
-                            <Button
-                                x:Name="ClearHistoryButton"
-                                Grid.Column="1"
-                                Style="{StaticResource SubtleButtonStyle}"
-                                AutomationProperties.Name="{local:T Text='Delete all earlier chats'}"
-                                ToolTipService.ToolTip="{local:T Text='Delete all earlier chats'}">
-                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE74D;" />
-                            </Button>
-                            <Button
-                                x:Name="CloseHistoryButton"
-                                Grid.Column="2"
-                                Style="{StaticResource SubtleButtonStyle}"
-                                AutomationProperties.Name="{local:T Text='Close'}"
-                                ToolTipService.ToolTip="{local:T Text='Close the history'}">
-                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
-                            </Button>
+                        <TextBlock x:Name="SummaryEmptyText" Style="{StaticResource EmptyNoteStyle}" />
+                        <Grid x:Name="SummaryContent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition x:Name="SummaryRow" Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition x:Name="CatchUpsCardsRow" Height="0" />
+                            </Grid.RowDefinitions>
+                            <DropDownButton
+                                x:Name="VersionButton"
+                                MaxWidth="260"
+                                Margin="14,0,14,0"
+                                ToolTipService.ToolTip="{local:T Text='Earlier summaries of this conversation'}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                                    <TextBlock
+                                        x:Name="VersionText"
+                                        MaxLines="1"
+                                        TextTrimming="CharacterEllipsis"
+                                        TextWrapping="NoWrap" />
+                                </StackPanel>
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout x:Name="VersionMenu" Placement="BottomEdgeAlignedLeft" />
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                            <ScrollViewer x:Name="SummaryScroller" Grid.Row="1">
+                                <StackPanel x:Name="SummaryBody" Padding="14,10,14,16" Spacing="8">
+                                    <StackPanel x:Name="SummaryStatusPanel" Orientation="Horizontal" Spacing="6">
+                                        <ProgressRing
+                                            Width="16"
+                                            Height="16"
+                                            MinWidth="0"
+                                            MinHeight="0"
+                                            IsActive="True" />
+                                        <TextBlock
+                                            x:Name="SummaryStatusText"
+                                            VerticalAlignment="Center"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <RichTextBlock x:Name="SummaryText" />
+                                    <!-- No summary yet, above the catch-ups. -->
+                                    <TextBlock
+                                        x:Name="SummaryNoneText"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource BodyTextBlockStyle}"
+                                        TextWrapping="Wrap"
+                                        Visibility="Collapsed" />
+                                </StackPanel>
+                            </ScrollViewer>
+                            <!--
+                                The Catch-ups bar (macOS catchUpsSection), pinned under the summary a line below it: read-only,
+                                newest first, cards built in code in their own scroller; the code sets the rows' heights.
+                            -->
+                            <Border
+                                x:Name="CatchUpsSection"
+                                Grid.Row="2"
+                                Padding="14,6"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="0,1,0,0"
+                                Visibility="Collapsed">
+                                <Button
+                                    x:Name="CatchUpsHeader"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Style="{StaticResource SubtleButtonStyle}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon
+                                            x:Name="CatchUpsChevron"
+                                            Width="12"
+                                            VerticalAlignment="Center"
+                                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                            FontSize="10"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Glyph="&#xE76C;" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                                            Text="{local:T Text='Catch-ups'}" />
+                                        <TextBlock
+                                            x:Name="CatchUpsCount"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource CaptionStyle}" />
+                                    </StackPanel>
+                                </Button>
+                            </Border>
+                            <ScrollViewer x:Name="CatchUpsScroller" Grid.Row="3">
+                                <StackPanel
+                                    x:Name="CatchUpCards"
+                                    Padding="14,0,14,16"
+                                    Spacing="6"
+                                    Visibility="Collapsed" />
+                            </ScrollViewer>
                         </Grid>
-                        <ScrollViewer Grid.Row="1">
-                            <StackPanel x:Name="HistoryList" Padding="6" Spacing="2" />
-                        </ScrollViewer>
                     </Grid>
                 </Border>
+
+                <!-- Chat: the messages, or a note while there are none; the History panel over the trailing edge. -->
+                <Border x:Name="ChatPane" Visibility="Collapsed">
+                    <Grid>
+                        <TextBlock x:Name="ChatEmptyText" Style="{StaticResource EmptyNoteStyle}" />
+                        <ScrollViewer x:Name="ChatScroller">
+                            <StackPanel x:Name="MessagesPanel" Padding="14,0,14,16" Spacing="20" />
+                        </ScrollViewer>
+                        <Border
+                            x:Name="HistoryPanel"
+                            Width="260"
+                            Margin="8"
+                            HorizontalAlignment="Right"
+                            Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource OverlayCornerRadius}"
+                            Visibility="Collapsed">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Padding="14,10,6,4" ColumnSpacing="4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                                        Text="{local:T Text='History'}" />
+                                    <Button
+                                        x:Name="ClearHistoryButton"
+                                        Grid.Column="1"
+                                        Style="{StaticResource SubtleButtonStyle}"
+                                        AutomationProperties.Name="{local:T Text='Delete all earlier chats'}"
+                                        ToolTipService.ToolTip="{local:T Text='Delete all earlier chats'}">
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE74D;" />
+                                    </Button>
+                                    <Button
+                                        x:Name="CloseHistoryButton"
+                                        Grid.Column="2"
+                                        Style="{StaticResource SubtleButtonStyle}"
+                                        AutomationProperties.Name="{local:T Text='Close'}"
+                                        ToolTipService.ToolTip="{local:T Text='Close the history'}">
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
+                                <ScrollViewer Grid.Row="1">
+                                    <StackPanel x:Name="HistoryList" Padding="6" Spacing="2" />
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
             </Grid>
-        </Border>
 
-        <!-- Why this conversation's last job failed. -->
-        <TextBlock
-            x:Name="ErrorText"
-            Grid.Row="1"
-            Margin="4,0"
-            Style="{StaticResource BodyTextBlockStyle}"
-            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-            IsTextSelectionEnabled="True"
-            MaxLines="4"
-            TextTrimming="CharacterEllipsis"
-            TextWrapping="Wrap"
-            Visibility="Collapsed" />
+            <!-- Why this conversation's last job failed. -->
+            <TextBlock
+                x:Name="ErrorText"
+                Grid.Row="2"
+                Margin="14,0"
+                Style="{StaticResource BodyTextBlockStyle}"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                IsTextSelectionEnabled="True"
+                MaxLines="4"
+                TextTrimming="CharacterEllipsis"
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
 
-        <!-- The bottom bar: a job running elsewhere, the menus and the tab's action, the question row, setup hints. -->
-        <Border Grid.Row="2" Padding="14,10" Style="{StaticResource PaneStyle}">
-            <StackPanel Spacing="8">
+            <!--
+                The footer, inside the card without a frame of its own (once the files are read): a job running elsewhere,
+                then Summary's actions or Chat's question row, then the setup hints.
+            -->
+            <StackPanel
+                x:Name="Footer"
+                Grid.Row="3"
+                Margin="14,0,14,10"
+                Spacing="8"
+                Visibility="Collapsed">
                 <Grid x:Name="BusyRow" ColumnSpacing="6" Visibility="Collapsed">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -268,85 +393,29 @@
                         Content="{local:T Text='Stop'}" />
                 </Grid>
 
-                <Grid ColumnSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel x:Name="MenusPanel" Orientation="Horizontal" Spacing="8">
-                        <DropDownButton
-                            x:Name="ModelButton"
-                            MaxWidth="220"
-                            ToolTipService.ToolTip="{local:T Text='Model for summaries and questions'}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
-                                <TextBlock
-                                    x:Name="ModelText"
-                                    MaxLines="1"
-                                    TextTrimming="CharacterEllipsis"
-                                    TextWrapping="NoWrap" />
-                            </StackPanel>
-                            <DropDownButton.Flyout>
-                                <MenuFlyout x:Name="ModelMenu" Placement="TopEdgeAlignedLeft" />
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
-                        <DropDownButton x:Name="LanguageButton">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
-                                <TextBlock x:Name="LanguageText" />
-                            </StackPanel>
-                            <DropDownButton.Flyout>
-                                <MenuFlyout x:Name="LanguageMenu" Placement="TopEdgeAlignedLeft" />
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
-                        <Button
-                            x:Name="DataNotesButton"
-                            AutomationProperties.Name="{local:T Text='About where data goes'}"
-                            ToolTipService.ToolTip="{local:T Text='About where data goes'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE946;" />
-                            <Button.Flyout>
-                                <Flyout x:Name="DataNotesFlyout" Placement="Top">
-                                    <StackPanel x:Name="DataNotesPanel" MaxWidth="280" Spacing="8" />
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                        <Button
-                            x:Name="FreshChatButton"
-                            AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
-                            ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
-                        </Button>
-                        <ToggleButton
-                            x:Name="HistoryButton"
-                            AutomationProperties.Name="{local:T Text='History'}"
-                            ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
-                        </ToggleButton>
-                    </StackPanel>
-                    <!-- Summary's actions: Copy as prompt, then Summarize, Re-summarize or Stop. -->
-                    <StackPanel
-                        x:Name="SummaryActions"
-                        Grid.Column="1"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <Button
-                            x:Name="SummaryCopyButton"
-                            AutomationProperties.Name="{local:T Text='Copy as prompt'}"
-                            ToolTipService.ToolTip="{local:T Text='Copy the transcript as a summary prompt for any chat app'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE8C8;" />
-                        </Button>
-                        <Button x:Name="SummarizeButton" Style="{StaticResource AccentButtonStyle}" />
-                        <Button
-                            x:Name="SummaryStopButton"
-                            Style="{StaticResource AccentButtonStyle}"
-                            ToolTipService.ToolTip="{local:T Text='Stop the summary and keep what is written so far'}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE71A;" />
-                                <TextBlock Text="{local:T Text='Summarizing'}" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Grid>
+                <!-- Summary's actions at the trailing edge: Copy as prompt, then Summarize, Re-summarize or Stop. -->
+                <StackPanel
+                    x:Name="SummaryActions"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        x:Name="SummaryCopyButton"
+                        AutomationProperties.Name="{local:T Text='Copy as prompt'}"
+                        ToolTipService.ToolTip="{local:T Text='Copy the transcript as a summary prompt for any chat app'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE8C8;" />
+                    </Button>
+                    <Button x:Name="SummarizeButton" Style="{StaticResource AccentButtonStyle}" />
+                    <Button
+                        x:Name="SummaryStopButton"
+                        Style="{StaticResource AccentButtonStyle}"
+                        ToolTipService.ToolTip="{local:T Text='Stop the summary and keep what is written so far'}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE71A;" />
+                            <TextBlock Text="{local:T Text='Summarizing'}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
 
                 <!-- Chat's question (Enter sends, Shift+Enter starts a new line), Copy as prompt and Send or Stop. -->
                 <Grid x:Name="QuestionRow" ColumnSpacing="8">
@@ -402,23 +471,23 @@
                         Visibility="Collapsed" />
                 </StackPanel>
             </StackPanel>
-        </Border>
 
-        <!-- "Copied": 2 s over the bottom bar. -->
-        <Border
-            x:Name="Toast"
-            Grid.RowSpan="3"
-            Margin="0,0,0,110"
-            Padding="14,8"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Bottom"
-            Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource OverlayCornerRadius}"
-            IsHitTestVisible="False"
-            Visibility="Collapsed">
-            <TextBlock x:Name="ToastText" />
-        </Border>
-    </Grid>
+            <!-- "Copied": 2 s over the footer. -->
+            <Border
+                x:Name="Toast"
+                Grid.RowSpan="4"
+                Margin="0,0,0,110"
+                Padding="14,8"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource OverlayCornerRadius}"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+                <TextBlock x:Name="ToastText" />
+            </Border>
+        </Grid>
+    </Border>
 </UserControl>

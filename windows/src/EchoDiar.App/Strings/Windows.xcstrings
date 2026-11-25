@@ -2887,6 +2887,36 @@
         }
       }
     },
+    "Resize" : {
+      "comment" : "Windows only: Views/ConversationView.xaml (the accessible name of the gap that resizes the transcript and the AI panel).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar tamaño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redimensionner"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đổi kích thước"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调整大小"
+          }
+        }
+      }
+    },
     "Reveal in Explorer" : {
       "comment" : "Windows only: Views/ConversationCard.xaml.cs.",
       "extractionState" : "manual",

@@ -17,7 +17,11 @@ namespace EchoDiar.App.Services;
 /// </summary>
 internal sealed partial class WindowFrames
 {
-    private const double MinWidth = 860;
+    /// <summary>
+    /// 1000 DIPs wide: beside the 360 px sidebar a conversation's transcript and AI panel get about 300 px each (macOS
+    /// MainWindowSizer <c>minSize</c>).
+    /// </summary>
+    private const double MinWidth = 1000;
     private const double MinHeight = 560;
     private const double DefaultWidth = 1080;
     private const double DefaultHeight = 720;

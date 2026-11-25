@@ -636,7 +636,9 @@ public sealed partial class AppViewModel
 
     /// <summary>
     /// A reference of a library answer (macOS <c>openReference</c>): the conversation at <paramref name="seconds"/> in its
-    /// transcript, or its summary; the library chat stays open beside it. Nothing when the conversation is gone.
+    /// transcript, or its summary; the library chat stays open beside it. Nothing when the conversation is gone. The
+    /// transcript is always beside the AI panel: the open conversation keeps its panel's tab, another opens on Summary
+    /// (macOS <c>openTranscript</c>).
     /// </summary>
     public void OpenReference(Guid id, double? seconds)
     {
@@ -645,7 +647,8 @@ public sealed partial class AppViewModel
         if (seconds is { } time)
         {
             PendingTranscriptTime = (id, time);
-            Open(id, DetailTab.Transcript);
+            if (Route.ConversationId != id) DetailTab = DetailTab.Summary;
+            Route = Route.ForConversation(id);
         }
         else
         {
