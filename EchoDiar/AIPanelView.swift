@@ -66,33 +66,36 @@ struct AIPanelView: View {
     private static let answerFooterHeight: CGFloat = 22
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: MainView.headerGap) {
+            // On the window, above the card, as the sidebar's header (the two line up).
             header
             // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
             // the click that opened the conversation shows at once.
-            if loaded {
-                ZStack {
-                    if tab == .chat {
-                        chatPane
-                            .transition(transition)
-                    } else {
-                        summaryPane
-                            .transition(transition)
+            VStack(spacing: 10) {
+                if loaded {
+                    ZStack {
+                        if tab == .chat {
+                            chatPane
+                                .transition(transition)
+                        } else {
+                            summaryPane
+                                .transition(transition)
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    errorText
+                        .padding(.horizontal, 14)
+                    footer
+                } else {
+                    DetailLoadingPane(framed: false)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-                errorText
-                    .padding(.horizontal, 14)
-                footer
-            } else {
-                DetailLoadingPane(framed: false)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .modifier(GlassCard(cornerRadius: 20))
+            .overlay(alignment: .bottom) { toastView }
         }
-        .padding(.top, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .modifier(GlassCard(cornerRadius: 20))
-        .overlay(alignment: .bottom) { toastView }
         .environment(\.openURL, OpenURLAction(handler: openLink))
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
@@ -526,42 +529,36 @@ struct AIPanelView: View {
 
     // MARK: - Header and footer
 
-    /// The tabs, then the model and language menus, the "i" and, on Chat, "Start a fresh chat" and History, as in the
-    /// recording's side panel. Narrower, the language menu shows only its globe; narrower still, the tabs take a row
-    /// of their own above the menus.
+    /// On one row, as in the recording's side panel: the tabs, then the model and language menus, the "i" and, on
+    /// Chat, "Start a fresh chat" and History. Narrower, the language menu shows only its globe, then the model menu
+    /// only its chip; the row never wraps.
     private var header: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                tabs
-                Spacer(minLength: 8)
-                headerMenus(languageLabel: true)
-            }
-            HStack(spacing: 8) {
-                tabs
-                Spacer(minLength: 8)
-                headerMenus(languageLabel: false)
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                tabs
-                HStack(spacing: 8) {
-                    headerMenus(languageLabel: false)
-                    Spacer(minLength: 0)
-                }
-            }
+            headerRow(modelLabel: true, languageLabel: true)
+            headerRow(modelLabel: true, languageLabel: false)
+            headerRow(modelLabel: false, languageLabel: false)
         }
-        .padding(.horizontal, 10)
+        .frame(height: MainView.headerHeight)
+    }
+
+    private func headerRow(modelLabel: Bool, languageLabel: Bool) -> some View {
+        HStack(spacing: 8) {
+            tabs
+            Spacer(minLength: 8)
+            headerMenus(modelLabel: modelLabel, languageLabel: languageLabel)
+        }
     }
 
     private var tabs: some View {
-        // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
+        // On the window, as the sidebar's tabs: a track of the cards' color.
         CapsuleTabs(selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
                     tabs: TranscriptView.tabs, title: { Text(TranscriptView.tabTitle($0)) },
-                    drawsTrack: true, trackFill: Palette.inputSurface)
+                    drawsTrack: true, trackFill: Palette.surface)
             .fixedSize()
     }
 
-    @ViewBuilder private func headerMenus(languageLabel: Bool) -> some View {
-        AIModelMenu(model: model, purpose: purpose, height: Self.menuHeight)
+    @ViewBuilder private func headerMenus(modelLabel: Bool, languageLabel: Bool) -> some View {
+        AIModelMenu(model: model, purpose: purpose, height: Self.menuHeight, showsLabel: modelLabel)
         AILanguageMenu(model: model, height: Self.menuHeight, showsLabel: languageLabel)
         dataNotesButton(height: Self.menuHeight)
         if model.detailTab == .chat {
@@ -576,8 +573,8 @@ struct AIPanelView: View {
         }
     }
 
-    /// Inside the card, under the tab: Summary has "Copy as prompt" and its action, Chat the question row. Then the
-    /// missing-model warning.
+    /// Inside the card, under the tab: Summary has "Copy as prompt" and its action, Chat the question row (with Send
+    /// only). Then the missing-model warning.
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
             busyElsewhere
@@ -613,8 +610,8 @@ struct AIPanelView: View {
         .padding(.bottom, 10)
     }
 
-    /// The question (1 to 6 lines; Return sends, Shift+Return starts a new line), "Copy as prompt" and Send
-    /// (Cancel while answering), at the bottom of the field: centered with it while it has one line.
+    /// The question (1 to 6 lines; Return sends, Shift+Return starts a new line) and Send (Stop while answering), at
+    /// the bottom of the field: centered with it while it has one line.
     private var questionRow: some View {
         HStack(alignment: .bottom, spacing: 8) {
             TextField("Ask about this conversation", text: $question, axis: .vertical)
@@ -632,7 +629,6 @@ struct AIPanelView: View {
                 .frame(maxWidth: .infinity, minHeight: Self.inputHeight, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Self.inputHeight / 2, style: .continuous)
                     .fill(Palette.inputSurface))
-            copyButton
             if questionJob != nil {
                 Button { model.stopAIJob(conversation.id) } label: {
                     Label("Stop", systemImage: "stop.fill").labelStyle(.iconOnly)
@@ -701,9 +697,7 @@ struct AIPanelView: View {
         }
         .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
         .disabled(transcript == nil)
-            .help(model.detailTab == .chat
-                  ? "Copy the transcript and the question as a prompt for any chat app"
-                  : "Copy the transcript as a summary prompt for any chat app")
+        .help("Copy the transcript as a summary prompt for any chat app")
     }
 
     /// Where the data goes with the tab's provider: off this Mac, and how far a CLI agent is contained.
@@ -823,7 +817,7 @@ struct AIPanelView: View {
     private func copyPrompt() {
         guard let transcript else { return }
         let prompt = PromptBuilder.copyPrompt(
-            conversation: conversation, transcript: transcript, question: model.detailTab == .chat ? question : nil,
+            conversation: conversation, transcript: transcript, question: nil,
             languageSetting: model.settings.summaryLanguage, summaryLength: model.settings.summaryLength,
             chatLength: model.settings.chatLength)
         // Transient (nspasteboard.org) and this Mac only: clipboard managers and Universal Clipboard skip the transcript.
@@ -877,6 +871,8 @@ struct AIModelMenu: View {
     let model: AppModel
     let purpose: AppModel.AIPurpose
     let height: CGFloat
+    /// The model's name beside the chip; false: the chip only (the AI panel's narrow header), the name in the tooltip.
+    var showsLabel = true
 
     var body: some View {
         let providers = purpose == .catchUp ? model.aiProviders.filter { $0.kind != .inApp } : model.aiProviders
@@ -901,11 +897,20 @@ struct AIModelMenu: View {
             Divider()
             Button("Choose Models…") { model.openSettings(tab: .providers, subTab: "cloud") }
         } label: {
-            AIMenuLabel(title: modelTitle, systemImage: "cpu")
+            if showsLabel {
+                AIMenuLabel(title: modelTitle, systemImage: "cpu")
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "cpu")
+                    MenuChevron()
+                }
+                .accessibilityLabel(helpText)
+                .accessibilityValue(Text(verbatim: modelTitle))
+            }
         }
-        .modifier(CompactMenu(maxWidth: 180, height: height))
+        .modifier(CompactMenu(maxWidth: showsLabel ? 180 : nil, height: height))
         .layoutPriority(1)
-        .help(helpText)
+        .help(showsLabel ? helpText : helpText + Text(verbatim: ": \(modelTitle)"))
     }
 
     private var helpText: Text {

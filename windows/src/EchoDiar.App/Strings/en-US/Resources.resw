@@ -2618,6 +2618,10 @@
     <value>Older than</value>
     <comment>Older than</comment>
   </data>
+  <data name="On" xml:space="preserve">
+    <value>On</value>
+    <comment>On</comment>
+  </data>
   <data name="OnDate" xml:space="preserve">
     <value>On date</value>
     <comment>On date</comment>
@@ -3505,6 +3509,10 @@
   <data name="ShowTheRecordingsList" xml:space="preserve">
     <value>Show the recordings list</value>
     <comment>Show the recordings list</comment>
+  </data>
+  <data name="ShowVideo" xml:space="preserve">
+    <value>Show video</value>
+    <comment>Show video</comment>
   </data>
   <data name="ShowingMeetingsInTheNext7DaysTheListUpdatesAutomatically" xml:space="preserve">
     <value>Showing meetings in the next 7 days. The list updates automatically.</value>

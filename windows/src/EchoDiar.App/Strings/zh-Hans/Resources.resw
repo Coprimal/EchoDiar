@@ -2514,6 +2514,10 @@
     <value>超过</value>
     <comment>Older than</comment>
   </data>
+  <data name="On" xml:space="preserve">
+    <value>开</value>
+    <comment>On</comment>
+  </data>
   <data name="OnDate" xml:space="preserve">
     <value>于日期</value>
     <comment>On date</comment>
@@ -3389,6 +3393,10 @@
   <data name="ShowTheRecordingsList" xml:space="preserve">
     <value>显示录音列表</value>
     <comment>Show the recordings list</comment>
+  </data>
+  <data name="ShowVideo" xml:space="preserve">
+    <value>显示视频</value>
+    <comment>Show video</comment>
   </data>
   <data name="ShowingMeetingsInTheNext7DaysTheListUpdatesAutomatically" xml:space="preserve">
     <value>显示未来 7 天内的会议。列表会自动更新。</value>

@@ -2618,6 +2618,10 @@
     <value>Con más de</value>
     <comment>Older than</comment>
   </data>
+  <data name="On" xml:space="preserve">
+    <value>Activado</value>
+    <comment>On</comment>
+  </data>
   <data name="OnDate" xml:space="preserve">
     <value>En una fecha</value>
     <comment>On date</comment>
@@ -3493,6 +3497,10 @@
   <data name="ShowTheRecordingsList" xml:space="preserve">
     <value>Mostrar la lista de grabaciones</value>
     <comment>Show the recordings list</comment>
+  </data>
+  <data name="ShowVideo" xml:space="preserve">
+    <value>Mostrar vídeo</value>
+    <comment>Show video</comment>
   </data>
   <data name="ShowingMeetingsInTheNext7DaysTheListUpdatesAutomatically" xml:space="preserve">
     <value>Se muestran las reuniones de los próximos 7 días. La lista se actualiza automáticamente.</value>

@@ -2514,6 +2514,10 @@
     <value>Cũ hơn</value>
     <comment>Older than</comment>
   </data>
+  <data name="On" xml:space="preserve">
+    <value>Bật</value>
+    <comment>On</comment>
+  </data>
   <data name="OnDate" xml:space="preserve">
     <value>Vào ngày</value>
     <comment>On date</comment>
@@ -3389,6 +3393,10 @@
   <data name="ShowTheRecordingsList" xml:space="preserve">
     <value>Hiện danh sách bản ghi âm</value>
     <comment>Show the recordings list</comment>
+  </data>
+  <data name="ShowVideo" xml:space="preserve">
+    <value>Hiện video</value>
+    <comment>Show video</comment>
   </data>
   <data name="ShowingMeetingsInTheNext7DaysTheListUpdatesAutomatically" xml:space="preserve">
     <value>Đang hiển thị các cuộc họp trong 7 ngày tới. Danh sách tự động cập nhật.</value>

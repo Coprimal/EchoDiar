@@ -160,17 +160,13 @@ struct TranscriptView: View {
                     PlaybackTime(playback: playback).fixedSize()
                 }
             }
-            // Up to three speaker chips, fewer when the row is short; "+N" lists the others. A column too narrow for
-            // one row even without chips (a video's buttons beside the AI panel) wraps it in two.
+            // One row, never wrapped: up to three speaker chips, fewer when the row is short ("+N" lists the others),
+            // then Re-transcribe and Summarize as icons with a tooltip.
             // One `ForEach` over distinct variants: two `ForEach`s with the same ids in one `ViewThatFits` trap in
             // SwiftUI's size fitting once it measures again (a Summary/Chat switch crashed the app).
             ViewThatFits(in: .horizontal) {
                 ForEach(rowVariants, id: \.self) { variant in
-                    if variant.wrapped {
-                        wrappedControlRows(chips: variant.chips)
-                    } else {
-                        controlRow(chips: variant.chips)
-                    }
+                    controlRow(chips: variant.chips, compact: variant.compact)
                 }
             }
         }
@@ -221,30 +217,15 @@ struct TranscriptView: View {
         .font(.caption)
     }
 
-    /// The transport first, then Re-transcribe and Summarize, the other buttons, and the speaker chips at the trailing
-    /// edge.
-    private func controlRow(chips: Int) -> some View {
+    /// The transport first, then Re-transcribe and Summarize (icons only when `compact`), the other buttons, and the
+    /// speaker chips at the trailing edge.
+    private func controlRow(chips: Int, compact: Bool) -> some View {
         HStack(spacing: 8) {
             playbackControls
-            primaryActions
+            primaryActions(compact: compact)
             secondaryActions
             Spacer(minLength: 8)
             speakerChips(chips)
-        }
-    }
-
-    /// `controlRow` in two rows: the transport, Re-transcribe and Summarize, then the other buttons and the chips.
-    private func wrappedControlRows(chips: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                playbackControls
-                primaryActions
-            }
-            HStack(spacing: 8) {
-                secondaryActions
-                Spacer(minLength: 8)
-                speakerChips(chips)
-            }
         }
     }
 
@@ -269,43 +250,18 @@ struct TranscriptView: View {
         }
     }
 
-    /// Where the video shows: above the transcript or not at all; saved in the settings. A menu whose button shows the
-    /// current layout's icon.
-    private var layoutSwitch: some View {
-        let current = model.settings.transcriptVideoLayout
-        return Menu {
-            ForEach(TranscriptVideoLayout.allCases, id: \.self) { layout in
-                Toggle(isOn: Binding(
-                    get: { layout == current },
-                    set: { if $0 { model.updateSettings { $0.transcriptVideoLayout = layout } } }
-                )) {
-                    Label(Self.layoutName(layout), systemImage: Self.layoutIcon(layout))
-                }
-            }
+    /// Shows or hides the video pane above the transcript (it only does that); saved in the settings.
+    private var videoToggle: some View {
+        let shown = model.settings.transcriptVideoLayout != .hidden
+        return Button {
+            model.updateSettings { $0.transcriptVideoLayout = shown ? .hidden : .stacked }
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: Self.layoutIcon(current))
-                MenuChevron()
-            }
-            .accessibilityLabel(Self.layoutName(current))
+            Label(shown ? "Hide video" : "Show video", systemImage: shown ? "video.fill" : "video.slash")
+                .labelStyle(.iconOnly)
         }
-        // As tall as the row's other buttons (Export video, Delete video, Copy).
-        .modifier(CompactMenu(maxWidth: nil, height: BottomBarButtonStyle.height, horizontalPadding: 10))
-        .help("Video layout")
-    }
-
-    private static func layoutIcon(_ layout: TranscriptVideoLayout) -> String {
-        switch layout {
-        case .stacked: "rectangle.split.1x2"
-        case .hidden: "video.slash"
-        }
-    }
-
-    private static func layoutName(_ layout: TranscriptVideoLayout) -> LocalizedStringKey {
-        switch layout {
-        case .stacked: "Video on top"
-        case .hidden: "Hide video"
-        }
+        .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
+        .help(shown ? "Hide video" : "Show video")
+        .accessibilityValue(shown ? Text("On") : Text("Off"))
     }
 
     /// The chip counts `controlRow` tries, most first: 3, 2, 1, 0 (fewer when there are fewer speakers).
@@ -315,22 +271,23 @@ struct TranscriptView: View {
 
     private static let maxSpeakerChips = 3
 
-    /// A layout `ViewThatFits` tries for the control row: on one row or wrapped in two, with `chips` speaker chips.
+    /// A layout `ViewThatFits` tries for the control row: `chips` speaker chips, Re-transcribe and Summarize as icons
+    /// when `compact`.
     private struct RowVariant: Hashable {
-        let wrapped: Bool
+        let compact: Bool
         let chips: Int
     }
 
-    /// One row with 3, 2, 1, then 0 chips, then the same counts wrapped in two rows.
+    /// With the buttons' titles and 3, 2, 1, then 0 chips, then the same counts with the buttons as icons.
     private var rowVariants: [RowVariant] {
-        chipCounts.map { RowVariant(wrapped: false, chips: $0) } + chipCounts.map { RowVariant(wrapped: true, chips: $0) }
+        chipCounts.map { RowVariant(compact: false, chips: $0) } + chipCounts.map { RowVariant(compact: true, chips: $0) }
     }
 
-    /// The video layout menu, Export video and Delete video (with a video), and Copy, all round.
+    /// The video toggle, Export video and Delete video (with a video), and Copy, all round.
     private var secondaryActions: some View {
         HStack(spacing: 6) {
             if videoClip != nil {
-                layoutSwitch
+                videoToggle
                 exportVideoButton
                 deleteVideoButton
             }
@@ -345,19 +302,22 @@ struct TranscriptView: View {
     }
 
     /// Re-transcribe and Summarize, in the accent color like Send; a spinner and "Transcribing…" in Re-transcribe's
-    /// place while a job is queued or runs, with Stop (round) beside it ("Stopping…" once clicked).
-    private var primaryActions: some View {
+    /// place while a job is queued or runs, with Stop (round) beside it ("Stopping…" once clicked). `compact`: their
+    /// icons (or the spinner) only, the title in the tooltip.
+    private func primaryActions(compact: Bool) -> some View {
         HStack(spacing: 6) {
             if model.isTranscribing(conversation.id) {
                 let stopping = model.stoppingTranscriptions.contains(conversation.id)
+                let status: LocalizedStringKey = stopping ? "Stopping…" : "Transcribing…"
                 Button {} label: {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
-                        if stopping { Text("Stopping…") } else { Text("Transcribing…") }
+                        if !compact { Text(status) }
                     }
                 }
-                .buttonStyle(BottomBarButtonStyle(prominent: true))
-                .allowsHitTesting(false)
+                .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 14))
+                .help(Text(status))
+                .accessibilityLabel(Text(status))
                 .fixedSize()
                 if stopping || model.canStopTranscription(conversation.id) {
                     Button { model.stopTranscription(conversation.id) } label: {
@@ -369,9 +329,9 @@ struct TranscriptView: View {
                     .disabled(stopping)
                 }
             } else {
-                retranscribeMenu
+                retranscribeMenu(compact: compact)
             }
-            if transcript?.segments.isEmpty == false { summaryButton }
+            if transcript?.segments.isEmpty == false { summaryButton(compact: compact) }
         }
     }
 
@@ -405,21 +365,30 @@ struct TranscriptView: View {
     /// Shows the AI panel's Summary tab, and starts a summary when there is none yet and the panel could start one; a
     /// spinner and "Summarizing…" in its place while this conversation's summary is written.
     @ViewBuilder
-    private var summaryButton: some View {
+    private func summaryButton(compact: Bool) -> some View {
         if model.aiJobs.entry(for: conversation.id)?.kind == .summary {
             Button {} label: {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Summarizing…")
+                    if !compact { Text("Summarizing…") }
                 }
             }
-            .buttonStyle(BottomBarButtonStyle(prominent: true))
-            .allowsHitTesting(false)
+            .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 14))
+            .help("Summarizing…")
+            .accessibilityLabel("Summarizing…")
             .fixedSize()
         } else {
-            Button(conversation.hasSummary ? "Summary" : "Summarize", action: summarize)
-                .buttonStyle(BottomBarButtonStyle(prominent: true))
-                .fixedSize()
+            let title: LocalizedStringKey = conversation.hasSummary ? "Summary" : "Summarize"
+            Button(action: summarize) {
+                if compact {
+                    Label(title, systemImage: "text.append").labelStyle(.iconOnly)
+                } else {
+                    Text(title)
+                }
+            }
+            .buttonStyle(BottomBarButtonStyle(prominent: true, horizontalPadding: compact ? 0 : 14))
+            .help(Text(title))
+            .fixedSize()
         }
     }
 
@@ -437,7 +406,7 @@ struct TranscriptView: View {
 
     /// Installed batch ASR models and configured cloud engines; picking one transcribes the conversation again with
     /// it, in the language picked below them.
-    private var retranscribeMenu: some View {
+    private func retranscribeMenu(compact: Bool) -> some View {
         Menu {
             EngineMenuItems(title: "Transcribe again with", model: model) { engineID in
                 let language = retranscribeLanguage.isEmpty ? nil : retranscribeLanguage
@@ -448,7 +417,12 @@ struct TranscriptView: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Text("Re-transcribe")
+                if compact {
+                    Image(systemName: "arrow.clockwise")
+                        .accessibilityLabel("Re-transcribe")
+                } else {
+                    Text("Re-transcribe")
+                }
                 MenuChevron()
             }
         }
