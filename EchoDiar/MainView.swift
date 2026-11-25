@@ -254,15 +254,15 @@ struct MainView: View {
         }
     }
 
-    @ViewBuilder private var toolbarLogo: some View {
-        if let logo = AboutInfo.logo {
-            Image(nsImage: logo)
-                .resizable()
-                .interpolation(.high)
-                // As tall as the buttons' capsules (36 pt).
-                .frame(width: 36, height: 36)
-                .accessibilityHidden(true)
-        }
+    /// The app icon, not `AboutInfo.logo`: macOS draws it from `logo.icon` at the exact size, with smooth edges,
+    /// where the 512 px PNG scaled down to 36 pt looked jagged.
+    private var toolbarLogo: some View {
+        Image(nsImage: NSApp.applicationIconImage)
+            .resizable()
+            // The icon's own margin leaves a ~32 pt squircle, a little smaller than the 36 pt capsules.
+            .frame(width: 38, height: 38)
+            .padding(.trailing, 6)
+            .accessibilityHidden(true)
     }
 
     /// On macOS 26, a regular item declared first, before the flexible spacer, still at the leading edge (no
