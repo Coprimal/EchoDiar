@@ -266,15 +266,18 @@ struct MainView: View {
             // Filled while the screen is recorded; off, it opens the source chooser on itself, whose pick turns it on.
             let screen = model.screenRecording
             let screenOn = screen.isOn
+            let screenDisabled = !screenOn && (paused || !screen.canStartDuringRecording)
             Button(action: model.toggleScreenRecording) {
                 Label {
                     Text(screenOn ? "Stop recording the screen" : "Record the screen")
                 } icon: {
+                    // A set style does not dim with the disabled button: dimmed here.
                     Image(systemName: screenOn ? "video.fill" : "video")
-                        .foregroundStyle(screenOn ? AnyShapeStyle(Palette.screenRecording) : AnyShapeStyle(.primary))
+                        .foregroundStyle(screenOn ? AnyShapeStyle(Palette.screenRecording)
+                                         : screenDisabled ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
                 }
             }
-            .disabled(!screenOn && (paused || !screen.canStartDuringRecording))
+            .disabled(screenDisabled)
             .help(screenOn ? "Stop recording the screen"
                   : !screen.canStartDuringRecording ? "The screen recording stopped on an error"
                   : paused ? "Resume the recording to record the screen" : "Record the screen from now on")
@@ -286,9 +289,10 @@ struct MainView: View {
                     Text(camera ? "Hide the camera bubble" : "Show the camera bubble")
                 } icon: {
                     Image(systemName: camera ? "web.camera.fill" : "web.camera")
-                        // Tinted only while it applies: a set colour would not dim with the disabled button.
-                        .foregroundStyle(camera && screenOn
-                                         ? AnyShapeStyle(Palette.screenRecording) : AnyShapeStyle(.primary))
+                        // Tinted only while it applies; a set style does not dim with the disabled button, so it is
+                        // dimmed here while the screen is not recorded.
+                        .foregroundStyle(!screenOn ? AnyShapeStyle(.tertiary)
+                                         : camera ? AnyShapeStyle(Palette.screenRecording) : AnyShapeStyle(.primary))
                 }
             }
             .disabled(!screenOn)
