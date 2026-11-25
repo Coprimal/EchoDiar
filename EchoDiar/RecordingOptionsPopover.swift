@@ -24,7 +24,8 @@ struct RecordingOptionsPopover: View {
             }
         }
         .padding(14)
-        .frame(width: 280, alignment: .leading)
+        // As wide as its widest row.
+        .fixedSize()
     }
 
     private func section(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {

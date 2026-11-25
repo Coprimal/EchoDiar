@@ -240,25 +240,43 @@ struct TranscriptView: View {
         }
     }
 
-    /// Where the video shows: left of the transcript, above it, or not at all; saved in the settings.
+    /// Where the video shows: left of the transcript, above it, or not at all; saved in the settings. A menu whose
+    /// button shows the current layout's icon, as compact as the version menu.
     private var layoutSwitch: some View {
-        CapsuleTabs(
-            selection: Binding(
-                get: { model.settings.transcriptVideoLayout },
-                set: { layout in model.updateSettings { $0.transcriptVideoLayout = layout } }),
-            tabs: TranscriptVideoLayout.allCases,
-            title: Self.layoutTitle,
-            drawsTrack: true,
-            trackFill: Palette.inputSurface)
-        .fixedSize()
+        let current = model.settings.transcriptVideoLayout
+        return Menu {
+            ForEach(TranscriptVideoLayout.allCases, id: \.self) { layout in
+                Toggle(isOn: Binding(
+                    get: { layout == current },
+                    set: { if $0 { model.updateSettings { $0.transcriptVideoLayout = layout } } }
+                )) {
+                    Label(Self.layoutName(layout), systemImage: Self.layoutIcon(layout))
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: Self.layoutIcon(current))
+                MenuChevron()
+            }
+            .accessibilityLabel(Self.layoutName(current))
+        }
+        .modifier(CompactMenu(maxWidth: nil, height: Self.versionMenuHeight))
         .help("Video layout")
     }
 
-    private static func layoutTitle(_ layout: TranscriptVideoLayout) -> Text {
+    private static func layoutIcon(_ layout: TranscriptVideoLayout) -> String {
         switch layout {
-        case .sideBySide: Text(Image(systemName: "rectangle.split.2x1")).accessibilityLabel("Video on the left")
-        case .stacked: Text(Image(systemName: "rectangle.split.1x2")).accessibilityLabel("Video on top")
-        case .hidden: Text(Image(systemName: "video.slash")).accessibilityLabel("Hide video")
+        case .sideBySide: "rectangle.split.2x1"
+        case .stacked: "rectangle.split.1x2"
+        case .hidden: "video.slash"
+        }
+    }
+
+    private static func layoutName(_ layout: TranscriptVideoLayout) -> LocalizedStringKey {
+        switch layout {
+        case .sideBySide: "Video on the left"
+        case .stacked: "Video on top"
+        case .hidden: "Hide video"
         }
     }
 
@@ -619,15 +637,9 @@ struct TranscriptView: View {
         if showsVideoPane {
             let pane = VideoPaneView(playback: playback, clip: videoClip, conversationID: conversation.id)
             if model.settings.transcriptVideoLayout == .stacked {
-                VSplitView {
-                    pane.frame(minHeight: 120, idealHeight: 320).padding(.bottom, 5)
-                    main().frame(minHeight: 160, idealHeight: 320).padding(.top, 5)
-                }
+                PaneSplit(vertical: true, firstMinimum: 120, secondMinimum: 160) { pane } second: { main() }
             } else {
-                HSplitView {
-                    pane.frame(minWidth: 200, idealWidth: 480).padding(.trailing, 5)
-                    main().frame(minWidth: 260, idealWidth: 480).padding(.leading, 5)
-                }
+                PaneSplit(vertical: false, firstMinimum: 200, secondMinimum: 260) { pane } second: { main() }
             }
         } else {
             main()
@@ -906,5 +918,52 @@ private struct SpeakerChipShape: ViewModifier {
             .frame(height: BottomBarButtonStyle.height)
             .background(Palette.hoverFill, in: Capsule())
             .contentShape(Capsule())
+    }
+}
+
+/// The video pane and the transcript side by side or stacked, split half and half at first, with a 10 pt gap between
+/// the two cards that drags to resize them (a resize pointer over it). No divider line: unlike `HSplitView` and
+/// `VSplitView`, whose divider cannot be hidden, the cards' own edges separate them.
+private struct PaneSplit<First: View, Second: View>: View {
+    let vertical: Bool
+    let firstMinimum: CGFloat
+    let secondMinimum: CGFloat
+    @ViewBuilder let first: First
+    @ViewBuilder let second: Second
+    /// The first pane's share of the space without the gap.
+    @State private var fraction: CGFloat = 0.5
+    /// The first pane's length when the drag began.
+    @State private var dragStart: CGFloat?
+
+    private static var gap: CGFloat { 10 }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let total = max((vertical ? geometry.size.height : geometry.size.width) - Self.gap, 0)
+            let length = clamped(total * fraction, total: total)
+            let layout = vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
+            layout {
+                first.frame(width: vertical ? nil : length, height: vertical ? length : nil)
+                Color.clear
+                    .frame(width: vertical ? nil : Self.gap, height: vertical ? Self.gap : nil)
+                    .contentShape(Rectangle())
+                    .pointerStyle(vertical ? .rowResize : .columnResize)
+                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { drag in
+                            let start = dragStart ?? length
+                            if dragStart == nil { dragStart = start }
+                            let moved = vertical ? drag.translation.height : drag.translation.width
+                            if total > 0 { fraction = clamped(start + moved, total: total) / total }
+                        }
+                        .onEnded { _ in dragStart = nil })
+                second.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    /// `length` kept between the two minimums; half and half when the space is too small for both.
+    private func clamped(_ length: CGFloat, total: CGFloat) -> CGFloat {
+        guard total >= firstMinimum + secondMinimum else { return total / 2 }
+        return min(max(length, firstMinimum), total - secondMinimum)
     }
 }
