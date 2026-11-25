@@ -5,10 +5,10 @@ import EchoScreen
 import Foundation
 import Observation
 
-/// The screen video of the current recording: the armed source (memory only), the video's state and its
-/// `ScreenRecorder`. `AppModel` calls it when the recording starts, pauses, resumes and ends; a video that ends early
-/// never stops the audio. It only coordinates: shareable content, the writer and the stream run in `ScreenRecorder`,
-/// off the main thread.
+/// The screen video of the current recording: the source chooser's request, the video's state, its `ScreenRecorder`
+/// and the outline around what it records. `AppModel` calls it when the recording starts, pauses, resumes and ends; a
+/// video that ends early never stops the audio. It only coordinates: shareable content, the writer and the stream run
+/// in `ScreenRecorder`, off the main thread.
 @MainActor
 @Observable
 final class ScreenRecordingController {
@@ -30,31 +30,33 @@ final class ScreenRecordingController {
         var finishError: String?
     }
 
-    /// What the next recording started with Record also captures; nil = sound only. Memory only, and cleared once any
-    /// recording starts: each recording is armed explicitly (a display or an area stays remembered in the
-    /// settings' `screenSource` for a one-click re-arm).
-    var armedSource: ScreenSource?
-    /// The armed source's name (a display's, a window's title) for the screen control's tooltip; nil when unknown.
-    private(set) var armedName: String?
+    /// Which control the screen source chooser opens from: the toolbar's Record (a new recording) or the recording
+    /// header's screen control (the running recording).
+    enum ChooserRequest: Equatable {
+        case newRecording, duringRecording
+    }
+
     private(set) var state = State.off
     /// Shown on the recording when its video ended early; nil = nothing to say.
     private(set) var notice: String?
     /// The screen toggle switched the video off during the current recording: no other video starts in it (one video
     /// span per recording). Cleared when the recording ends.
     private(set) var stoppedEarly = false
-    /// The screen toggle found no source to start: the recording header's screen control opens the source popover and
-    /// clears it.
-    var sourcePickerRequested = false
+    /// The source chooser should open from its control, which clears it once the main window shows. Cleared when a
+    /// recording starts or ends, and when the main window closes, so a stale request never opens it later.
+    var chooserRequest: ChooserRequest?
     /// The current video's source, from `start` until the video ends or is finished; nil without a video.
     private(set) var videoSource: ScreenSource?
 
     @ObservationIgnored private let engine: RecordingEngine
     /// The current recording's video, from `start` until `finish(at:)` or until it ends early (`end(_:)`).
     @ObservationIgnored private var recorder: ScreenRecorder?
-    /// The outline around the current recording's area, while its video runs.
-    @ObservationIgnored private var outline: AreaOutlineWindow?
-    /// "Select area…"'s overlays while they are shown.
+    /// The outline around what the current video records, from `start` until the video ends; shown while it records.
+    @ObservationIgnored private var outline: RecordingOutline?
+    /// "Portion of the screen"'s selection overlays while they are shown.
     @ObservationIgnored private var areaSelection: AreaSelectionOverlay?
+    /// "Entire screen" (several displays) and "Window"'s picking overlays while they are shown.
+    @ObservationIgnored private var screenPicker: ScreenPickerOverlay?
     @ObservationIgnored private var videoURL: URL?
     /// The recording is paused (asked while the video was starting or running).
     @ObservationIgnored private var paused = false
@@ -68,13 +70,19 @@ final class ScreenRecordingController {
     /// announced to `session.json`.
     @ObservationIgnored private var endedRecorder: ScreenRecorder?
     /// The current video's camera bubble and key stroke options (from the settings at its start, or changed in the
-    /// source popover while it runs).
+    /// chevron menu or Settings while it runs).
     @ObservationIgnored private var showsCamera = false
+    @ObservationIgnored private var blursCamera = false
     @ObservationIgnored private var showsKeyStrokes = false
     @ObservationIgnored private var showsAllKeys = false
     /// Made on first use, so nothing is created while both options are off.
     @ObservationIgnored private var cameraBubble: CameraBubbleController?
     @ObservationIgnored private var keyStrokes: KeyStrokeHUDController?
+    /// A window video's display and its crop of the window there (display-local points, top-left origin), from its
+    /// start; both follow the window (`followWindow`), also to another display, and place the overlays.
+    @ObservationIgnored private var windowPlace: (display: CGDirectDisplayID, crop: CGRect)?
+    /// Reads a window video's window place every 250 ms, from its start until the video ends.
+    @ObservationIgnored private var following: Task<Void, Never>?
 
     init(engine: RecordingEngine) {
         self.engine = engine
@@ -92,21 +100,17 @@ final class ScreenRecordingController {
     /// recording: it may start late and stop early, never restart).
     var canStartDuringRecording: Bool { state == .off && !stoppedEarly }
 
-    /// The screen toggle switched on during the recording the engine runs in `folder` (not paused): starts the armed
-    /// source, else the remembered display or area while its display is online, on the audio file's clock, so its
-    /// first frame lands at its real file time. Returns false, starting nothing, when there is no such source or no
-    /// screen permission (the source popover then asks), so a start that cannot work never takes the recording's one
+    /// A source picked in the chooser during the recording the engine runs in `folder` (not paused): starts it on the
+    /// audio file's clock, so its first frame lands at its real file time. Starts nothing without the screen permission
+    /// or when a display or an area's display is gone, so a start that cannot work never takes the recording's one
     /// video span.
     func startDuringRecording(
-        folder: URL, settings: AppSettings, skipsTranscription: Bool, excludingWindowIDs: [CGWindowID]
-    ) -> Bool {
-        guard canStartDuringRecording else { return true }
-        guard CGPreflightScreenCaptureAccess(),
-              let source = armedSource ?? settings.screenSource.map(Self.source),
-              Self.isOnline(source) else { return false }
+        _ source: ScreenSource, folder: URL, settings: AppSettings, skipsTranscription: Bool,
+        excludingWindowIDs: [CGWindowID]
+    ) {
+        guard canStartDuringRecording, CGPreflightScreenCaptureAccess(), Self.isOnline(source) else { return }
         start(source: source, folder: folder, settings: settings, skipsTranscription: skipsTranscription,
               excludingWindowIDs: excludingWindowIDs)
-        return true
     }
 
     /// The screen toggle switched off during the recording: finishes the video at `fileTime`, the audio file's current
@@ -121,53 +125,40 @@ final class ScreenRecordingController {
         stoppedEarly = true
     }
 
-    /// Arms `source` for the next recording started with Record; nil = sound only. Returns what the settings'
-    /// `screenSource` remembers: a display or an area. Every source is armed for the next recording only; a window is
-    /// not remembered (its ID does not survive), so nil.
-    @discardableResult
-    func arm(_ source: ScreenSource?, name: String? = nil) -> RememberedScreenSource? {
-        armedSource = source
-        armedName = source == nil ? nil : name
-        return source.flatMap(Self.remembered)
-    }
-
-    /// "Select area…" in the source popover: shows the selection overlays at once (one per screen). A confirmed area is
-    /// armed and handed to `onSelect` with what the settings remember; Esc arms nothing.
-    func selectArea(onSelect: @escaping (RememberedScreenSource) -> Void) {
-        guard areaSelection == nil else { return }
+    /// "Portion of the screen" in the chooser: shows the selection overlays at once (one per screen). A confirmed area
+    /// is handed to `onSelect`; Esc selects nothing.
+    func selectArea(onSelect: @escaping (ScreenSource) -> Void) {
+        guard areaSelection == nil, screenPicker == nil else { return }
         let overlay = AreaSelectionOverlay { [weak self] source in
-            guard let self else { return }
-            areaSelection = nil
-            guard let source, let remembered = arm(source, name: String(localized: "the selected area")) else { return }
-            onSelect(remembered)
+            self?.areaSelection = nil
+            if let source { onSelect(source) }
         }
         areaSelection = overlay
         overlay.show()
     }
 
-    static func remembered(_ source: ScreenSource) -> RememberedScreenSource? {
-        switch source {
-        case .display(let id): RememberedScreenSource(displayID: id)
-        case .area(let id, let rect): RememberedScreenSource(displayID: id, area: rect)
-        case .window: nil
+    /// "Entire screen" with several displays or "Window" in the chooser: shows the picking overlays at once (one per
+    /// screen). The display or window clicked is handed to `onSelect`; Esc picks nothing.
+    func pickSource(_ mode: ScreenPickerOverlay.Mode, onSelect: @escaping (ScreenSource) -> Void) {
+        guard areaSelection == nil, screenPicker == nil else { return }
+        let overlay = ScreenPickerOverlay(mode: mode) { [weak self] source in
+            self?.screenPicker = nil
+            if let source { onSelect(source) }
         }
-    }
-
-    static func source(_ remembered: RememberedScreenSource) -> ScreenSource {
-        if let area = remembered.area { .area(display: remembered.displayID, rect: area) } else { .display(remembered.displayID) }
+        screenPicker = overlay
+        overlay.show()
     }
 
     /// Starts the video of the recording the engine just started in `folder`, on the audio file's clock; it is added
     /// to `session.json` at its first frame. `excludingWindowIDs` (EchoDiar's own windows) applies to display and area
-    /// sources, plus the area's outline and any area selection overlay shown. Disarms `source` when it is the armed
-    /// one. No-op when a video already runs or the engine stopped meanwhile (its end was handled without one).
+    /// sources, plus the outline and any area selection overlay shown. A window video lets only the window and the
+    /// camera bubble and key stroke HUD into the picture: they show from its start, so the filter can include them.
+    /// No-op when a video already runs or the engine stopped meanwhile (its end was handled without one).
     func start(
         source: ScreenSource, folder: URL, settings: AppSettings, skipsTranscription: Bool,
         excludingWindowIDs: [CGWindowID]
     ) {
         guard recorder == nil, engine.currentSnapshot().state != .idle else { return }
-        // Each recording is armed explicitly.
-        if armedSource == source { arm(nil) }
         let recorder = ScreenRecorder()
         let url = folder.appendingPathComponent(ScreenSource.videoFileName)
         self.recorder = recorder
@@ -178,11 +169,16 @@ final class ScreenRecordingController {
         state = .starting
         self.skipsTranscription = skipsTranscription
         videoSource = source
+        // Before the capture filter is built (once, reused on resume): its window ID is left out of the picture, so
+        // the same window is only hidden and shown again until the video ends.
+        outline = RecordingOutline(source: source)
+        if case .window(let id) = source { windowPlace = Self.windowPlace(id) }
         setOverlays(settings)
         let engine = engine
-        if case .area(let display, let rect) = source { outline = AreaOutlineWindow(display: display, rect: rect) }
         let ownWindowIDs = [outline?.windowID].compactMap { $0 } + (areaSelection?.windowIDs ?? [])
+            + (screenPicker?.windowIDs ?? [])
         let excluded: [CGWindowID] = if case .window = source { [] } else { excludingWindowIDs + ownWindowIDs }
+        let included: [CGWindowID] = if case .window = source { overlayWindowIDs } else { [] }
         let video = RecordingSession.Video(
             fileName: ScreenSource.videoFileName, source: Self.kind(of: source), fps: settings.screenFPS,
             quality: settings.screenQuality, width: 0, height: 0)
@@ -198,7 +194,8 @@ final class ScreenRecordingController {
                 try await recorder.start(
                     source: source, fps: settings.screenFPS, quality: settings.screenQuality,
                     showsCursor: settings.screenShowsCursor, showsClicks: settings.screenShowsClicks, url: url,
-                    excludingWindowIDs: excluded, minimumFreeBytes: RecordingEngine.lowDiskBytes,
+                    excludingWindowIDs: excluded, includingWindowIDs: included,
+                    minimumFreeBytes: RecordingEngine.lowDiskBytes,
                     clock: { engine.fileTime(atHostTime: $0) })
             } catch {
                 // A `finish(at:)` during the start took the recorder: nothing to say.
@@ -210,6 +207,7 @@ final class ScreenRecordingController {
             guard let self, self.recorder === recorder, state == .starting else { return }
             state = paused ? .paused : .recording
             syncOverlays()
+            if case .window(let id) = source { follow(id, of: recorder) }
             await announce(video, source: source, of: recorder)
         }
     }
@@ -243,7 +241,7 @@ final class ScreenRecordingController {
     /// audio file's length, so both end together; nil when the recording had no video. A file without any frame is
     /// removed. A video switched off or ended earlier in the recording returns its own finishing task.
     func finish(at fileTime: Double) -> Task<Outcome, Never>? {
-        sourcePickerRequested = false
+        chooserRequest = nil
         let reason = endReason
         paused = false
         endReason = nil
@@ -262,41 +260,63 @@ final class ScreenRecordingController {
         self.recorder = nil
         videoURL = nil
         removeOutline()
+        stopFollowing()
         return Self.close(recorder, url: url, at: fileTime, reason: reason)
     }
 
-    /// The camera bubble and key presses options changed in the source popover: applies them to the running video.
+    /// The camera bubble and key presses options changed in the chevron menu or Settings: applies them to the running
+    /// video.
     func setOverlays(_ settings: AppSettings) {
         showsCamera = settings.screenCamera
+        blursCamera = settings.screenCameraBlur
         showsKeyStrokes = settings.screenKeyStrokes
         showsAllKeys = settings.screenAllKeys
         syncOverlays()
     }
 
-    /// Hides the camera bubble and the key stroke HUD (removes the event tap, releases the camera). Called when the app
-    /// quits.
+    /// Hides the camera bubble and the key stroke HUD (removes the event tap, releases the camera) and removes the
+    /// outline. Called when the app quits.
     func hideOverlays() {
         cameraBubble?.hide()
         keyStrokes?.hide()
+        removeOutline()
+        stopFollowing()
     }
 
     // MARK: - Private
 
     /// Shows the camera bubble and the key stroke HUD whose option is on while a display or area video records (not
     /// paused), inside the recorded display or area so they are in the picture (they are not in the capture filter's
-    /// excluded windows); hides them in every other state. Their `show` does nothing without their permission.
+    /// excluded windows), and while a window video starts or records (not paused), inside the window's crop, where
+    /// the window's filter lets them in (`updateIncludedWindows` for one shown after the start); hides them in every
+    /// other state. Their `show` does nothing without their permission. The outline shows while the video starts or
+    /// records, not while paused.
     private func syncOverlays() {
+        let running = state == .recording || (state == .starting && !paused)
+        outline?.setVisible(running)
         var place: (display: CGDirectDisplayID, area: CGRect?)?
-        if state == .recording {
-            switch videoSource {
-            case .display(let id): place = (id, nil)
-            case .area(let id, let rect): place = (id, rect)
-            case .window, nil: place = nil
-            }
+        switch videoSource {
+        case .display(let id) where state == .recording: place = (id, nil)
+        case .area(let id, let rect) where state == .recording: place = (id, rect)
+        case .window where running: place = windowPlace.map { ($0.display, $0.crop) }
+        default: place = nil
         }
+        #if DEBUG
+        let kind = switch videoSource {
+        case .display: "display"
+        case .area: "area"
+        case .window: "window"
+        case nil: "none"
+        }
+        let why = place == nil ? "no place: not recording this source" : showsKeyStrokes ? "option on" : "option off"
+        KeyStrokeHUDController.debugLog("""
+            syncOverlays state=\(state) paused=\(paused) source=\(kind) keyStrokes=\(showsKeyStrokes) \
+            allKeys=\(showsAllKeys) -> \(place != nil && showsKeyStrokes ? "show" : "hide") (\(why))
+            """)
+        #endif
         if let place, showsCamera {
             if cameraBubble == nil { cameraBubble = CameraBubbleController() }
-            cameraBubble?.show(on: place.display, within: place.area)
+            cameraBubble?.show(on: place.display, within: place.area, blur: blursCamera)
         } else {
             cameraBubble?.hide()
         }
@@ -306,6 +326,58 @@ final class ScreenRecordingController {
         } else {
             keyStrokes?.hide()
         }
+        // In `.starting` the start's filter takes them; the recorder ignores windows it already has.
+        if case .window = videoSource, state == .recording, let recorder, !overlayWindowIDs.isEmpty {
+            let ids = overlayWindowIDs
+            Task { await recorder.updateIncludedWindows(ids) }
+        }
+    }
+
+    /// The camera bubble's and the key stroke HUD's windows while they show.
+    private var overlayWindowIDs: [CGWindowID] {
+        [cameraBubble?.windowID, keyStrokes?.windowID].compactMap { $0 }
+    }
+
+    /// Follows a window video's window every 250 ms until the video ends: moves the stream to its new place, on its
+    /// display or another one, and the overlays with it. A closed window ends the video, as its stream did when it
+    /// captured the window alone.
+    private func follow(_ id: CGWindowID, of recorder: ScreenRecorder) {
+        following?.cancel()
+        following = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, self.recorder === recorder else { return }
+                await followWindow(id, of: recorder)
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+
+    /// Moves the stream to the window's place (`ScreenSource.windowPlace`): a new crop on the recorded display, or the
+    /// display its centre moved to with the crop there; the overlays follow onto that display. The place is kept only
+    /// once the recorder applied it, so a failed display switch is tried again on the next read. Keeps the last place
+    /// while the window is minimised, hidden, on another Space or on no display.
+    private func followWindow(_ id: CGWindowID, of recorder: ScreenRecorder) async {
+        guard let info = Self.windowInfo(id) else {
+            end(.streamStopped)
+            return
+        }
+        guard info.onScreen, let place = windowPlace else { return }
+        let displays = Self.activeDisplays()
+        guard let next = ScreenSource.windowPlace(
+            windowBounds: info.bounds, currentDisplay: displays.firstIndex(of: place.display),
+            displays: displays.map { CGDisplayBounds($0) }) else { return }
+        let display = displays[next.display], crop = next.crop
+        guard display != place.display || crop != place.crop,
+              await recorder.updateWindowPlace(display: display, crop: crop),
+              self.recorder === recorder, windowPlace != nil else { return }
+        windowPlace = (display, crop)
+        syncOverlays()
+    }
+
+    private func stopFollowing() {
+        following?.cancel()
+        following = nil
+        windowPlace = nil
     }
 
     private func ended(_ event: ScreenRecorder.EndEvent, of recorder: ScreenRecorder) {
@@ -327,6 +399,7 @@ final class ScreenRecordingController {
         videoSource = nil
         syncOverlays()
         removeOutline()
+        stopFollowing()
         let url = videoURL
         self.recorder = nil
         videoURL = nil
@@ -404,6 +477,33 @@ final class ScreenRecordingController {
         case .window: .window
         case .area: .area
         }
+    }
+
+    /// A window's display and its crop there, as `ScreenRecorder` picks them at the start; nil when the window is gone
+    /// or on no display.
+    nonisolated private static func windowPlace(_ id: CGWindowID) -> (display: CGDirectDisplayID, crop: CGRect)? {
+        guard let info = windowInfo(id) else { return nil }
+        let displays = activeDisplays()
+        guard let place = ScreenSource.windowPlace(
+            windowBounds: info.bounds, currentDisplay: nil, displays: displays.map { CGDisplayBounds($0) })
+        else { return nil }
+        return (displays[place.display], place.crop)
+    }
+
+    /// A window's bounds (CG global points, top-left origin) and whether it is on screen; nil when it is gone.
+    nonisolated private static func windowInfo(_ id: CGWindowID) -> (bounds: CGRect, onScreen: Bool)? {
+        guard let info = (CGWindowListCopyWindowInfo([.optionIncludingWindow], id) as? [[String: Any]])?.first,
+              let bounds = info[kCGWindowBounds as String] as? NSDictionary,
+              let frame = CGRect(dictionaryRepresentation: bounds) else { return nil }
+        return (frame, info[kCGWindowIsOnscreen as String] as? Bool == true)
+    }
+
+    nonisolated private static func activeDisplays() -> [CGDirectDisplayID] {
+        var count: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &count) == .success, count > 0 else { return [] }
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetActiveDisplayList(count, &displays, &count) == .success else { return [] }
+        return Array(displays.prefix(Int(count)))
     }
 
     /// The video's size in pixels as `ScreenRecorder` derives it: the source's size in points times its display's

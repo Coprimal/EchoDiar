@@ -154,7 +154,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var screenShowsClicks: Bool
     /// Transcribe screen recordings; false = "screen only": the next screen recording gets the "no transcript" mark.
     public var screenTranscribes: Bool
-    /// The display (and area) last picked for a screen recording; nil = none picked yet.
+    /// The display last picked for a screen recording, marked in the source chooser (older versions also kept an
+    /// area); nil = none picked yet.
     public var screenSource: RememberedScreenSource?
     /// Where the transcript shows a conversation's video.
     public var transcriptVideoLayout: TranscriptVideoLayout
@@ -164,6 +165,12 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var screenKeyStrokes: Bool
     /// Show every key in the keystroke HUD, including plain typing; off by default for privacy.
     public var screenAllKeys: Bool
+    /// Record starts a screen recording too: Record opens the screen source chooser first.
+    public var screenRecordingEnabled: Bool
+    /// Blur the background behind the person in the camera bubble (processed in memory, never stored).
+    public var screenCameraBlur: Bool
+    /// What the menu bar item shows next to its icon while a recording runs.
+    public var menuBarRecordingInfo: MenuBarRecordingInfo
 
     public static let defaultEmbeddingModelID = "mlx-qwen3-embedding-0.6b"
 
@@ -244,7 +251,10 @@ public struct AppSettings: Codable, Equatable, Sendable {
         transcriptVideoLayout: TranscriptVideoLayout = .sideBySide,
         screenCamera: Bool = false,
         screenKeyStrokes: Bool = false,
-        screenAllKeys: Bool = false
+        screenAllKeys: Bool = false,
+        screenRecordingEnabled: Bool = false,
+        screenCameraBlur: Bool = true,
+        menuBarRecordingInfo: MenuBarRecordingInfo = .fileSize
     ) {
         self.launchAtLogin = launchAtLogin
         self.defaultLanguage = defaultLanguage
@@ -323,6 +333,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.screenCamera = screenCamera
         self.screenKeyStrokes = screenKeyStrokes
         self.screenAllKeys = screenAllKeys
+        self.screenRecordingEnabled = screenRecordingEnabled
+        self.screenCameraBlur = screenCameraBlur
+        self.menuBarRecordingInfo = menuBarRecordingInfo
     }
 
     public static let autoDeleteDaysRange = 1...3650
@@ -356,7 +369,11 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case libraryPageSize
         case screenFPS, screenQuality, screenShowsCursor, screenShowsClicks, screenTranscribes, screenSource
         case transcriptVideoLayout
-        case screenCamera, screenKeyStrokes, screenAllKeys
+        case screenCamera, screenKeyStrokes, screenAllKeys, screenRecordingEnabled
+        case screenCameraBlur
+        // Stored under a new name: development builds wrote "menuBarRecordingInfo": "iconOnly" before the default
+        // became the file size, and that stale value must not stick.
+        case menuBarRecordingInfo = "menuBarRecordingDetail"
     }
 
     public init(from decoder: Decoder) throws {
@@ -456,6 +473,10 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenCamera = try container.decodeIfPresent(Bool.self, forKey: .screenCamera) ?? false
         screenKeyStrokes = try container.decodeIfPresent(Bool.self, forKey: .screenKeyStrokes) ?? false
         screenAllKeys = try container.decodeIfPresent(Bool.self, forKey: .screenAllKeys) ?? false
+        screenRecordingEnabled = try container.decodeIfPresent(Bool.self, forKey: .screenRecordingEnabled) ?? false
+        screenCameraBlur = try container.decodeIfPresent(Bool.self, forKey: .screenCameraBlur) ?? true
+        menuBarRecordingInfo =
+            try container.decodeIfPresent(MenuBarRecordingInfo.self, forKey: .menuBarRecordingInfo) ?? .fileSize
     }
 
     /// One-time move to "key saved = available" for cloud providers (settings only, no Keychain read). Every cloud
@@ -647,6 +668,21 @@ public enum TranscriptVideoLayout: String, Codable, Sendable, CaseIterable {
     /// An unrecognized raw value (written by another build) falls back to `sideBySide`, the default.
     public init(from decoder: Decoder) throws {
         self = TranscriptVideoLayout(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .sideBySide
+    }
+}
+
+/// What the menu bar item shows next to its icon while a recording runs.
+public enum MenuBarRecordingInfo: String, Codable, Sendable, CaseIterable {
+    /// The icon alone.
+    case iconOnly
+    /// The recording's elapsed time.
+    case elapsedTime
+    /// The size of the recording's files on disk so far.
+    case fileSize
+
+    /// An unrecognized raw value (written by another build) falls back to `fileSize`, the default.
+    public init(from decoder: Decoder) throws {
+        self = MenuBarRecordingInfo(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .fileSize
     }
 }
 

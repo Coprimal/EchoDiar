@@ -15,6 +15,10 @@ enum Palette {
     static let inputSurface = Color(red: 58 / 255, green: 58 / 255, blue: 60 / 255)
     /// The 1 pt edge of cards and panels.
     static let surfaceBorder = Color.white.opacity(0.08)
+    /// "The screen is being recorded": its glyphs and the Stop screen capsule, a muted red (#E05555), calmer than the
+    /// Record button's red. AppKit drawing (the outline around what is recorded, the screen picker) uses
+    /// `controlAccentColor`.
+    static let screenRecording = Color(red: 0.88, green: 0.33, blue: 0.33)
     /// The edge of a raised card: bright at the top, dim on the sides, a faint highlight at the bottom.
     static let raisedRim = LinearGradient(
         stops: [

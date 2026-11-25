@@ -43,6 +43,9 @@ struct SettingsStoreTests {
             #expect(!store.load().screenCamera)
             #expect(!store.load().screenKeyStrokes)
             #expect(!store.load().screenAllKeys)
+            #expect(!store.load().screenRecordingEnabled)
+            #expect(store.load().screenCameraBlur)
+            #expect(store.load().menuBarRecordingInfo == .fileSize)
             #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         }
     }
@@ -193,6 +196,25 @@ struct SettingsStoreTests {
     @Test func transcriptVideoLayoutStackedRoundTrips() throws {
         let data = try JSONEncoder().encode(AppSettings(transcriptVideoLayout: .stacked))
         #expect(try JSONDecoder().decode(AppSettings.self, from: data).transcriptVideoLayout == .stacked)
+    }
+
+    /// The menu bar shows the file size while recording unless the user picked the icon alone or the elapsed time.
+    @Test func menuBarRecordingInfoUnknownValueIsFileSize() throws {
+        let json = #"{"menuBarRecordingDetail":"bitrate"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.menuBarRecordingInfo == .fileSize)
+    }
+
+    /// Development builds wrote the old key with "iconOnly" before the default became the file size; it is ignored.
+    @Test func menuBarRecordingInfoIgnoresTheOldKey() throws {
+        let json = #"{"menuBarRecordingInfo":"iconOnly"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.menuBarRecordingInfo == .fileSize)
+    }
+
+    @Test func menuBarRecordingInfoIconOnlyRoundTrips() throws {
+        let data = try JSONEncoder().encode(AppSettings(menuBarRecordingInfo: .iconOnly))
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data).menuBarRecordingInfo == .iconOnly)
     }
 
     @Test func pillSizeLargeRoundTrips() throws {

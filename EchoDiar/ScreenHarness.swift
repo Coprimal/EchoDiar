@@ -37,7 +37,7 @@ extension AppModel {
 /// `--measure-screen <static|slides|scroll|meeting|video> --target window|display|area:x,y,w,h --seconds N
 /// --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps 15] [--quality 0.75] [--pause-at S] [--resume-at S]
 /// [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] [--any-display] [--via-model] [--no-transcribe]
-/// [--resize-at S]`
+/// [--no-system-audio] [--resize-at S]`
 ///
 /// Copies the stage page and the clip into `<out>/stage/`, shows the page on the built-in display (a titled 1440x900
 /// window for `window`; a borderless `.screenSaver` window covering the whole display for `display` and `area`, the
@@ -47,10 +47,11 @@ extension AppModel {
 /// `<out>/result.json` holds the numbers. `--seconds` counts from the moment the video started (the engine starts
 /// just before it); `--pause-at` and `--resume-at` count from there too and pause or resume both.
 /// `--stage-only` only shows the stage for `seconds` (printing `WINDOWID <n>`), for Screenshot baselines.
-/// `--via-model` records through the app's own path instead: the source armed on `AppModel.screenRecording`, Record
-/// (`toggleRecording`, not brought forward), `togglePause` and Stop, the engine on `<out>` as a probe session with no
-/// live transcriber and nothing finished after Stop (`AppModel.harnessRecordingRoot`); `--fps`, `--quality` and
-/// `--no-cursor` go through the settings, and `--no-transcribe` turns `screenTranscribes` off ("screen only").
+/// `--via-model` records through the app's own path instead: the source picked as in the screen source chooser
+/// (`AppModel.startPickedScreen`, not brought forward), `togglePause` and Stop, the engine on `<out>` as a probe
+/// session with no live transcriber and nothing finished after Stop (`AppModel.harnessRecordingRoot`); `--fps`,
+/// `--quality` and `--no-cursor` go through the settings, `--no-transcribe` turns `screenTranscribes` off ("screen
+/// only"), and `--no-system-audio` picks "No system audio" (`AppModel.systemAudioOff`: no tap, a silent system channel).
 /// `--resize-at S` (window target only) shrinks the stage window to `resizedSize`, top-left kept, on the same display,
 /// S seconds after the video started; `result.json` reports the actual time as `resizedAt` and the new frame.
 ///
@@ -160,6 +161,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     private let anyDisplay: Bool
     private let viaModel: Bool
     private let noTranscribe: Bool
+    private let noSystemAudio: Bool
     /// `playback`: the conversation folder to play.
     private var playbackFolder: URL?
     /// `export`: the conversation folder, the audio to take and the file to write.
@@ -200,7 +202,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         let usage = "usage: --measure-screen <static|slides|scroll|meeting|video> --target window|display|area:x,y,w,h "
             + "--seconds N --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps N] [--quality Q] "
             + "[--pause-at S] [--resume-at S] [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] "
-            + "[--any-display] [--via-model] [--no-transcribe] [--resize-at S] | --measure-screen preflight --out <dir> "
+            + "[--any-display] [--via-model] [--no-transcribe] [--no-system-audio] [--resize-at S] "
+            + "| --measure-screen preflight --out <dir> "
             + "--stage <page> --clip <mp4> | --measure-screen playback <folder> --seconds N --out <dir> "
             + "| --measure-screen export <folder> --audio both|mic|system|none --out <dir> --file <mp4>"
         // `isolatedDirectory` already exited 8 unless `--out` is a usable folder.
@@ -220,7 +223,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         anyDisplay = arguments.contains("--any-display")
         viaModel = arguments.contains("--via-model")
         noTranscribe = arguments.contains("--no-transcribe")
+        noSystemAudio = arguments.contains("--no-system-audio")
         if viaModel, noVideo || mov { Self.die(Code.failed, "error: --via-model records video.mp4: no --no-video or --mov") }
+        if noSystemAudio, !viaModel { Self.die(Code.failed, "error: --no-system-audio needs --via-model") }
         func number(_ flag: String) -> Double? {
             guard let text = Self.value(after: flag) else { return nil }
             guard let value = Double(text), value.isFinite, value >= 0 else { Self.die(Code.failed, "error: bad \(flag) \(text)") }
@@ -317,7 +322,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             "resumeAt": resumeAt ?? NSNull(), "noVideo": noVideo, "noCursor": noCursor, "syncMarks": syncMarks,
             "stageOnly": stageOnly, "videoFileName": noVideo ? NSNull() : videoFileName,
             "settingsDirectory": settingsDirectory.path, "clipPlaying": NSNull(), "viaModel": viaModel,
-            "noTranscribe": noTranscribe, "resizeAt": resizeAt ?? NSNull(), "resizedAt": NSNull(),
+            "noTranscribe": noTranscribe, "noSystemAudio": noSystemAudio, "resizeAt": resizeAt ?? NSNull(),
+            "resizedAt": NSNull(),
         ]
     }
 
@@ -474,9 +480,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         await finish(code, message)
     }
 
-    /// `--via-model`: the same run through `AppModel`. The source is armed, Record starts the engine (muted as soon
-    /// as it runs) and then the video; the timeline counts from the video running; pause and resume go through
-    /// `togglePause`.
+    /// `--via-model`: the same run through `AppModel`. The source is picked as in the chooser, which starts the engine
+    /// (muted as soon as it runs) and then the video; the timeline counts from the video running; pause and resume go
+    /// through `togglePause`.
     private func recordViaModel(displayID: CGDirectDisplayID, window: NSWindow) async {
         let engine = engine
         let source: ScreenSource = switch target {
@@ -491,10 +497,12 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             $0.screenShowsClicks = false
             $0.screenTranscribes = !noTranscribe
         }
+        // After the settings: `updateSettings` clears it while "Record the screen too" is off.
+        model.systemAudioOff = noSystemAudio
         model.harnessRecordingRoot = out
         model.harnessRecordingEnded = { [weak self] folder, video in self?.modelEnded = (folder, video) }
-        model.screenRecording.armedSource = source
-        model.toggleRecording(bringForward: false)
+        // The chooser's pick, made here: the same start as picking `source` after Record.
+        model.startPickedScreen(source, for: .newRecording, bringForward: false)
         guard await Self.wait(seconds: 15, until: { [model] in model.isRecording || model.recordingError != nil }),
               model.isRecording else {
             await finish(Code.failed, "error: the engine did not start: \(model.recordingError ?? "timeout")")

@@ -1,7 +1,7 @@
 import AppKit
 import EchoScreen
 
-/// "Select area…": one transparent borderless window per screen, shown at once. Dragging on a screen draws the
+/// "Portion of the screen": one transparent borderless window per screen, shown at once. Dragging on a screen draws the
 /// rectangle with its size in points; releasing confirms (drags under 64 × 64 points are ignored and the selection
 /// goes on), Esc or leaving EchoDiar cancels. The result is an `.area` source local to the display it was drawn on
 /// (`ScreenSource.displayLocal`). The windows are kept out of screen captures (`sharingType = .none`; a recording
@@ -51,6 +51,7 @@ final class AreaSelectionOverlay {
                 }
             }
             window.contentView = view
+            window.acceptsMouseMovedEvents = true
             windows.append(window)
         }
         NSApp.activate()
@@ -96,47 +97,6 @@ final class AreaSelectionOverlay {
     }
 }
 
-/// A thin outline just outside a recorded area, so the user sees what is captured. Its line lies outside the area
-/// (`sourceRect`), so it is never in the picture; it ignores the mouse and is kept out of screen captures.
-@MainActor
-final class AreaOutlineWindow {
-    private static let lineWidth: CGFloat = 2
-    private let window: NSWindow
-
-    /// Nil when the area's display is not connected.
-    init?(display: CGDirectDisplayID, rect: CGRect) {
-        let key = NSDeviceDescriptionKey("NSScreenNumber")
-        guard let screen = NSScreen.screens.first(where: {
-            ($0.deviceDescription[key] as? NSNumber)?.uint32Value == display
-        }) else { return nil }
-        // Display-local top-left points back to AppKit global coordinates, through this display's own frame.
-        let frame = screen.frame
-        let area = CGRect(x: frame.minX + rect.minX, y: frame.maxY - rect.maxY, width: rect.width, height: rect.height)
-        let outer = area.insetBy(dx: -Self.lineWidth, dy: -Self.lineWidth)
-        window = NSWindow(contentRect: outer, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.level = .statusBar
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
-        window.ignoresMouseEvents = true
-        window.isReleasedWhenClosed = false
-        window.sharingType = .none
-        window.contentView = AreaOutlineView(frame: CGRect(origin: .zero, size: outer.size), lineWidth: Self.lineWidth)
-        window.orderFrontRegardless()
-    }
-
-    /// The outline's window ID, for the capture filter to leave out.
-    var windowID: CGWindowID? {
-        window.windowNumber > 0 ? CGWindowID(window.windowNumber) : nil
-    }
-
-    func close() {
-        window.orderOut(nil)
-        window.close()
-    }
-}
-
 // MARK: - Private
 
 /// Borderless, yet takes the keyboard (Esc).
@@ -159,6 +119,21 @@ private final class AreaSelectionView: NSView {
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .crosshair)
     }
+
+    // Cursor rects work only in the key window: the overlays of the other screens set the crosshair themselves when
+    // the pointer enters or moves over them (always-active area), as the screen picker does.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(
+            rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(
+            rect: .zero, options: [.cursorUpdate, .activeInActiveApp, .inVisibleRect], owner: self))
+    }
+
+    override func cursorUpdate(with event: NSEvent) { NSCursor.crosshair.set() }
+    override func mouseEntered(with event: NSEvent) { NSCursor.crosshair.set() }
+    override func mouseMoved(with event: NSEvent) { NSCursor.crosshair.set() }
 
     func clearSelection() {
         guard origin != nil || selection != nil else { return }
@@ -241,24 +216,5 @@ private final class AreaSelectionView: NSView {
 
     private func clamped(_ point: CGPoint) -> CGPoint {
         CGPoint(x: min(max(point.x, bounds.minX), bounds.maxX), y: min(max(point.y, bounds.minY), bounds.maxY))
-    }
-}
-
-/// The outline's line, drawn in the band around the area (the window's inset edge), never over the area itself.
-private final class AreaOutlineView: NSView {
-    private let lineWidth: CGFloat
-
-    init(frame: CGRect, lineWidth: CGFloat) {
-        self.lineWidth = lineWidth
-        super.init(frame: frame)
-    }
-
-    required init?(coder: NSCoder) { nil }
-
-    override func draw(_ dirtyRect: NSRect) {
-        let path = NSBezierPath(rect: bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2))
-        path.lineWidth = lineWidth
-        NSColor.controlAccentColor.setStroke()
-        path.stroke()
     }
 }

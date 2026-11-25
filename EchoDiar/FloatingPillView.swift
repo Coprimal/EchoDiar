@@ -88,7 +88,7 @@ struct FloatingPillView: View {
             if model.screenRecording.isOn && !expanded {
                 Image(systemName: "rectangle.dashed.badge.record")
                     .font(.system(size: 11 * scale))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.screenRecording)
                     .accessibilityLabel("Screen recorded")
             }
             if expanded {
@@ -154,8 +154,8 @@ struct FloatingPillView: View {
         .buttonStyle(RowIconButtonStyle())
     }
 
-    /// Starts the armed or remembered screen source, or stops the video; not while paused, nor once this recording's
-    /// video ended (one video span per recording).
+    /// Opens the screen source chooser in the main window, whose pick starts the video, or stops the video; not while
+    /// paused, nor once this recording's video ended (one video span per recording).
     private func screenToggle(paused: Bool) -> some View {
         let screen = model.screenRecording
         let on = screen.isOn

@@ -83,6 +83,10 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
     private var ended = false
     private var lastBuffer: CMSampleBuffer?
     private var lastFileTime = CMTime.invalid
+    /// A window source: its window, the display it is cropped from now (`updateWindowPlace` switches it when the
+    /// window moves to another display; `resume()` restarts on it) and EchoDiar's overlay windows let into the picture
+    /// next to it.
+    private var windowCapture: (windowID: CGWindowID, display: SCDisplay, included: Set<CGWindowID>)?
 
     override public init() {
         (events, continuation) = AsyncStream.makeStream(of: EndEvent.self, bufferingPolicy: .bufferingNewest(4))
@@ -100,7 +104,12 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
     /// Creates the file at `url` (`.mov` extension: QuickTime, else MPEG-4) and starts capturing `source` at `fps`.
     /// Throws when free space of the output volume is under `minimumFreeBytes`, the source is gone, the writer refuses
     /// the settings or the stream cannot start; the file is then removed. `excludingWindowIDs` applies to display and
-    /// area sources. `clock` is called on the recorder's queue for every complete frame.
+    /// area sources. A window source records the window's display cropped to the window (`ScreenSource.windowCrop`),
+    /// with only that window and `includingWindowIDs` (EchoDiar's overlays) in the picture, at the window's size at
+    /// the start; `updateWindowPlace(display:crop:)` follows the window, also to another display, and
+    /// `updateIncludedWindows(_:)` adds overlays. Overlays
+    /// not listed in the shareable content yet are looked up once more. `clock` is called on the recorder's queue for
+    /// every complete frame.
     ///
     /// While `start` prepares (shareable content, writer), a `pause()` or `stop(at:)` is recorded and honored once the
     /// preparation is done: after a `pause()`, `start` returns with the recorder paused and no stream running
@@ -111,7 +120,8 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
     /// finishes it.
     public func start(
         source: ScreenSource, fps: Int, quality: Double, showsCursor: Bool, showsClicks: Bool, url: URL,
-        excludingWindowIDs: [CGWindowID] = [], minimumFreeBytes: Int64, clock: @escaping Clock
+        excludingWindowIDs: [CGWindowID] = [], includingWindowIDs: [CGWindowID] = [], minimumFreeBytes: Int64,
+        clock: @escaping Clock
     ) async throws {
         try onQueue {
             guard state == .idle else { throw ScreenRecorderError.invalidState }
@@ -123,8 +133,12 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
             if let available = Self.availableCapacity(at: folder), available < minimumFreeBytes {
                 throw ScreenRecorderError.lowDisk(availableBytes: available)
             }
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-            let (filter, pixelSize, sourceRect) = try Self.filter(for: source, content: content, excluding: excludingWindowIDs)
+            var content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+            if case .window = source, !Self.lists(includingWindowIDs, in: content) {
+                content = try await Self.contentAgain()
+            }
+            let (filter, pixelSize, sourceRect, windowDisplay) = try Self.filter(
+                for: source, content: content, excluding: excludingWindowIDs, including: includingWindowIDs)
 
             let configuration = SCStreamConfiguration()
             configuration.width = pixelSize.width
@@ -151,6 +165,10 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
                 self.clock = clock
                 self.url = url
                 self.minimumFreeBytes = minimumFreeBytes
+                if case .window(let id) = source, let windowDisplay {
+                    let listed = Set(includingWindowIDs).intersection(content.windows.map(\.windowID))
+                    windowCapture = (id, windowDisplay, listed)
+                }
                 frameInterval = CMTime(value: CMTimeValue(Self.timescale) / CMTimeValue(max(fps, 1)), timescale: Self.timescale)
                 let paused = request == .pause
                 request = nil
@@ -234,6 +252,68 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
                 }
             }
             throw error
+        }
+    }
+
+    /// A window source's window moved, was resized or moved to another display: records `displayID` cropped to `crop`
+    /// (points local to that display, top-left origin, from `ScreenSource.windowPlace`), keeping the output size
+    /// (`scalesToFit` letterboxes a resized window or a display of another size or scale). On the same display only the
+    /// crop changes. On another one, the window's filter is rebuilt there (with the overlays let in so far) and applied
+    /// with `updateContentFilter`, then the crop with `updateConfiguration`; the filter is kept for `resume()`. Applies
+    /// to the running stream and to the one a later `resume()` starts. Returns false only when the switch to another
+    /// display failed (shareable content unavailable, the display or the window not listed): the recorder keeps its
+    /// display and crop, so the caller can try again. No-op (true) for other sources, before `start` returned or after
+    /// `stop(at:)`. A failed stream update never ends the video.
+    @discardableResult
+    public func updateWindowPlace(display displayID: CGDirectDisplayID, crop: CGRect) async -> Bool {
+        let sameDisplay: Bool = onQueue {
+            guard let capture = windowCapture, state == .running || state == .paused, let configuration else {
+                return true
+            }
+            guard capture.display.displayID == displayID else { return false }
+            if configuration.sourceRect != crop {
+                configuration.sourceRect = crop
+                stream?.updateConfiguration(configuration) { _ in }
+            }
+            return true
+        }
+        guard !sameDisplay else { return true }
+        guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        else { return false }
+        return onQueue {
+            guard state == .running || state == .paused, var capture = windowCapture, let configuration else {
+                return true
+            }
+            guard let display = content.displays.first(where: { $0.displayID == displayID }),
+                  let window = content.windows.first(where: { $0.windowID == capture.windowID }) else { return false }
+            capture.display = display
+            windowCapture = capture
+            let filter = Self.windowFilter(window, on: display, including: capture.included, content: content)
+            self.filter = filter
+            configuration.sourceRect = crop
+            stream?.updateContentFilter(filter) { _ in }
+            stream?.updateConfiguration(configuration) { _ in }
+            return true
+        }
+    }
+
+    /// A window source: lets `ids` (EchoDiar's overlay windows) into the picture next to the window, on the running
+    /// stream and on the one `resume()` starts; windows let in before stay in. No-op for other sources, before `start`
+    /// returned or after `stop(at:)`. A failed update never ends the video.
+    public func updateIncludedWindows(_ ids: [CGWindowID]) async {
+        guard onQueue({ windowCapture.map { !Set(ids).isSubset(of: $0.included) } ?? false }),
+              var content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        else { return }
+        if !Self.lists(ids, in: content), let again = try? await Self.contentAgain() { content = again }
+        onQueue {
+            guard state == .running || state == .paused, var capture = windowCapture,
+                  let window = content.windows.first(where: { $0.windowID == capture.windowID }) else { return }
+            capture.included.formUnion(ids.filter { id in content.windows.contains { $0.windowID == id } })
+            capture.display = content.displays.first { $0.displayID == capture.display.displayID } ?? capture.display
+            windowCapture = capture
+            let filter = Self.windowFilter(window, on: capture.display, including: capture.included, content: content)
+            self.filter = filter
+            stream?.updateContentFilter(filter) { _ in }
         }
     }
 
@@ -361,10 +441,33 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
         CMTime(value: CMTimeValue((seconds * Double(timescale)).rounded()), timescale: timescale)
     }
 
-    /// The filter, the output size in pixels (rounded down to even) and the display-local `sourceRect` for `source`.
-    private static func filter(for source: ScreenSource, content: SCShareableContent, excluding windowIDs: [CGWindowID])
-        throws -> (SCContentFilter, (width: Int, height: Int), CGRect?)
-    {
+    /// Whether every window of `ids` is in `content`.
+    private static func lists(_ ids: [CGWindowID], in content: SCShareableContent) -> Bool {
+        let listed = Set(content.windows.map(\.windowID))
+        return ids.allSatisfy { listed.contains($0) }
+    }
+
+    /// The shareable content again, a moment later: a window just ordered front may not be listed yet.
+    private static func contentAgain() async throws -> SCShareableContent {
+        try await Task.sleep(for: .milliseconds(250))
+        return try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+    }
+
+    /// `display` with only `window` and the listed windows of `ids` in the picture: other apps' windows over the
+    /// window are not captured.
+    private static func windowFilter(
+        _ window: SCWindow, on display: SCDisplay, including ids: Set<CGWindowID>, content: SCShareableContent
+    ) -> SCContentFilter {
+        let overlays = content.windows.filter { ids.contains($0.windowID) && $0.windowID != window.windowID }
+        return SCContentFilter(display: display, including: [window] + overlays)
+    }
+
+    /// The filter, the output size in pixels (rounded down to even), the display-local `sourceRect` for `source` and,
+    /// for a window, the display it is cropped from.
+    private static func filter(
+        for source: ScreenSource, content: SCShareableContent, excluding windowIDs: [CGWindowID],
+        including includedIDs: [CGWindowID]
+    ) throws -> (SCContentFilter, (width: Int, height: Int), CGRect?, SCDisplay?) {
         func display(_ id: CGDirectDisplayID) throws -> SCContentFilter {
             guard let display = content.displays.first(where: { $0.displayID == id }) else {
                 throw ScreenRecorderError.sourceNotFound
@@ -379,18 +482,21 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
 
         switch source {
         case .window(let id):
-            guard let window = content.windows.first(where: { $0.windowID == id }) else {
-                throw ScreenRecorderError.sourceNotFound
-            }
-            let filter = SCContentFilter(desktopIndependentWindow: window)
-            return (filter, pixels(filter.contentRect.size, filter), nil)
+            let frames = content.displays.map(\.frame)
+            guard let window = content.windows.first(where: { $0.windowID == id }),
+                  let index = ScreenSource.windowDisplayIndex(windowBounds: window.frame, displays: frames),
+                  let crop = ScreenSource.windowCrop(windowBounds: window.frame, on: frames[index], displays: frames)
+            else { throw ScreenRecorderError.sourceNotFound }
+            let display = content.displays[index]
+            let filter = windowFilter(window, on: display, including: Set(includedIDs), content: content)
+            return (filter, pixels(window.frame.size, filter), crop, display)
         case .display(let id):
             let filter = try display(id)
             let size = filter.contentRect.size
-            return (filter, pixels(size, filter), CGRect(origin: .zero, size: size))
+            return (filter, pixels(size, filter), CGRect(origin: .zero, size: size), nil)
         case .area(let id, let rect):
             let filter = try display(id)
-            return (filter, pixels(rect.size, filter), rect)
+            return (filter, pixels(rect.size, filter), rect, nil)
         }
     }
 

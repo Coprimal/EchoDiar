@@ -8,7 +8,7 @@ import SwiftUI
 /// rename), then "date time · duration · size" and status on one smaller line (the size tinted by how large it is), a
 /// video badge on the icon for a screen recording, then a row with the
 /// transcription progress or its action. The actions are in the context menu and the detail. A click elsewhere opens
-/// the conversation on the detail's tab; selected adds an accent fill and stroke. ⌘-click and ⇧-click select cards
+/// the conversation on its Transcript tab; selected adds an accent fill and stroke. ⌘-click and ⇧-click select cards
 /// instead of opening.
 struct ConversationCard: View {
     let conversation: Conversation
@@ -157,15 +157,14 @@ struct ConversationCard: View {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
-    /// The tint of a conversation's size, shared by the sidebar cards and the toolbar's details: secondary below
-    /// 50 MB (an hour of audio), yellow up to 200 MB, orange up to 1 GB (an hour with a screen recording), red from
-    /// 1 GB. Decimal units, as `ByteCountFormatter`'s `.file` style shows them.
+    /// The tint of a conversation's size, shared by the sidebar cards and the toolbar's details: secondary at the
+    /// normal `SizeLevel`, else its colour.
     static func sizeStyle(_ bytes: Int64) -> AnyShapeStyle {
-        switch bytes {
-        case ..<50_000_000: AnyShapeStyle(.secondary)
-        case ..<200_000_000: AnyShapeStyle(.yellow)
-        case ..<1_000_000_000: AnyShapeStyle(.orange)
-        default: AnyShapeStyle(.red)
+        switch SizeLevel(bytes: bytes) {
+        case .normal: AnyShapeStyle(.secondary)
+        case .large: AnyShapeStyle(.yellow)
+        case .larger: AnyShapeStyle(.orange)
+        case .huge: AnyShapeStyle(.red)
         }
     }
 
@@ -186,10 +185,10 @@ struct ConversationCard: View {
     }
 
     /// Not while the title is being edited: clicks in its field must not open the conversation.
-    /// On the tab the detail shows.
+    /// Always on the Transcript tab (↑/↓ in the list keep the tab the detail shows).
     private func open() {
         guard !editing else { return }
-        model.open(conversation.id, tab: model.detailTab)
+        model.open(conversation.id, tab: .transcript)
     }
 
     private func revealInFinder() {
@@ -606,14 +605,40 @@ private struct ActivityBadge: View {
 
 /// The app icon's "has a screen recording" badge, where the activity badge sits while nothing runs: `video.fill` in a
 /// ring of the card's own fill (with the selection's tint), so it reads as cut out of the icon.
+/// How large a conversation's files are, for the tint of its size in the library and in the menu bar while
+/// recording: normal below 50 MB (an hour of audio), large (yellow) up to 200 MB, larger (orange) up to 1 GB (an hour
+/// with a screen recording), huge (red) from 1 GB. Decimal units, as `ByteCountFormatter`'s `.file` style shows them.
+enum SizeLevel {
+    case normal, large, larger, huge
+
+    init(bytes: Int64) {
+        switch bytes {
+        case ..<50_000_000: self = .normal
+        case ..<200_000_000: self = .large
+        case ..<1_000_000_000: self = .larger
+        default: self = .huge
+        }
+    }
+
+    /// The menu bar colour; nil at the normal level, so the text follows the menu bar's appearance.
+    var nsColor: NSColor? {
+        switch self {
+        case .normal: nil
+        case .large: .systemYellow
+        case .larger: .systemOrange
+        case .huge: .systemRed
+        }
+    }
+}
+
 private struct VideoBadge: View {
     let selected: Bool
 
     var body: some View {
         Image(systemName: "video.fill")
-            .font(.system(size: 7, weight: .semibold))
+            .font(.system(size: 9, weight: .semibold))
             .foregroundStyle(.secondary)
-            .frame(width: 14, height: 14)
+            .frame(width: 18, height: 18)
             .background {
                 Circle().fill(Palette.raisedSurface)
                     .overlay { if selected { Circle().fill(Color.accentColor.opacity(0.18)) } }

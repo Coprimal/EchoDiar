@@ -107,10 +107,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         return true
     }
 
-    /// Mirrors `model.indicatorState` on the menu bar icon; re-armed after each change, nothing polls.
+    /// Mirrors `model.indicatorState` and the menu bar setting on the menu bar item; re-armed after each change.
     private func observeIndicatorState() {
         withObservationTracking {
             statusItem?.state = model.indicatorState
+            statusItem?.info = model.settings.menuBarRecordingInfo
         } onChange: { [weak self] in
             // onChange fires before the new value is stored; read it on the next turn.
             Task { @MainActor in self?.observeIndicatorState() }
@@ -164,6 +165,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         model.searchPresented = false
         model.settingsSearchPresented = false
         model.mainWindowVisible = false
+        // The screen source chooser opens only from a shown window: a request it did not take is not kept.
+        model.screenRecording.chooserRequest = nil
         // Release the window and its SwiftUI hierarchy after it finishes closing; it is recreated on the next open.
         Task { @MainActor [weak self] in
             self?.window = nil

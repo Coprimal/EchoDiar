@@ -15,7 +15,8 @@ struct RecordingSettingsView: View {
     @State private var microphones: [InputDevice] = []
     @State private var accessibilityTrusted = WindowAnchor.isTrusted
     @State private var cameraStatus = CameraBubbleController.authorizationStatus
-    @State private var keyAccess = KeyStrokeHUDController.hasAccess
+    @State private var keyAccess = KeyStrokeHUDController.access
+    @State private var screenAccess = CGPreflightScreenCaptureAccess()
     /// 60 fps was picked: the confirmation is up, the stored frame rate is unchanged until "Use 60 fps".
     @State private var confirming60FPS = false
 
@@ -53,14 +54,13 @@ struct RecordingSettingsView: View {
             // Back from System Settings.
             accessibilityTrusted = WindowAnchor.isTrusted
             model.refreshNotificationStatus()
-            cameraStatus = CameraBubbleController.authorizationStatus
-            keyAccess = KeyStrokeHUDController.hasAccess
+            refreshScreenPermissions()
             // A permission granted during a running video brings its overlay up.
             model.screenRecording.setOverlays(model.settings)
         }
     }
 
-    private var microphoneSection: some View {
+    @ViewBuilder private var microphoneSection: some View {
         Section {
             Picker("Microphone", selection: model.setting(\.micDeviceUID)) {
                 Text("System default").tag(String?.none)
@@ -80,6 +80,13 @@ struct RecordingSettingsView: View {
                 case .continue: Text("Recording switches to the default input.")
                 case .stop: Text("Recording stops at once.")
                 }
+            }
+        }
+        Section {
+            Picker("Menu bar while recording", selection: model.setting(\.menuBarRecordingInfo)) {
+                Text("Icon only").tag(MenuBarRecordingInfo.iconOnly)
+                Text("Elapsed time").tag(MenuBarRecordingInfo.elapsedTime)
+                Text("File size").tag(MenuBarRecordingInfo.fileSize)
             }
         }
     }
@@ -196,27 +203,22 @@ struct RecordingSettingsView: View {
                 Text("Camera bubble")
                 Text("Shows your camera in a round bubble on screen.")
             }
-            if model.settings.screenCamera && (cameraStatus == .denied || cameraStatus == .restricted) {
-                LabeledContent("EchoDiar needs Camera access to show the camera bubble.") {
-                    Button("Open System Settings") { PrivacySettings.openCamera() }
+            Toggle(isOn: Binding(
+                get: { model.settings.screenCameraBlur },
+                set: { on in
+                    model.updateSettings { $0.screenCameraBlur = on }
+                    model.screenRecording.setOverlays(model.settings)
                 }
-                .foregroundStyle(.secondary)
+            )) {
+                Text("Blur background")
+                Text("Blurs everything behind you in the camera bubble.")
             }
-            if model.settings.screenCamera && cameraStatus == .notDetermined {
-                LabeledContent("EchoDiar needs Camera access to show the camera bubble.") {
-                    Button("Allow Camera") { requestCamera() }
-                }
-                .foregroundStyle(.secondary)
-            }
+            .disabled(!model.settings.screenCamera)
+            // The row style does not dim a disabled row by itself; make it visibly inactive.
+            .opacity(model.settings.screenCamera ? 1 : 0.45)
             Toggle(isOn: Binding(get: { model.settings.screenKeyStrokes }, set: { setKeyStrokes($0) })) {
                 Text("Key presses")
                 Text("Shows shortcuts such as ⌘K at the bottom of the screen.")
-            }
-            if model.settings.screenKeyStrokes && !keyAccess {
-                LabeledContent("EchoDiar needs Input Monitoring access to show key presses.") {
-                    Button("Open System Settings") { PrivacySettings.openInputMonitoring() }
-                }
-                .foregroundStyle(.secondary)
             }
             Toggle(isOn: Binding(
                 get: { model.settings.screenAllKeys },
@@ -231,9 +233,49 @@ struct RecordingSettingsView: View {
             .disabled(!model.settings.screenKeyStrokes)
             // The row style does not dim a disabled row by itself; make it visibly inactive.
             .opacity(model.settings.screenKeyStrokes ? 1 : 0.45)
-        } header: {
-            SectionHeader(description: "Camera bubble and key presses work for display and area recordings only.")
         }
+        permissionsSection
+    }
+
+    /// The permissions the screen features use, each with its state and the action that state needs: Screen Recording
+    /// always, Camera with the camera bubble on, Input Monitoring with key presses on. "Allow…" shows the system prompt
+    /// (only while not determined; Screen Recording's only the first time); a refused permission points to System
+    /// Settings. Screen Recording and Input Monitoring apply once EchoDiar is reopened.
+    private var permissionsSection: some View {
+        Section("Permissions") {
+            PermissionRow(title: "Screen Recording", granted: screenAccess) {
+                Text("Records the screen.")
+                if !screenAccess { Text("After allowing it, quit and reopen EchoDiar.") }
+            } actions: {
+                Button("Allow…") { requestScreen() }
+                Button("Open System Settings") { PrivacySettings.openScreenRecording() }
+            }
+            if model.settings.screenCamera {
+                PermissionRow(title: "Camera", granted: cameraStatus == .authorized) {
+                    Text("Shows the camera bubble.")
+                } actions: {
+                    if cameraStatus == .notDetermined {
+                        Button("Allow…") { requestCamera() }
+                    } else {
+                        Button("Open System Settings") { PrivacySettings.openCamera() }
+                    }
+                }
+            }
+            if model.settings.screenKeyStrokes {
+                PermissionRow(title: "Input Monitoring", granted: keyAccess == .granted) {
+                    Text("Shows key presses.")
+                    if keyAccess != .granted { Text("After allowing it, quit and reopen EchoDiar.") }
+                } actions: {
+                    if keyAccess == .notDetermined {
+                        Button("Allow…") { requestKeyAccess() }
+                    } else {
+                        Button("Open System Settings") { PrivacySettings.openInputMonitoring() }
+                    }
+                }
+            }
+        }
+        // Also changed from the record capsule's menu while this page was not shown.
+        .onAppear { refreshScreenPermissions() }
     }
 
     /// Picking 60 fps asks first (much larger files); the other rates apply at once.
@@ -265,7 +307,7 @@ struct RecordingSettingsView: View {
         requestCamera()
     }
 
-    /// Asks for Camera access, then refreshes the note; a grant during a running video shows the bubble.
+    /// Asks for Camera access, then refreshes its Permissions row; a grant during a running video shows the bubble.
     private func requestCamera() {
         Task {
             _ = await CameraBubbleController.requestAccess()
@@ -274,12 +316,30 @@ struct RecordingSettingsView: View {
         }
     }
 
-    /// Switching on asks for Input Monitoring when EchoDiar does not have it.
+    /// Switching on asks for Input Monitoring when EchoDiar does not have it; the Permissions row shows the result.
     private func setKeyStrokes(_ on: Bool) {
         model.updateSettings { $0.screenKeyStrokes = on }
-        if on, !KeyStrokeHUDController.hasAccess { KeyStrokeHUDController.requestAccess() }
-        keyAccess = KeyStrokeHUDController.hasAccess
+        keyAccess = on && !KeyStrokeHUDController.hasAccess
+            ? KeyStrokeHUDController.requestAccess() : KeyStrokeHUDController.access
         model.screenRecording.setOverlays(model.settings)
+    }
+
+    /// "Allow…" of Input Monitoring.
+    private func requestKeyAccess() {
+        keyAccess = KeyStrokeHUDController.requestAccess()
+        model.screenRecording.setOverlays(model.settings)
+    }
+
+    /// "Allow…" of Screen Recording: the system prompt shows the first time only.
+    private func requestScreen() {
+        screenAccess = CGRequestScreenCaptureAccess() || CGPreflightScreenCaptureAccess()
+    }
+
+    /// Reads the three permissions again (back from System Settings, or the page shown again). Never prompts.
+    private func refreshScreenPermissions() {
+        screenAccess = CGPreflightScreenCaptureAccess()
+        cameraStatus = CameraBubbleController.authorizationStatus
+        keyAccess = KeyStrokeHUDController.access
     }
 
     /// "Ask" is stored as no entry, the default.
@@ -287,6 +347,31 @@ struct RecordingSettingsView: View {
         Binding(
             get: { model.settings.perAppBehavior[app.appBundleID] ?? .ask },
             set: { value in model.updateSettings { $0.perAppBehavior[app.appBundleID] = value == .ask ? nil : value } })
+    }
+}
+
+/// A permission of Recording › Screen: its name and what it is for (`note`) on the left, then "Allowed" in green, or
+/// "Not allowed" in orange followed by `actions`.
+private struct PermissionRow<Note: View, Actions: View>: View {
+    let title: LocalizedStringKey
+    let granted: Bool
+    @ViewBuilder let note: Note
+    @ViewBuilder let actions: Actions
+
+    var body: some View {
+        LabeledContent {
+            HStack(spacing: 8) {
+                if granted {
+                    Label("Allowed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                } else {
+                    Label("Not allowed", systemImage: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                    actions
+                }
+            }
+        } label: {
+            Text(title)
+            note
+        }
     }
 }
 

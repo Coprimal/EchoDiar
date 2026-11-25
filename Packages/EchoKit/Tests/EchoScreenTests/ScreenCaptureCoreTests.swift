@@ -55,6 +55,50 @@ struct ScreenCaptureCoreTests {
         #expect(local.pixelWidth == 1600)
         #expect(local.pixelHeight == 800)
     }
+
+    @Test func windowOnDisplayLeftOfPrimaryCropsToDisplayLocalPoints() {
+        // CG global bounds (top-left origin): a 1512x982 display left of and above a 1920x1080 primary.
+        let left = CGRect(x: -1512, y: -300, width: 1512, height: 982)
+        let primary = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let window = CGRect(x: -1400, y: -200, width: 800, height: 500)
+
+        #expect(ScreenSource.windowDisplayIndex(windowBounds: window, displays: [primary, left]) == 1)
+        #expect(ScreenSource.windowCrop(windowBounds: window, on: left, displays: [primary, left])
+            == CGRect(x: 112, y: 100, width: 800, height: 500))
+    }
+
+    @Test func windowPartlyOffItsDisplayCropsToTheVisiblePart() {
+        let display = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        // Dragged past the bottom edge, no display below: the centre is on no display, the crop is clipped.
+        let window = CGRect(x: 100, y: 700, width: 800, height: 800)
+
+        #expect(ScreenSource.windowCrop(windowBounds: window, on: display, displays: [display])
+            == CGRect(x: 100, y: 700, width: 800, height: 380))
+        #expect(ScreenSource.windowDisplayIndex(windowBounds: window, displays: [display]) == 0)
+    }
+
+    @Test func windowMovedToAnotherDisplaySwitchesToIt() {
+        // CG global bounds: a 1512x982 built-in display and a 3440x1440 display to its right, 200 points higher.
+        let builtIn = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        let wide = CGRect(x: 1512, y: -200, width: 3440, height: 1440)
+        let displays = [builtIn, wide]
+        // Centre still on the built-in display: the video stays there, cropped to the part on it.
+        let before = CGRect(x: 1000, y: 100, width: 800, height: 500)
+        let stays = ScreenSource.windowPlace(windowBounds: before, currentDisplay: 0, displays: displays)
+        #expect(stays?.display == 0)
+        #expect(stays?.crop == CGRect(x: 1000, y: 100, width: 512, height: 500))
+
+        // Centre crossed onto the wide display: the video switches there, cropped in its own top-left points.
+        let after = CGRect(x: 1300, y: 100, width: 800, height: 500)
+        #expect(ScreenSource.windowCrop(windowBounds: after, on: builtIn, displays: displays) == nil)
+        let moved = ScreenSource.windowPlace(windowBounds: after, currentDisplay: 0, displays: displays)
+        #expect(moved?.display == 1)
+        #expect(moved?.crop == CGRect(x: 0, y: 300, width: 588, height: 500))
+
+        // On no display at all: no place, the video keeps its last one.
+        #expect(ScreenSource.windowPlace(windowBounds: CGRect(x: 6000, y: 0, width: 10, height: 10), currentDisplay: 1,
+                                         displays: displays) == nil)
+    }
 }
 
 private func makeFrame() throws -> CMSampleBuffer {

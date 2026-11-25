@@ -4,7 +4,8 @@ import EchoCore
 import SwiftUI
 
 /// The recording in the sidebar, above the first day: the recorded app's icon, its title (else "Recording…" or
-/// "Paused"; double-click to rename), the elapsed clock, mini meters and a glyph while the screen is recorded too, then
+/// "Paused"; double-click to rename), the elapsed clock, mini meters, a glyph while the screen is recorded too and the
+/// size so far, then
 /// a bottom row with Stop, Pause or Resume, Mute or Unmute and the language; selected adds the accent fill and stroke of
 /// `ConversationCard`. A click opens the recording page.
 struct RecordingCard: View {
@@ -38,8 +39,11 @@ struct RecordingCard: View {
                     }
                     if screenRecorded {
                         Image(systemName: "rectangle.dashed.badge.record")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Palette.screenRecording)
                             .help("The screen is recorded too")
                     }
+                    LiveSizeText(model: model)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -510,10 +514,14 @@ struct RecordingHeader: View {
         HStack(spacing: 10) {
             Image(systemName: paused ? "pause.circle.fill" : "record.circle.fill")
                 .foregroundStyle(paused ? .orange : .red)
-            if live {
-                TimelineView(.periodic(from: .now, by: 1)) { _ in elapsedText }
-            } else {
-                elapsedText
+            // The size right after the clock, as " (43 MB)".
+            HStack(spacing: 0) {
+                if live {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in elapsedText }
+                } else {
+                    elapsedText
+                }
+                LiveSizeText(model: model, parenthesized: true)
             }
             Text(paused ? "Paused" : "Recording")
                 .foregroundStyle(.secondary)
@@ -558,14 +566,32 @@ struct RecordingHeader: View {
     }
 }
 
+/// The size of the recording's files so far (`AppModel.liveRecordingBytes`), tinted as the library's sizes
+/// (`ConversationCard.sizeStyle`); nothing until the first read is back. Its own view, so only it re-renders when the
+/// size changes. `parenthesized`: " (43 MB)", the brackets secondary.
+private struct LiveSizeText: View {
+    let model: AppModel
+    var parenthesized = false
+
+    var body: some View {
+        if let bytes = model.liveRecordingBytes {
+            let size = Text(ConversationCard.sizeText(bytes)).foregroundStyle(ConversationCard.sizeStyle(bytes))
+            (parenthesized
+                ? Text(verbatim: " (").foregroundStyle(.secondary) + size + Text(verbatim: ")").foregroundStyle(.secondary)
+                : size)
+                .monospacedDigit()
+                .lineLimit(1)
+        }
+    }
+}
+
 /// The recording header's screen toggle, a static glyph in the capsule style of "Catch up" (a record badge while the
-/// video runs): starts the armed or remembered source, or stops the video; not while paused, nor once this recording's
-/// video ended (one video span per recording). Without a source the model asks for one, and this control opens the
-/// source popover.
+/// video runs): opens the screen source chooser on it (also when the pill or the status menu switches the screen on),
+/// whose pick starts the video, or stops the video; not while paused, nor once this recording's video ended (one video
+/// span per recording).
 private struct ScreenToggleButton: View {
     let model: AppModel
     let paused: Bool
-    @State private var showsPopover = false
 
     var body: some View {
         let screen = model.screenRecording
@@ -578,18 +604,26 @@ private struct ScreenToggleButton: View {
             }
             .buttonBorderShape(.capsule)
             .controlSize(.small)
+            // While the screen is recorded the capsule is filled with the accent, so it reads as live; off, the row's style.
+            .modifier(LiveScreenStyle(on: on))
             .disabled(!on && (paused || !screen.canStartDuringRecording))
         }
         .help(on ? "Stop recording the screen" : screen.canStartDuringRecording
               ? (paused ? "Resume the recording to record the screen" : "Record the screen from now on")
               : "The screen was recorded until it stopped")
-        .popover(isPresented: $showsPopover, arrowEdge: .bottom) {
-            ScreenSourcePopover(model: model)
-        }
-        .onChange(of: screen.sourcePickerRequested, initial: true) { _, requested in
-            guard requested else { return }
-            screen.sourcePickerRequested = false
-            showsPopover = true
+        .modifier(ScreenChooserHost(model: model, request: .duringRecording))
+    }
+}
+
+/// The Stop screen capsule while the screen is recorded: filled with `Palette.screenRecording` (the accent).
+private struct LiveScreenStyle: ViewModifier {
+    let on: Bool
+
+    func body(content: Content) -> some View {
+        if on {
+            content.buttonStyle(.borderedProminent).tint(Palette.screenRecording)
+        } else {
+            content
         }
     }
 }
