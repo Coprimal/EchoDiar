@@ -36,6 +36,21 @@ public enum ChatArchive {
         entries(in: folder).flatMap { log($0.id, in: folder)?.messages ?? [] }
     }
 
+    /// Each archived chat's messages on one string, by id, for the History panel's search.
+    public static func searchTexts(in folder: URL) -> [UUID: String] {
+        Dictionary(entries(in: folder).map { entry in
+            (entry.id, (log(entry.id, in: folder)?.messages ?? []).map(\.text).joined(separator: "\n"))
+        }, uniquingKeysWith: { first, _ in first })
+    }
+
+    /// True when `query` is blank, or the chat's title or messages (`text`, nil while not read yet) contain it (ignoring
+    /// case and accents, locale-aware).
+    public static func matches(title: String, text: String?, query: String) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        return title.localizedStandardContains(query) || text?.localizedStandardContains(query) == true
+    }
+
     /// Moves `chat.json` into the archive; nil when it has no messages. Its title, else its first question on one
     /// line, at most 60 characters.
     public static func archive(in folder: URL) throws -> Archived? {

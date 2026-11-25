@@ -239,6 +239,20 @@ public sealed class FileFormatTests : IDisposable
     }
 
     [Fact]
+    public void SearchFindsAChatByItsTitleOrMessagesIgnoringCaseAndAccents()
+    {
+        WriteChat("Ngân sách quý tới?", "Tăng 10% so với quý này.");
+        var entry = ChatArchive.Archive(_dir)!.Entry;
+        var text = ChatArchive.SearchTexts(_dir).GetValueOrDefault(entry.Id);
+
+        Assert.True(ChatArchive.Matches(entry.Title, text, "  "));
+        Assert.True(ChatArchive.Matches(entry.Title, text, "ngan sach"));
+        Assert.True(ChatArchive.Matches(entry.Title, text, " TĂNG 10% "));
+        Assert.False(ChatArchive.Matches(entry.Title, null, "tăng"));
+        Assert.False(ChatArchive.Matches(entry.Title, text, "launch"));
+    }
+
+    [Fact]
     public void TitledChatKeepsItsTitleAndEmptyChatIsNotArchived()
     {
         WriteChat("What was decided?", "Ship on Friday.");

@@ -2458,6 +2458,10 @@
     <value>No hay ningún modelo en directo instalado. Descarga un modelo Whisper o Parakeet en Proveedores de IA › IA local.</value>
     <comment>No live model installed. Download a Whisper or Parakeet model in AI Providers › Local AI.</comment>
   </data>
+  <data name="NoMatchingChats" xml:space="preserve">
+    <value>No hay chats que coincidan</value>
+    <comment>No matching chats</comment>
+  </data>
   <data name="NoModelChooseOneInSettings" xml:space="preserve">
     <value>Sin modelo: elige uno en Ajustes</value>
     <comment>No model: choose one in Settings</comment>
@@ -3373,6 +3377,10 @@
   <data name="SearchCatchUps" xml:space="preserve">
     <value>Buscar en las puestas al día</value>
     <comment>Search catch-ups</comment>
+  </data>
+  <data name="SearchChats" xml:space="preserve">
+    <value>Buscar en los chats</value>
+    <comment>Search chats</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Buscar conversaciones</value>

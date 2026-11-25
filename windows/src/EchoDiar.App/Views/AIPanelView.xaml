@@ -285,6 +285,7 @@
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
                                     <Grid Padding="14,10,6,4" ColumnSpacing="4">
@@ -292,14 +293,24 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock
                                             VerticalAlignment="Center"
                                             Style="{StaticResource BodyStrongTextBlockStyle}"
                                             Text="{local:T Text='History'}" />
+                                        <!-- Shows or hides the search field under the header, accent-colored while shown. -->
+                                        <Button
+                                            x:Name="HistorySearchButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource SubtleButtonStyle}"
+                                            AutomationProperties.Name="{local:T Text='Search chats'}"
+                                            ToolTipService.ToolTip="{local:T Text='Search chats'}">
+                                            <FontIcon x:Name="HistorySearchIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
+                                        </Button>
                                         <Button
                                             x:Name="ClearHistoryButton"
-                                            Grid.Column="1"
+                                            Grid.Column="2"
                                             Style="{StaticResource SubtleButtonStyle}"
                                             AutomationProperties.Name="{local:T Text='Delete all earlier chats'}"
                                             ToolTipService.ToolTip="{local:T Text='Delete all earlier chats'}">
@@ -307,14 +318,26 @@
                                         </Button>
                                         <Button
                                             x:Name="CloseHistoryButton"
-                                            Grid.Column="2"
+                                            Grid.Column="3"
                                             Style="{StaticResource SubtleButtonStyle}"
                                             AutomationProperties.Name="{local:T Text='Close'}"
                                             ToolTipService.ToolTip="{local:T Text='Close the history'}">
                                             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
                                         </Button>
                                     </Grid>
-                                    <ScrollViewer Grid.Row="1">
+                                    <!--
+                                        Filters the earlier chats by title and messages as typed (macOS ChatHistorySearchField); Esc clears it, then
+                                        hides it.
+                                    -->
+                                    <AutoSuggestBox
+                                        x:Name="HistorySearchBox"
+                                        Grid.Row="1"
+                                        Margin="10,2,10,0"
+                                        AutomationProperties.Name="{local:T Text='Search chats'}"
+                                        PlaceholderText="{local:T Text='Search chats'}"
+                                        QueryIcon="Find"
+                                        Visibility="Collapsed" />
+                                    <ScrollViewer Grid.Row="2">
                                         <StackPanel x:Name="HistoryList" Padding="6" Spacing="2" />
                                     </ScrollViewer>
                                 </Grid>

@@ -44,6 +44,12 @@ struct AIPanelView: View {
     @State private var archives: [ChatArchive.Entry] = []
     /// The History panel is open.
     @State private var showingHistory = false
+    /// The History panel's search field is shown; hidden (the query cleared) whenever the panel closes.
+    @State private var searchingHistory = false
+    @State private var historyQuery = ""
+    @State private var historySearchFocus = false
+    /// Each earlier chat's messages, by id, read while the search field shows.
+    @State private var archiveTexts: [UUID: String] = [:]
     /// The alert confirming that every earlier chat is deleted is open.
     @State private var confirmingClear = false
     /// The earlier chat under the pointer, which shows its Remove button.
@@ -126,6 +132,9 @@ struct AIPanelView: View {
             } else {
                 showingHistory = false
             }
+        }
+        .onChange(of: showingHistory) { _, shown in
+            if !shown { setHistorySearch(false) }
         }
     }
 
@@ -258,6 +267,13 @@ struct AIPanelView: View {
             HStack {
                 Text("History").font(.headline)
                 Spacer(minLength: 0)
+                Button { setHistorySearch(!searchingHistory) } label: {
+                    Label("Search chats", systemImage: "magnifyingglass").labelStyle(.iconOnly)
+                        .foregroundStyle(searchingHistory ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+                }
+                .buttonStyle(RowIconButtonStyle())
+                .help("Search chats")
+                .padding(.trailing, 6)
                 Button { confirmingClear = true } label: {
                     Label("Delete all earlier chats", systemImage: "trash").labelStyle(.iconOnly)
                 }
@@ -274,14 +290,29 @@ struct AIPanelView: View {
             }
             .padding(.horizontal, 14)
             .padding(.top, 12)
+            if searchingHistory {
+                ChatHistorySearchField(query: $historyQuery, focusRequest: $historySearchFocus) {
+                    setHistorySearch(false)
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 6)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
             ScrollView {
+                let query = searchingHistory ? historyQuery : ""
+                let shown = archives.filter { ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query) }
+                let currentShown = ChatArchive.matches(title: chatTitle ?? "", text: currentChatText(query), query: query)
                 VStack(spacing: 2) {
-                    currentChatRow
-                    ForEach(archives) { entry in historyRow(entry) }
-                    if archives.isEmpty {
-                        Text("No earlier chats")
+                    if currentShown { currentChatRow }
+                    ForEach(shown) { entry in historyRow(entry) }
+                    let noMatch = shown.isEmpty && !currentShown
+                    if noMatch || archives.isEmpty {
+                        // Inset as the header's title and the rows' text.
+                        (noMatch ? Text("No matching chats") : Text("No earlier chats"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 8)
                             .padding(.top, 8)
                     }
                 }
@@ -293,6 +324,8 @@ struct AIPanelView: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .modifier(GlassCard(cornerRadius: 14, raised: true))
         .padding(8)
+        // The earlier chats' messages, read off the main thread when the field shows and when the chats change.
+        .task(id: searchingHistory ? archives : nil) { await loadArchiveTexts() }
         .alert("Delete all earlier chats?", isPresented: $confirmingClear) {
             Button("Delete", role: .destructive) { model.clearChats(of: conversation) }
             Button("Cancel", role: .cancel) {}
@@ -359,6 +392,31 @@ struct AIPanelView: View {
 
     private func closeHistory() {
         withAnimation(Motion.standard) { showingHistory = false }
+    }
+
+    /// The open chat's messages on one string for the search; nil (not joined) while the query is blank.
+    private func currentChatText(_ query: String) -> String? {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? nil : chat.map(\.text).joined(separator: "\n")
+    }
+
+    /// Shows the History search field, focused, or hides it, clearing the query and the messages read for it.
+    private func setHistorySearch(_ shown: Bool) {
+        withAnimation(reduceMotion ? nil : Motion.standard) { searchingHistory = shown }
+        if shown {
+            historySearchFocus = true
+        } else {
+            historyQuery = ""
+            archiveTexts = [:]
+        }
+    }
+
+    private func loadArchiveTexts() async {
+        guard searchingHistory else { return }
+        let folder = conversation.folder
+        let texts = await Task.detached(priority: .userInitiated) { ChatArchive.searchTexts(in: folder) }.value
+        guard !Task.isCancelled else { return }
+        archiveTexts = texts
     }
 
     // MARK: - Summary
@@ -1086,6 +1144,42 @@ struct HistoryRowStyle: ButtonStyle {
                 .animation(Motion.hover, value: hovered)
                 .onHover { hovered = $0 }
         }
+    }
+}
+
+/// The History panels' search field (the conversation's, the library chat's), under their header: filters the earlier
+/// chats by title and messages as typed; Esc clears the query, then hides the field (`onHide`), as the catch-up search.
+struct ChatHistorySearchField: View {
+    @Binding var query: String
+    @Binding var focusRequest: Bool
+    let onHide: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            SearchTextField(text: $query, focusRequest: $focusRequest,
+                            accessibilityLabel: String(localized: "Search chats")) {
+                if query.isEmpty {
+                    onHide()
+                } else {
+                    query = ""
+                }
+            }
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: MainView.headerControlHeight + 4)
+        .modifier(InputCapsule())
     }
 }
 

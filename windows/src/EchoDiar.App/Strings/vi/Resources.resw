@@ -2354,6 +2354,10 @@
     <value>Chưa cài mô hình chép lời trực tiếp nào. Hãy tải về một mô hình Whisper hoặc Parakeet trong Nhà cung cấp AI › AI cục bộ.</value>
     <comment>No live model installed. Download a Whisper or Parakeet model in AI Providers › Local AI.</comment>
   </data>
+  <data name="NoMatchingChats" xml:space="preserve">
+    <value>Không có cuộc trò chuyện nào khớp</value>
+    <comment>No matching chats</comment>
+  </data>
   <data name="NoModelChooseOneInSettings" xml:space="preserve">
     <value>Không có mô hình: hãy chọn một mô hình trong Cài đặt</value>
     <comment>No model: choose one in Settings</comment>
@@ -3269,6 +3273,10 @@
   <data name="SearchCatchUps" xml:space="preserve">
     <value>Tìm trong các bản tóm tắt nhanh</value>
     <comment>Search catch-ups</comment>
+  </data>
+  <data name="SearchChats" xml:space="preserve">
+    <value>Tìm trong các cuộc trò chuyện</value>
+    <comment>Search chats</comment>
   </data>
   <data name="SearchConversations" xml:space="preserve">
     <value>Tìm cuộc hội thoại</value>
