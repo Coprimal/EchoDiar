@@ -63,14 +63,20 @@ struct TranscriptView: View {
 
     var body: some View {
         PaneSplit(vertical: stacked, firstMinimum: stacked ? 200 : 280, secondMinimum: stacked ? 200 : 300) {
-            // Until the files are read, a light pane (under the video pane's placeholder when there is a video), so
-            // the click that opened the conversation shows at once.
-            VStack(spacing: 10) {
+            // One card: the video, the transcript and the bar, a line between each two. Until the files are read, a
+            // light pane (beside the video pane's placeholder when there is a video), so the click that opened the
+            // conversation shows at once. Clipped to the card, as the video's picture would not be.
+            VStack(spacing: 0) {
                 withVideoPane {
-                    if loaded { content } else { DetailLoadingPane() }
+                    if loaded { content } else { DetailLoadingPane(framed: false) }
                 }
-                if loaded { bottomBar }
+                if loaded {
+                    Divider()
+                    bottomBar
+                }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .modifier(GlassCard(cornerRadius: 20))
         } second: {
             AIPanelView(conversation: conversation, model: model, tab: shownTab, transition: tabTransition)
         }
@@ -185,7 +191,6 @@ struct TranscriptView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .modifier(GlassCard(cornerRadius: 20))
     }
 
     private var failed: Bool { TranscriptionStatus.showsFailure(conversation, model) }
@@ -631,8 +636,8 @@ struct TranscriptView: View {
 
     // MARK: - Segments
 
-    /// The segments in a card as tall as the AI panel's beside it, or a note in its middle while there are none; the
-    /// version menu is pinned above them, as in Summary.
+    /// The segments, or a note in their middle while there are none; the version menu is pinned above them, as in
+    /// Summary.
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             if showsVersionMenu {
@@ -659,16 +664,16 @@ struct TranscriptView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .modifier(GlassCard(cornerRadius: 20))
     }
 
-    /// `main` (the transcript card, or its loading pane) with the video pane above it, or left of it while the two
-    /// panes are stacked (the column is then wide and short); alone without a video or when `transcriptVideoLayout`
-    /// hides it.
+    /// `main` (the transcript, or its loading pane) with the video pane above it, or left of it while the two panes
+    /// are stacked (the column is then wide and short), a line between them; alone without a video or when
+    /// `transcriptVideoLayout` hides it.
     @ViewBuilder
     private func withVideoPane<Main: View>(@ViewBuilder _ main: () -> Main) -> some View {
         if showsVideoPane {
-            PaneSplit(vertical: !stacked, firstMinimum: stacked ? 200 : 120, secondMinimum: stacked ? 280 : 160) {
+            PaneSplit(vertical: !stacked, firstMinimum: stacked ? 200 : 120, secondMinimum: stacked ? 280 : 160,
+                      lined: true) {
                 VideoPaneView(playback: playback, clip: videoClip, conversationID: conversation.id)
             } second: {
                 main()
@@ -956,15 +961,17 @@ private struct SpeakerChipShape: ViewModifier {
 }
 
 /// Two cards side by side (the transcript column and the AI panel, or the recording's transcript and side panel) or
-/// stacked (the video pane over the transcript; those two panes with `AppSettings.stackedPanes`), split half and half
-/// at first, with a 10 pt gap between them that drags to resize them (a resize pointer over it).
+/// stacked (those two panes with `AppSettings.stackedPanes`), split half and half at first, with a 10 pt gap between
+/// them that drags to resize them (a resize pointer over it).
 /// No divider line: unlike `HSplitView` and `VSplitView`, whose divider cannot be hidden, the cards' own edges
 /// separate them, and two short grip lines in the gap's middle show it resizes (a bit brighter on hover and while
-/// dragged).
+/// dragged). `lined`: two panes of one card (the video and the transcript), a line across the whole card in the gap's
+/// middle instead of the grip.
 struct PaneSplit<First: View, Second: View>: View {
     let vertical: Bool
     let firstMinimum: CGFloat
     let secondMinimum: CGFloat
+    var lined = false
     @ViewBuilder let first: First
     @ViewBuilder let second: Second
     /// The first pane's share of the space without the gap.
@@ -974,21 +981,22 @@ struct PaneSplit<First: View, Second: View>: View {
     /// The pointer is over the gap.
     @State private var hovered = false
 
-    private static var gap: CGFloat { 10 }
+    /// 9 pt for a line, so its 1 pt sits on the pixel grid.
+    private var gap: CGFloat { lined ? 9 : 10 }
 
     var body: some View {
         GeometryReader { geometry in
-            let total = max((vertical ? geometry.size.height : geometry.size.width) - Self.gap, 0)
+            let total = max((vertical ? geometry.size.height : geometry.size.width) - gap, 0)
             // Whole points, so the gap and its grip lines sit on the pixel grid and both lines draw alike.
             let length = clamped(total * fraction, total: total).rounded()
             let layout = vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
             layout {
                 first.frame(width: vertical ? nil : length, height: vertical ? length : nil)
                 Color.clear
-                    .frame(width: vertical ? nil : Self.gap, height: vertical ? Self.gap : nil)
+                    .frame(width: vertical ? nil : gap, height: vertical ? gap : nil)
                     .contentShape(Rectangle())
                     // Draws only: the gap keeps the drag and the resize pointer.
-                    .overlay { grip.allowsHitTesting(false) }
+                    .overlay { Group { if lined { line } else { grip } }.allowsHitTesting(false) }
                     .pointerStyle(vertical ? .rowResize : .columnResize)
                     .onHover { hovered = $0 }
                     .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
@@ -1017,6 +1025,14 @@ struct PaneSplit<First: View, Second: View>: View {
             }
         }
         .animation(Motion.hover, value: active)
+    }
+
+    /// Across the whole gap (as a `Divider`), brighter on hover and while dragged.
+    private var line: some View {
+        Rectangle()
+            .fill(hovered || dragStart != nil ? Color.white.opacity(0.4) : Color(nsColor: .separatorColor))
+            .frame(width: vertical ? nil : 1, height: vertical ? 1 : nil)
+            .animation(Motion.hover, value: hovered || dragStart != nil)
     }
 
     /// `length` kept between the two minimums; half and half when the space is too small for both.

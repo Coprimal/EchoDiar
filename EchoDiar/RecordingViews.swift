@@ -228,12 +228,12 @@ struct RecordingDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// A header on the window, as the conversation's AI panel's (the Catch-up | Chat tabs, then the catch-up model,
-    /// which also answers the chat, the answer language and, on the Catch-up tab, Search), over one card with the
-    /// selected tab, whose own cards it replaces; the catch-up search field slides in at the card's top. Only the selected tab's view: a hidden chat would still take
-    /// the keyboard focus.
+    /// One card, as the conversation's AI panel: a header (the Catch-up | Chat tabs, then the catch-up model, which
+    /// also answers the chat, the answer language and, on the Catch-up tab, Search), a line, then the selected tab,
+    /// whose own cards it replaces; the catch-up search field slides in under the line. Only the selected tab's view: a
+    /// hidden chat would still take the keyboard focus.
     private var sidePanel: some View {
-        VStack(spacing: MainView.headerGap) {
+        VStack(spacing: 0) {
             // Narrower, the language menu shows only its globe, then the model menu only its chip, then the tabs only
             // their icons and the menus pad their sides less; the row never wraps and no menu is squeezed below its
             // content.
@@ -244,6 +244,8 @@ struct RecordingDetailView: View {
                 headerRow(iconTabs: true, modelLabel: false, languageLabel: false)
             }
             .frame(height: MainView.headerHeight)
+            .padding(MainView.headerPadding)
+            Divider()
             VStack(spacing: 0) {
                 if model.recordingTab == .catchUp && searchingCatchUps {
                     catchUpSearchField
@@ -256,9 +258,11 @@ struct RecordingDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .modifier(GlassCard(cornerRadius: 14))
+            // The search field slides in from under the line, not over the header.
+            .clipped()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(GlassCard(cornerRadius: 14))
     }
 
     private func headerRow(iconTabs: Bool, modelLabel: Bool, languageLabel: Bool) -> some View {
@@ -268,10 +272,10 @@ struct RecordingDetailView: View {
         // On Chat, measured with room for Catch-up's Search, so both tabs pick the same step.
         return ReservedWidth(extra: selection.wrappedValue == .catchUp ? 0 : Self.menuHeight + 8) {
             HStack(spacing: 8) {
-                // On the window, as the conversation's AI panel tabs: a track of the cards' color.
+                // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
                 CapsuleTabs(selection: selection, tabs: Self.panelTabs,
                             title: { iconTabs ? Self.tabIcon($0) : Text(Self.tabTitle($0)) },
-                            drawsTrack: true, trackFill: Palette.surface,
+                            drawsTrack: true, trackFill: Palette.inputSurface,
                             help: iconTabs ? { Text(Self.tabTitle($0)) } : nil)
                     .fixedSize()
                 Spacer(minLength: 8)

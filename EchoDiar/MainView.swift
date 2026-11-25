@@ -563,17 +563,18 @@ struct MainView: View {
             removal: .offset(x: -travel).combined(with: .opacity).animation(.easeOut(duration: 0.1)))
     }
 
-    /// The library page: the sidebar (its header on the window, over one well for the cards or the library chat), then
-    /// the detail. The sidebar stays while the detail changes; hidden (⌘B, the toolbar's sidebar button), it slides out
-    /// and the detail takes the window.
+    /// The library page: the sidebar (one well: its header, a line, then the cards or the library chat), then the
+    /// detail. The sidebar stays while the detail changes; hidden (⌘B, the toolbar's sidebar button), it slides out and
+    /// the detail takes the window.
     private var libraryPage: some View {
         // Both panes pad 12 pt on every side; overlapping those paddings by 6 pt leaves an 18 pt gap between them.
         HStack(spacing: -6) {
             if !model.sidebarHidden {
-                VStack(spacing: Self.headerGap) {
+                libraryWell(VStack(spacing: 0) {
                     sidebarHeader
-                    libraryWell(chatOr(libraryPane(selectedID: selectedID)))
-                }
+                    Divider()
+                    chatOr(libraryPane(selectedID: selectedID))
+                })
                 .padding(12)
                 .frame(width: 360)
                 .transition(reduceMotion ? .opacity : .move(edge: .leading).combined(with: .opacity))
@@ -599,8 +600,8 @@ struct MainView: View {
         .animation(reduceMotion ? nil : Self.paneAnimation, value: model.globalChatOpen)
     }
 
-    /// The sidebar's cards (or why there are none), or the library chat, on a panel like the detail's, the cards a
-    /// step lighter; its header is above it, on the window.
+    /// The sidebar (its header, then the cards or why there are none, or the library chat) on a panel like the
+    /// detail's, the cards a step lighter.
     private func libraryWell(_ pane: some View) -> some View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         return pane
@@ -705,12 +706,13 @@ struct MainView: View {
     /// are as tall, so the cards under the header do not move when the field replaces the tabs. The AI panel's header
     /// is as tall.
     static let headerHeight: CGFloat = headerControlHeight + 6
-    /// Between a header and the card under it (the sidebar's, the AI panel's).
-    static let headerGap: CGFloat = 8
+    /// Around a header inside its card, over the line under it (the sidebar's, the AI panels'), so the headers and
+    /// their lines line up.
+    static let headerPadding: CGFloat = 10
 
-    /// The sidebar's header, on the window above its well: the Conversations | Chat tabs (on a track of the cards'
-    /// color) and the search button; expanded, the search field across the whole width and its close button in their
-    /// place. The two cross-fade (no animation under Reduce Motion).
+    /// The sidebar's header, at the top of its well: the Conversations | Chat tabs (on a track of their own: the well
+    /// is `Palette.surface` too) and the search button; expanded, the search field across the whole width and its
+    /// close button in their place. The two cross-fade (no animation under Reduce Motion).
     private var sidebarHeader: some View {
         ZStack {
             if searchExpanded {
@@ -728,7 +730,7 @@ struct MainView: View {
                     // `globalChatOpen` is the selected tab: false = Conversations, true = Chat.
                     CapsuleTabs(selection: Binding(get: { model.globalChatOpen }, set: { model.globalChatOpen = $0 }),
                                 tabs: [false, true], title: { $0 ? Text("Global Chat") : Text("Conversations") },
-                                drawsTrack: true, trackFill: Palette.surface)
+                                drawsTrack: true, trackFill: Palette.inputSurface)
                         .fixedSize()
                     Spacer(minLength: 8)
                     // From the Chat tab it shows Conversations first: the search filters the cards.
@@ -742,6 +744,7 @@ struct MainView: View {
             }
         }
         .frame(height: Self.headerHeight)
+        .padding(Self.headerPadding)
     }
 
     /// Back to the tabs: the query cleared (the cards unfiltered) and the field's editing ended, so typing stops going

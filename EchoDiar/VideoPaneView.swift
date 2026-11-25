@@ -36,8 +36,8 @@ struct VideoClip: Equatable, Sendable {
     }
 }
 
-/// The conversation's screen recording beside or above the transcript: the picture of `playback.videoPlayer`,
-/// aspect-fit in a card like the transcript's, without system controls; a click anywhere plays or pauses. A centred
+/// The conversation's screen recording beside or above the transcript, in the transcript's card: the picture of
+/// `playback.videoPlayer`, aspect-fit, without system controls; a click anywhere plays or pauses. A centred
 /// play/pause badge shows that: always while paused, while playing only when the pointer moves over the video, fading
 /// out 1.5 s after it stops. A placeholder of the same card shows at once and its spinner only after 150 ms; "No screen
 /// recording at this point" shows (below the badge) while the play head is outside the recorded picture (a video that
@@ -54,8 +54,6 @@ struct VideoPaneView: View {
     @State private var pointerIdle: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let cornerRadius: CGFloat = 20
-
     var body: some View {
         let opened = clip != nil && playback.videoPlayer != nil && playback.videoDuration > 0
         ZStack {
@@ -68,8 +66,8 @@ struct VideoPaneView: View {
                 badgeVisible: badgeVisible, animatesBadge: !reduceMotion)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
-        .modifier(GlassCard(cornerRadius: Self.cornerRadius))
+        // The card it is in clips its corners.
+        .clipped()
         .contentShape(Rectangle())
         .onContinuousHover { phase in
             switch phase {

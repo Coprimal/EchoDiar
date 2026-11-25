@@ -65,9 +65,11 @@ struct AIPanelView: View {
     private static let answerFooterHeight: CGFloat = 22
 
     var body: some View {
-        VStack(spacing: MainView.headerGap) {
-            // On the window, above the card, as the sidebar's header (the two line up).
+        // One card: the header (lined up with the sidebar's), a line, then the tab.
+        VStack(spacing: 0) {
             header
+                .padding(MainView.headerPadding)
+            Divider()
             // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
             // the click that opened the conversation shows at once.
             VStack(spacing: 10) {
@@ -90,10 +92,10 @@ struct AIPanelView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .modifier(GlassCard(cornerRadius: 20))
             .overlay(alignment: .bottom) { toastView }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(GlassCard(cornerRadius: 20))
         .environment(\.openURL, OpenURLAction(handler: openLink))
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
@@ -534,11 +536,11 @@ struct AIPanelView: View {
     }
 
     private func tabs(iconOnly: Bool, tight: Bool) -> some View {
-        // On the window, as the sidebar's tabs: a track of the cards' color.
+        // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
         CapsuleTabs(selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
                     tabs: shownTabs,
                     title: { iconOnly ? TranscriptView.tabIcon($0) : Text(TranscriptView.tabTitle($0)) },
-                    drawsTrack: true, trackFill: Palette.surface, itemPadding: tight ? 8 : 12,
+                    drawsTrack: true, trackFill: Palette.inputSurface, itemPadding: tight ? 8 : 12,
                     help: iconOnly ? { Text(TranscriptView.tabTitle($0)) } : nil)
             .fixedSize()
     }
