@@ -3086,13 +3086,13 @@
     <value>Đã ghi màn hình</value>
     <comment>Screen recorded</comment>
   </data>
-  <data name="ScreenRecording" xml:space="preserve">
-    <value>Bản ghi màn hình</value>
-    <comment>Screen recording</comment>
-  </data>
   <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
     <value>Không thể tiếp tục ghi màn hình. Âm thanh vẫn đang được ghi.</value>
     <comment>Screen recording could not resume. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecordingOff" xml:space="preserve">
+    <value>Đã tắt ghi màn hình</value>
+    <comment>Screen recording off</comment>
   </data>
   <data name="ScreenRecordingStoppedCouldNotWriteTheVideoTheSoundIsStillRe" xml:space="preserve">
     <value>Đã dừng ghi màn hình: không thể ghi dữ liệu video. Âm thanh vẫn đang được ghi.</value>
@@ -3105,6 +3105,10 @@
   <data name="ScreenRecordingStoppedTheScreenOrWindowIsNoLongerAvailableTh" xml:space="preserve">
     <value>Đã dừng ghi màn hình: màn hình hoặc cửa sổ không còn khả dụng. Âm thanh vẫn đang được ghi.</value>
     <comment>Screen recording stopped: the screen or window is no longer available. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecording_2" xml:space="preserve">
+    <value>Bản ghi màn hình</value>
+    <comment>Screen recording</comment>
   </data>
   <data name="ScreenRecordings" xml:space="preserve">
     <value>Các bản ghi màn hình</value>
@@ -3813,6 +3817,10 @@
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>Bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong cuộc hội thoại vẫn được giữ.</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
+  </data>
+  <data name="TheScreenRecordingStoppedOnAnError" xml:space="preserve">
+    <value>Ghi màn hình đã dừng do lỗi</value>
+    <comment>The screen recording stopped on an error</comment>
   </data>
   <data name="TheScreenRecordingsAreMovedToTheTrashEverythingElseInTheseCo" xml:space="preserve">
     <value>Các bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong các cuộc hội thoại này vẫn được giữ.</value>

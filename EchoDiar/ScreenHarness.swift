@@ -37,7 +37,7 @@ extension AppModel {
 /// `--measure-screen <static|slides|scroll|meeting|video> --target window|display|area:x,y,w,h --seconds N
 /// --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps 15] [--quality 0.75] [--pause-at S] [--resume-at S]
 /// [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] [--any-display] [--via-model] [--no-transcribe]
-/// [--no-system-audio] [--resize-at S]`
+/// [--no-system-audio] [--resize-at S] [--screen-off-at S] [--screen-on-at S] [--screen-off-during-on]`
 ///
 /// Copies the stage page and the clip into `<out>/stage/`, shows the page on the built-in display (a titled 1440x900
 /// window for `window`; a borderless `.screenSaver` window covering the whole display for `display` and `area`, the
@@ -54,6 +54,14 @@ extension AppModel {
 /// only"), and `--no-system-audio` picks "No system audio" (`AppModel.systemAudioOff`: no tap, a silent system channel).
 /// `--resize-at S` (window target only) shrinks the stage window to `resizedSize`, top-left kept, on the same display,
 /// S seconds after the video started; `result.json` reports the actual time as `resizedAt` and the new frame.
+/// `--screen-off-at S` and `--screen-on-at S` (`--via-model` only) turn the screen off (`toggleScreenRecording`) and
+/// on again with the run's source (`startPickedScreen` for `.duringRecording`), S seconds after the video started;
+/// the turn-on must come after the turn-off and outside the pause. `result.json` reports the actual times as
+/// `screenOffAt` and `screenOnAt`, and the frame checks expect frames only while the screen was on and not paused.
+/// `--screen-off-during-on` (with both, `--screen-on-at` at least 3 s before `--seconds`) turns the screen off again
+/// 20 ms into the turn-on, while it looks up its source: the screen must stay off with no notice and the recorder must
+/// write no real frame after that (`offDuringOn` in `result.json`, exit 9 otherwise). `screenOnAt` stays null, and the
+/// frame checks count the screen off from `--screen-off-at` to the end.
 ///
 /// `--measure-screen preflight --out <dir> --stage <page> --clip <mp4>` checks the grants and the instruments and
 /// deletes everything it recorded (see `preflight()`).
@@ -68,7 +76,8 @@ extension AppModel {
 ///
 /// Exit codes (`Code`): 0 ok, 1 usage or pipeline error, 2 another EchoDiar runs, 3 no built-in 2x display (or the
 /// stage is not on it), 4 the display/area stage does not cover the display, 5 a video run wrote no frame, 6 too few
-/// frames on moving content, 7 the clip does not play, 8 `--out` missing or unusable (before any store is built).
+/// frames on moving content, 7 the clip does not play, 8 `--out` missing or unusable (before any store is built),
+/// 9 `--screen-off-during-on` failed.
 /// Preflight only: 10 to 16, one per check, each with a `PREFLIGHT FAIL <name>` line.
 @MainActor
 final class ScreenHarness: NSObject, WKNavigationDelegate {
@@ -84,6 +93,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         static let fewFrames: Int32 = 6
         static let clipNotPlaying: Int32 = 7
         static let badOut: Int32 = 8
+        static let offDuringOn: Int32 = 9
         static let stageMissing: Int32 = 10
         static let screenAccess: Int32 = 11
         static let captureNoFrame: Int32 = 12
@@ -153,6 +163,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     private let pauseAt: Double?
     private let resumeAt: Double?
     private let resizeAt: Double?
+    private let screenOffAt: Double?
+    private let screenOnAt: Double?
+    private let offDuringOn: Bool
     private let noVideo: Bool
     private let noCursor: Bool
     private let syncMarks: Bool
@@ -185,6 +198,8 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
     /// `--via-model`: what the snapshot consumer handed over once the video was finished.
     private var modelEnded: (folder: URL?, video: ScreenRecordingController.Outcome?)?
     private var modelEndReason: ScreenRecordingController.EndReason?
+    /// `--screen-off-during-on`: whether the check held; nil until it ran.
+    private var offDuringOnPassed: Bool?
     private var maxFootprint: UInt64 = 0
     private var sampler: Task<Void, Never>?
     /// Preflight: folders to delete before exiting.
@@ -203,6 +218,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             + "--seconds N --out <dir> --stage <screen-stage.html> --clip <mp4> [--fps N] [--quality Q] "
             + "[--pause-at S] [--resume-at S] [--no-video] [--no-cursor] [--sync-marks] [--stage-only] [--mov] "
             + "[--any-display] [--via-model] [--no-transcribe] [--no-system-audio] [--resize-at S] "
+            + "[--screen-off-at S] [--screen-on-at S] [--screen-off-during-on] "
             + "| --measure-screen preflight --out <dir> "
             + "--stage <page> --clip <mp4> | --measure-screen playback <folder> --seconds N --out <dir> "
             + "| --measure-screen export <folder> --audio both|mic|system|none --out <dir> --file <mp4>"
@@ -224,6 +240,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         viaModel = arguments.contains("--via-model")
         noTranscribe = arguments.contains("--no-transcribe")
         noSystemAudio = arguments.contains("--no-system-audio")
+        offDuringOn = arguments.contains("--screen-off-during-on")
         if viaModel, noVideo || mov { Self.die(Code.failed, "error: --via-model records video.mp4: no --no-video or --mov") }
         if noSystemAudio, !viaModel { Self.die(Code.failed, "error: --no-system-audio needs --via-model") }
         func number(_ flag: String) -> Double? {
@@ -236,11 +253,21 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         let pauseAt = number("--pause-at")
         let resumeAt = number("--resume-at")
         let resizeAt = number("--resize-at")
+        let screenOffAt = number("--screen-off-at")
+        let screenOnAt = number("--screen-on-at")
+        if screenOffAt != nil || screenOnAt != nil, !viaModel || stageOnly {
+            Self.die(Code.failed, "error: --screen-off-at and --screen-on-at need --via-model (no --stage-only)")
+        }
+        if offDuringOn, screenOffAt == nil || screenOnAt == nil {
+            Self.die(Code.failed, "error: --screen-off-during-on needs --screen-off-at and --screen-on-at")
+        }
         self.fps = fps
         self.quality = quality
         self.pauseAt = pauseAt
         self.resumeAt = resumeAt
         self.resizeAt = resizeAt
+        self.screenOffAt = screenOffAt
+        self.screenOnAt = screenOnAt
         if command == "preflight" {
             target = .window
             targetName = "window"
@@ -300,6 +327,20 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             if let resizeAt, name != "window" || resizeAt >= runSeconds {
                 Self.die(Code.failed, "error: --resize-at needs --target window and must be before --seconds")
             }
+            if let screenOnAt, screenOffAt.map({ $0 >= screenOnAt }) ?? true {
+                Self.die(Code.failed, "error: --screen-on-at needs an earlier --screen-off-at")
+            }
+            if let end = screenOnAt ?? screenOffAt, end >= runSeconds {
+                Self.die(Code.failed, "error: --screen-off-at and --screen-on-at must be before --seconds")
+            }
+            // The check waits 2 s after the turn-on, while the recorder still runs.
+            if offDuringOn, let screenOnAt, screenOnAt + 3 > runSeconds {
+                Self.die(Code.failed, "error: --screen-off-during-on needs --screen-on-at at least 3 s before --seconds")
+            }
+            // The screen turns on only while recording, not paused.
+            if let screenOnAt, let pauseAt, screenOnAt >= pauseAt, screenOnAt <= resumeAt ?? runSeconds {
+                Self.die(Code.failed, "error: --screen-on-at must not fall between --pause-at and --resume-at")
+            }
         }
         super.init()
         if let playbackFolder {
@@ -323,7 +364,9 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             "stageOnly": stageOnly, "videoFileName": noVideo ? NSNull() : videoFileName,
             "settingsDirectory": settingsDirectory.path, "clipPlaying": NSNull(), "viaModel": viaModel,
             "noTranscribe": noTranscribe, "noSystemAudio": noSystemAudio, "resizeAt": resizeAt ?? NSNull(),
-            "resizedAt": NSNull(),
+            "resizedAt": NSNull(), "screenOffAtRequested": screenOffAt ?? NSNull(),
+            "screenOnAtRequested": screenOnAt ?? NSNull(), "screenOffAt": NSNull(), "screenOnAt": NSNull(),
+            "screenOffDuringOn": offDuringOn, "offDuringOn": NSNull(),
         ]
     }
 
@@ -522,6 +565,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         let start = ContinuousClock.now
         videoStartFileTime = engine.fileTime(atHostTime: mach_absolute_time())
         scheduleResize(window, from: start)
+        scheduleScreenToggle(source, from: start)
         if syncMarks {
             fields["marksAudioState"] = await js("return await startMarks();") as? String ?? NSNull()
         }
@@ -540,7 +584,10 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         var message: String?
         let frames = fields["frames"] as? Int ?? 0
         let expected = fields["expectedFrames"] as? Double ?? 0
-        let gap = (fields["audioDuration"] as? Double ?? 0) - (fields["lastFrameFileTime"] as? Double ?? 0)
+        // A screen still off at the end has its last frame at the turn-off: no gap check then.
+        let endsOff = fields["screenOffAt"] is Double && !(fields["screenOnAt"] is Double)
+        let gap = endsOff ? 0
+            : (fields["audioDuration"] as? Double ?? 0) - (fields["lastFrameFileTime"] as? Double ?? 0)
         if frames == 0 {
             (code, message) = (Code.noFrames, "error: no video frame was written")
         } else if Self.motionScenarios.contains(command), Double(frames) < 0.9 * expected || gap > 1 {
@@ -552,6 +599,12 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
             (code, message) = (Code.failed, "error: the video ended early: \(modelEndReason)")
         } else if let error = model.recordingError {
             (code, message) = (Code.failed, "error: \(error)")
+        } else if screenOffAt != nil && !(fields["screenOffAt"] is Double)
+                    || screenOnAt != nil && !offDuringOn && !(fields["screenOnAt"] is Double) {
+            (code, message) = (Code.failed, "error: the screen did not turn off or on when asked")
+        } else if offDuringOn, offDuringOnPassed != true {
+            (code, message) = (Code.offDuringOn, offDuringOnPassed == nil ? "error: --screen-off-during-on did not run"
+                : "error: the screen turned on or a frame was written after the turn-off during the turn-on")
         }
         await finish(code, message)
     }
@@ -576,6 +629,61 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
                 "sameDisplay": display != nil && window.screen.map { Self.displayID(of: $0) } == display,
             ] as [String: Any]
         }
+    }
+
+    /// `--screen-off-at` / `--screen-on-at`: turns the screen off at `start + screenOffAt` and on again with `source`
+    /// at `start + screenOnAt` while the recording runs. Records when each call was made, the turn-on only once the
+    /// screen records again (a turn-on that fails leaves it null).
+    private func scheduleScreenToggle(_ source: ScreenSource, from start: ContinuousClock.Instant) {
+        guard let screenOffAt else { return }
+        Task { [weak self] in
+            try? await Task.sleep(until: start + .seconds(screenOffAt))
+            guard let self, self.recording, self.model.screenRecording.isOn else { return }
+            self.model.toggleScreenRecording()
+            self.fields["screenOffAt"] = (ContinuousClock.now - start) / .seconds(1)
+            guard let screenOnAt = self.screenOnAt else { return }
+            try? await Task.sleep(until: start + .seconds(screenOnAt))
+            guard self.recording else { return }
+            if self.offDuringOn {
+                await self.turnOffDuringOn(source)
+                return
+            }
+            self.model.startPickedScreen(source, for: .duringRecording, bringForward: false)
+            let onAt = (ContinuousClock.now - start) / .seconds(1)
+            let screen = self.model.screenRecording
+            _ = await Self.wait(seconds: 10, until: { screen.state != .starting })
+            if screen.isOn { self.fields["screenOnAt"] = onAt }
+        }
+    }
+
+    /// `--screen-off-during-on`: turns the screen on with `source` and off again 20 ms later, while the turn-on looks
+    /// up its source (not in the same main-actor turn, which would only test `started`'s fallback). After 2 s the
+    /// screen must be off with no notice, and the recorder's frame count and last frame time must be those from before
+    /// the turn-on (placeholders are not counted). Fills `offDuringOn` and `offDuringOnPassed`.
+    private func turnOffDuringOn(_ source: ScreenSource) async {
+        let screen = model.screenRecording
+        let before = screen.harnessStats
+        model.startPickedScreen(source, for: .duringRecording, bringForward: false)
+        try? await Task.sleep(for: .milliseconds(20))
+        let stateAtOff = String(describing: screen.state)
+        // Only a turn-on still in progress tests the race; otherwise the toggle would do something else.
+        let starting = screen.state == .starting
+        var offFileTime: Double?
+        if starting {
+            offFileTime = engine.fileTime(atHostTime: mach_absolute_time())
+            model.toggleScreenRecording()
+        }
+        await Self.sleep(2)
+        let after = screen.harnessStats
+        let stayedOff = !screen.isOn
+        fields["offDuringOn"] = [
+            "framesBefore": before?.frames ?? NSNull(), "framesAfter": after?.frames ?? NSNull(),
+            "lastFileTimeBefore": before?.lastFileTime ?? NSNull(), "lastFileTimeAfter": after?.lastFileTime ?? NSNull(),
+            "screenOffFileTime": offFileTime ?? NSNull(), "stayedOff": stayedOff, "notice": screen.notice ?? NSNull(),
+            "stateAtOff": stateAtOff,
+        ] as [String: Any]
+        offDuringOnPassed = starting && stayedOff && screen.notice == nil && before != nil && after != nil
+            && after?.frames == before?.frames && after?.lastFileTime == before?.lastFileTime
     }
 
     /// `--via-model`: Stop, then the snapshot consumer's hand-over (the video finished at the audio file's length).
@@ -618,6 +726,13 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         let unpaused = pauseAt.map { pause in resumeAt.map { seconds - ($0 - pause) } ?? pause } ?? seconds
         fields["videoStartFileTime"] = videoStartFileTime ?? NSNull()
         fields["unpausedSeconds"] = unpaused
+        // Of those, the seconds the screen was on: less the off span (to the end without a turn-on) outside the pause.
+        let screenOn = (fields["screenOffAt"] as? Double).map { off in
+            let on = fields["screenOnAt"] as? Double ?? seconds
+            let paused = pauseAt.map { ($0, resumeAt ?? seconds) } ?? (seconds, seconds)
+            return unpaused - (on - off - max(0, min(on, paused.1) - max(off, paused.0)))
+        } ?? unpaused
+        fields["screenOnSeconds"] = screenOn
         // The same span on the audio file's clock; shorter when the audio file lost time.
         fields["fileTimeSpan"] = max(0, audioDuration - (videoStartFileTime ?? 0))
         let stats: ScreenRecorder.Stats
@@ -643,7 +758,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
         let track = try? await asset.loadTracks(withMediaType: .video).first
         let trackDuration = try? await track?.load(.timeRange).duration.seconds
         let bytes = Self.size(of: videoURL)
-        let expected = Double(fps) * unpaused
+        let expected = Double(fps) * screenOn
         fields["bytes"] = bytes
         fields["mbPerMin"] = videoDuration.map { $0 > 0 ? Double(bytes) / 1_000_000 / ($0 / 60) : 0 } ?? NSNull()
         fields["frames"] = stats.frames

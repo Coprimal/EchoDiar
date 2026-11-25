@@ -35,7 +35,7 @@ struct RecordingMenuControls {
     var toggleMicMute: @MainActor () -> Void
     /// The recording's screen video is starting or running.
     var screenOn: @MainActor () -> Bool
-    /// The screen toggle can act: the video runs, or none ran in this recording yet.
+    /// The screen toggle can act: the screen is on, or off without the video ended on an error.
     var screenAvailable: @MainActor () -> Bool
     var toggleScreen: @MainActor () -> Void
     /// The size of the recording's files so far (`AppModel.liveRecordingBytes`); nil until its first read is back.
@@ -365,8 +365,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     /// The screen toggle with a static glyph (a record badge while the video runs); Record Screen opens the screen
-    /// source chooser in the main window. Starting is not offered while paused, nor once this recording's video ended
-    /// (one video span per recording).
+    /// source chooser in the main window. Turning the screen on is not offered while paused, nor once the video ended
+    /// on an error.
     private func screenItem(_ controls: RecordingMenuControls) -> NSMenuItem {
         let on = controls.screenOn()
         let screen = item(on ? String(localized: "Stop Recording Screen") : String(localized: "Record Screen"),

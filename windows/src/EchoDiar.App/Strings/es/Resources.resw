@@ -3190,13 +3190,13 @@
     <value>Pantalla grabada</value>
     <comment>Screen recorded</comment>
   </data>
-  <data name="ScreenRecording" xml:space="preserve">
-    <value>Grabación de pantalla</value>
-    <comment>Screen recording</comment>
-  </data>
   <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
     <value>No se ha podido reanudar la grabación de pantalla. El sonido se sigue grabando.</value>
     <comment>Screen recording could not resume. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecordingOff" xml:space="preserve">
+    <value>Grabación de pantalla desactivada</value>
+    <comment>Screen recording off</comment>
   </data>
   <data name="ScreenRecordingStoppedCouldNotWriteTheVideoTheSoundIsStillRe" xml:space="preserve">
     <value>Grabación de pantalla detenida: no se ha podido escribir el vídeo. El sonido se sigue grabando.</value>
@@ -3209,6 +3209,10 @@
   <data name="ScreenRecordingStoppedTheScreenOrWindowIsNoLongerAvailableTh" xml:space="preserve">
     <value>Grabación de pantalla detenida: la pantalla o la ventana ya no está disponible. El sonido se sigue grabando.</value>
     <comment>Screen recording stopped: the screen or window is no longer available. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecording_2" xml:space="preserve">
+    <value>Grabación de pantalla</value>
+    <comment>Screen recording</comment>
   </data>
   <data name="ScreenRecordings" xml:space="preserve">
     <value>Grabaciones de pantalla</value>
@@ -3953,6 +3957,10 @@
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>La grabación de pantalla se traslada a la Papelera. Todo lo demás de la conversación se conserva.</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
+  </data>
+  <data name="TheScreenRecordingStoppedOnAnError" xml:space="preserve">
+    <value>La grabación de pantalla se detuvo por un error</value>
+    <comment>The screen recording stopped on an error</comment>
   </data>
   <data name="TheScreenRecordingsAreMovedToTheTrashEverythingElseInTheseCo" xml:space="preserve">
     <value>Las grabaciones de pantalla se trasladan a la Papelera. Todo lo demás de estas conversaciones se conserva.</value>

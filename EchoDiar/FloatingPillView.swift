@@ -154,8 +154,8 @@ struct FloatingPillView: View {
         .buttonStyle(RowIconButtonStyle())
     }
 
-    /// Opens the screen source chooser in the main window, whose pick starts the video, or stops the video; not while
-    /// paused, nor once this recording's video ended (one video span per recording).
+    /// Opens the screen source chooser in the main window, whose pick turns the screen on, or turns it off; any number
+    /// of times, not while paused, nor once the video ended on an error.
     private func screenToggle(paused: Bool) -> some View {
         let screen = model.screenRecording
         let on = screen.isOn
@@ -164,8 +164,9 @@ struct FloatingPillView: View {
                   systemImage: on ? "rectangle.dashed.badge.record" : "rectangle.dashed")
         }
         .disabled(!on && (paused || !screen.canStartDuringRecording))
-        .help(on ? "Stop recording the screen" : screen.canStartDuringRecording
-              ? "Record the screen from now on" : "The screen was recorded until it stopped")
+        .help(on ? "Stop recording the screen"
+              : !screen.canStartDuringRecording ? "The screen recording stopped on an error"
+              : paused ? "Resume the recording to record the screen" : "Record the screen from now on")
     }
 
     // MARK: - Prompts

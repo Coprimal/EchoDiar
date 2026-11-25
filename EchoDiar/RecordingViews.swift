@@ -473,7 +473,7 @@ struct RecordingHeader: View {
                     .font(.callout)
                     .foregroundStyle(.yellow)
             }
-            // Why the screen video ended before the recording.
+            // Why the screen video ended before the recording, or why the screen could not be turned on.
             if let notice = model.screenRecording.notice {
                 Label(notice, systemImage: "exclamationmark.triangle.fill")
                     .font(.callout)
@@ -509,7 +509,7 @@ struct RecordingHeader: View {
                     .allowsHitTesting(false))
     }
 
-    /// The state icon, elapsed clock and state, the meters, the screen toggle, "Catch up" and the language.
+    /// The state icon, elapsed clock and state, the meters, "Catch up" and the language.
     private func statusRow(paused: Bool) -> some View {
         HStack(spacing: 10) {
             Image(systemName: paused ? "pause.circle.fill" : "record.circle.fill")
@@ -534,7 +534,6 @@ struct RecordingHeader: View {
             } else {
                 Spacer(minLength: 8)
             }
-            ScreenToggleButton(model: model, paused: paused)
             CatchUpButton(model: model)
             languageMenu
         }
@@ -581,49 +580,6 @@ private struct LiveSizeText: View {
                 : size)
                 .monospacedDigit()
                 .lineLimit(1)
-        }
-    }
-}
-
-/// The recording header's screen toggle, a static glyph in the capsule style of "Catch up" (a record badge while the
-/// video runs): opens the screen source chooser on it (also when the pill or the status menu switches the screen on),
-/// whose pick starts the video, or stops the video; not while paused, nor once this recording's video ended (one video
-/// span per recording).
-private struct ScreenToggleButton: View {
-    let model: AppModel
-    let paused: Bool
-
-    var body: some View {
-        let screen = model.screenRecording
-        let on = screen.isOn
-        // The help sits on a wrapper: a disabled button may show none of its own.
-        HStack {
-            Button(action: model.toggleScreenRecording) {
-                Label(on ? "Stop screen" : "Screen",
-                      systemImage: on ? "rectangle.dashed.badge.record" : "rectangle.dashed")
-            }
-            .buttonBorderShape(.capsule)
-            .controlSize(.small)
-            // While the screen is recorded the capsule is filled with the accent, so it reads as live; off, the row's style.
-            .modifier(LiveScreenStyle(on: on))
-            .disabled(!on && (paused || !screen.canStartDuringRecording))
-        }
-        .help(on ? "Stop recording the screen" : screen.canStartDuringRecording
-              ? (paused ? "Resume the recording to record the screen" : "Record the screen from now on")
-              : "The screen was recorded until it stopped")
-        .modifier(ScreenChooserHost(model: model, request: .duringRecording))
-    }
-}
-
-/// The Stop screen capsule while the screen is recorded: filled with `Palette.screenRecording` (the accent).
-private struct LiveScreenStyle: ViewModifier {
-    let on: Bool
-
-    func body(content: Content) -> some View {
-        if on {
-            content.buttonStyle(.borderedProminent).tint(Palette.screenRecording)
-        } else {
-            content
         }
     }
 }

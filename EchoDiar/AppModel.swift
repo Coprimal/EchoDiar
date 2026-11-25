@@ -588,9 +588,9 @@ final class AppModel {
 
     /// A source picked in the chooser opened for `request`, checked against the state at the pick: a new recording of
     /// `selectedTarget` (the microphone only with `systemAudioOff`) with it (marked "screen only" when "Transcribe this
-    /// recording" is off), or the video of the running recording (not paused, none ran in it yet). Dropped when the
-    /// state no longer fits, e.g. a recording started from the calendar while the chooser was open. A display is
-    /// remembered for the chooser's "Last used".
+    /// recording" is off), or the screen of the running recording turned on (not paused, the screen off and the video
+    /// not ended on an error). Dropped when the state no longer fits, e.g. a recording started from the calendar while
+    /// the chooser was open. A display is remembered for the chooser's "Last used".
     func startPickedScreen(
         _ source: ScreenSource, for request: ScreenRecordingController.ChooserRequest, bringForward: Bool = true
     ) {
@@ -612,10 +612,9 @@ final class AppModel {
         }
     }
 
-    /// Brings the main window forward and asks the chooser's control to open it (the toolbar's Record, or the
-    /// recording header's screen control on the recording page) once the window shows.
+    /// Brings the main window forward and asks the chooser's control to open it (the toolbar's Record, or its camera
+    /// button while recording, both shown on every page) once the window shows; the page stays as it is.
     private func requestScreenChooser(_ request: ScreenRecordingController.ChooserRequest) {
-        if request == .duringRecording { route = .recording }
         (NSApp.delegate as? AppDelegate)?.showMainWindow()
         screenRecording.chooserRequest = request
     }
@@ -1010,15 +1009,16 @@ final class AppModel {
         }
     }
 
-    /// The screen toggle of the pill, the status menu and the recording header. On: the main window comes forward on
-    /// the recording page, whose screen control opens the source chooser; the pick starts the video. Not while paused.
-    /// Off: finishes the video at the audio file's current time; no other video starts in this recording.
+    /// The screen toggle of the toolbar's camera button, the pill and the status menu, any number of times in a
+    /// recording. On: the main window comes forward and the camera button opens the source chooser; the pick turns the
+    /// screen on. Not while paused, nor once the video ended on an error. Off: the screen is off from the audio file's
+    /// current time; the video goes on with the "Screen recording off" frame.
     func toggleScreenRecording() {
         guard activeFolder != nil else { return }
         let screen = screenRecording
         if screen.isOn {
             // The frames' clock: the written audio (`elapsed`) lags it while recording, and would cut the last frames.
-            screen.stopDuringRecording(
+            screen.screenOff(
                 at: engine.fileTime(atHostTime: mach_absolute_time()) ?? engine.currentSnapshot().elapsed)
         } else if screen.canStartDuringRecording, engine.currentSnapshot().state == .recording {
             requestScreenChooser(.duringRecording)

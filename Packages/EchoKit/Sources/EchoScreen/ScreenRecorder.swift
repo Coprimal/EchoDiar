@@ -21,7 +21,8 @@ public enum ScreenRecorderError: Error, Sendable, Equatable {
 /// One file per recording: `screenOff(at:)` stops the stream and writes the placeholder frame, which holds until the
 /// next real frame; `screenOn(source:...)` starts a new stream, of any source, into the same file at the same output
 /// size. Pause and screen off are independent: a recording can be paused with the screen on or off, and `resume()`
-/// starts a stream only when the screen is on.
+/// starts a stream only when the screen is on. A `screenOff(at:)` that comes while `start` or `screenOn` prepares is
+/// kept and honoured before their stream would start: that stream never starts.
 ///
 /// `@unchecked Sendable`: all state lives on a private serial queue, which is also the stream's sample handler queue;
 /// the public API hops onto it.
@@ -89,6 +90,11 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
     private var ended = false
     /// The screen was turned off by `screenOff(at:)`: no stream, whether running or paused, until `screenOn`.
     private var screenOff = false
+    /// The file time, in seconds, of a `screenOff(at:)` that came while `start` prepared or a `screenOn` looked up
+    /// its source; honoured by them before their stream would start.
+    private var pendingOff: Double?
+    /// A `screenOn` is looking up its source: from its first check until it installs its stream or fails.
+    private var turningOn = false
     private var lastBuffer: CMSampleBuffer?
     private var lastFileTime = CMTime.invalid
     /// The "Screen recording off" frame at the writer's size, rendered once by `start`; nil when it could not be made.
@@ -124,10 +130,11 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
     /// While `start` prepares (shareable content, writer), a `pause()` or `stop(at:)` is recorded and honored once the
     /// preparation is done: after a `pause()`, `start` returns with the recorder paused and no stream running
     /// (`resume()` starts one); after a `stop(at:)`, `start` throws `CancellationError` (or the error that ended the
-    /// preparation), removes the file and finishes `events`, and the recorder stays stopped. Once the stream is being
-    /// started, `pause()`, `screenOff(at:)` and `stop(at:)` act at once and own the state and the file: if the stream
-    /// then fails to start, `start` still throws, but the file is not removed and the recorder keeps its writer until
-    /// `stop(at:)` finishes it.
+    /// preparation), removes the file and finishes `events`, and the recorder stays stopped. A `screenOff(at:)` is kept
+    /// too: `start` then returns with the screen off, its placeholder written at that file time, and never starts the
+    /// stream (`screenOn` starts one). Once the stream is being started, `pause()`, `screenOff(at:)` and `stop(at:)`
+    /// act at once and own the state and the file: if the stream then fails to start, `start` still throws, but the
+    /// file is not removed and the recorder keeps its writer until `stop(at:)` finishes it.
     ///
     /// `placeholderText` (already localized) is drawn once on the placeholder frame (`ScreenPlaceholder`), at the
     /// output size, that stands for the spans where the screen was off. With `leadsWithPlaceholder` (the screen turned
@@ -176,8 +183,9 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
                 width: pixelSize.width, height: pixelSize.height, text: placeholderText)
             if placeholder == nil { NSLog("EchoDiar: screen placeholder frame could not be made") }
             let stream = try makeStream(filter: filter, configuration: configuration)
-            // A stop requested meanwhile abandons the start (the catch below tears down); a pause ends it paused.
-            let paused: Bool = try onQueue {
+            // A stop requested meanwhile abandons the start (the catch below tears down); a pause ends it paused and a
+            // turn-off with the screen off, and neither starts the stream.
+            let captures: Bool = try onQueue {
                 guard state == .starting, request != .stop else { throw CancellationError() }
                 self.writer = writer
                 self.placeholder = placeholder
@@ -186,23 +194,26 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
                 self.clock = clock
                 self.url = url
                 self.minimumFreeBytes = minimumFreeBytes
-                if case .window(let id) = source, let windowDisplay {
+                let off = pendingOff
+                pendingOff = nil
+                if off == nil, case .window(let id) = source, let windowDisplay {
                     let listed = Set(includingWindowIDs).intersection(content.windows.map(\.windowID))
                     windowCapture = (id, windowDisplay, listed)
                 }
                 frameInterval = CMTime(value: CMTimeValue(Self.timescale) / CMTimeValue(max(fps, 1)), timescale: Self.timescale)
                 if leadsWithPlaceholder { appendPlaceholder(at: .zero) }
+                if let off {
+                    screenOff = true
+                    if lastBuffer !== placeholder { appendOffPlaceholder(at: off) }
+                }
                 let paused = request == .pause
                 request = nil
-                if paused {
-                    state = .paused
-                } else {
-                    self.stream = stream
-                    state = .running
-                }
-                return paused
+                state = paused ? .paused : .running
+                let captures = !paused && off == nil
+                if captures { self.stream = stream }
+                return captures
             }
-            if paused {
+            if !captures {
                 onQueue { startDiskTimer() }
                 return
             }
@@ -227,6 +238,7 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
             // Once the stream is being started, a `pause()` or `stop(at:)` owns the state and the file.
             let failedStart = onQueue {
                 guard state == .starting else { return false }
+                pendingOff = nil
                 if request == .stop {
                     state = .stopped
                     continuation.finish()
@@ -291,20 +303,22 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
 
     /// Turns the screen off: stops the stream and writes the placeholder frame at `fileTime` (seconds), or just after
     /// the last frame when that is later. The placeholder holds until the next real frame or the end of the file. The
-    /// recording goes on, running or paused, until `screenOn` starts a stream again. No-op when the screen is already
-    /// off, while `start` prepares, after `stop(at:)` or once an end event was emitted.
+    /// recording goes on, running or paused, until `screenOn` starts a stream again. While `start` prepares (unless a
+    /// `stop(at:)` was requested) or a `screenOn` looks up its source, the turn-off is kept and honoured before their
+    /// stream would start: it never starts, and the placeholder goes in at `fileTime`. No-op when the screen is
+    /// already off, after `stop(at:)` or once an end event was emitted.
     public func screenOff(at fileTime: Double) async {
         let stream: SCStream? = onQueue {
+            if (state == .starting && request != .stop) || turningOn {
+                if pendingOff == nil { pendingOff = fileTime }
+                return nil
+            }
             guard state == .running || state == .paused, !ended, !screenOff, writer != nil else { return nil }
             let stream = self.stream
             self.stream = nil
             screenOff = true
             windowCapture = nil
-            var time = Self.time(fileTime)
-            if lastFileTime.isValid {
-                time = CMTimeMaximum(time, lastFileTime + CMTime(value: 1, timescale: Self.timescale))
-            }
-            appendPlaceholder(at: time)
+            appendOffPlaceholder(at: fileTime)
             return stream
         }
         try? await stream?.stopCapture()
@@ -312,14 +326,15 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
 
     /// Turns the screen on again with `source`: starts a new stream into the same file, keeping the output size
     /// (`scalesToFit` letterboxes a source of another shape). `excludingWindowIDs` and `includingWindowIDs` work as in
-    /// `start`. Throws `ScreenRecorderError.invalidState` unless recording, not paused, with the screen off and no end
-    /// event; `CancellationError` when a `pause()` or `stop(at:)` came while the source was looked up. On any failure
-    /// the screen stays off, with no stream, and the file is untouched.
+    /// `start`. Throws `ScreenRecorderError.invalidState` unless recording, not paused, with the screen off, no other
+    /// `screenOn` looking up its source and no end event; `CancellationError` when a `pause()`, `screenOff(at:)` or `stop(at:)` came while the source was looked
+    /// up. On any failure the screen stays off, with no stream, and the file is untouched (apart from the placeholder
+    /// such a `screenOff(at:)` writes if the screen's last frame was not one).
     public func screenOn(
         source: ScreenSource, excludingWindowIDs: [CGWindowID] = [], includingWindowIDs: [CGWindowID] = []
     ) async throws {
         let configuration: SCStreamConfiguration = try onQueue {
-            guard state == .running, screenOff, !ended, writer != nil, let current = self.configuration else {
+            guard state == .running, screenOff, !turningOn, !ended, writer != nil, let current = self.configuration else {
                 throw ScreenRecorderError.invalidState
             }
             let configuration = SCStreamConfiguration()
@@ -331,17 +346,36 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
             configuration.showsCursor = current.showsCursor
             configuration.showMouseClicks = current.showMouseClicks
             configuration.queueDepth = current.queueDepth
+            turningOn = true
             return configuration
         }
-        var content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-        if case .window = source, !Self.lists(includingWindowIDs, in: content) {
-            content = try await Self.contentAgain()
+        let content: SCShareableContent, filter: SCContentFilter, windowDisplay: SCDisplay?, stream: SCStream
+        do {
+            var listed = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+            if case .window = source, !Self.lists(includingWindowIDs, in: listed) {
+                listed = try await Self.contentAgain()
+            }
+            content = listed
+            let sourceRect: CGRect?
+            (filter, _, sourceRect, windowDisplay) = try Self.filter(
+                for: source, content: content, excluding: excludingWindowIDs, including: includingWindowIDs)
+            if let sourceRect { configuration.sourceRect = sourceRect }
+            stream = try makeStream(filter: filter, configuration: configuration)
+        } catch {
+            onQueue {
+                turningOn = false
+                pendingOff = nil
+            }
+            throw error
         }
-        let (filter, _, sourceRect, windowDisplay) = try Self.filter(
-            for: source, content: content, excluding: excludingWindowIDs, including: includingWindowIDs)
-        if let sourceRect { configuration.sourceRect = sourceRect }
-        let stream = try makeStream(filter: filter, configuration: configuration)
         try onQueue {
+            turningOn = false
+            // A turn-off during the lookup: the stream never starts; the placeholder of the earlier turn-off holds.
+            if let off = pendingOff {
+                pendingOff = nil
+                if !ended, lastBuffer !== placeholder { appendOffPlaceholder(at: off) }
+                throw CancellationError()
+            }
             guard state == .running, screenOff, !ended else { throw CancellationError() }
             self.filter = filter
             self.configuration = configuration
@@ -441,6 +475,7 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
     public func stop(at fileTime: Double) async throws {
         let end = Self.time(fileTime)
         let detached: (SCStream?, ScreenVideoWriter)? = onQueue {
+            pendingOff = nil
             if state == .starting { request = .stop }
             guard state == .running || state == .paused, let writer else { return nil }
             state = .stopped
@@ -549,6 +584,16 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
         NSLog("EchoDiar: screen placeholder frame not written at %.3f s", fileTime.seconds)
         statsLock.withLock { $0.dropped += 1 }
         return false
+    }
+
+    /// Appends the placeholder for a screen turned off at `fileTime` (seconds), or just after the last frame when that
+    /// is later.
+    private func appendOffPlaceholder(at fileTime: Double) {
+        var time = Self.time(fileTime)
+        if lastFileTime.isValid {
+            time = CMTimeMaximum(time, lastFileTime + CMTime(value: 1, timescale: Self.timescale))
+        }
+        appendPlaceholder(at: time)
     }
 
     private func startDiskTimer() {

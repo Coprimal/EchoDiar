@@ -4,9 +4,9 @@ import EchoCore
 import EchoScreen
 import SwiftUI
 
-/// Opens the screen source chooser in a popover on this control (the toolbar's Record for `.newRecording`, the
-/// recording header's screen control for `.duringRecording`) when the model asks for it with `request`, once the main
-/// window shows; the request is cleared as it is taken.
+/// Opens the screen source chooser in a popover on this control (the toolbar's Record for `.newRecording`, its
+/// camera button for `.duringRecording`) when the model asks for it with `request`, once the main window shows; the
+/// request is cleared as it is taken.
 struct ScreenChooserHost: ViewModifier {
     let model: AppModel
     let request: ScreenRecordingController.ChooserRequest

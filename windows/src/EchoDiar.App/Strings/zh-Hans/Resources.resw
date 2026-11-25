@@ -3086,13 +3086,13 @@
     <value>已录制屏幕</value>
     <comment>Screen recorded</comment>
   </data>
-  <data name="ScreenRecording" xml:space="preserve">
-    <value>屏幕录制</value>
-    <comment>Screen recording</comment>
-  </data>
   <data name="ScreenRecordingCouldNotResumeTheSoundIsStillRecording" xml:space="preserve">
     <value>无法继续录制屏幕。声音仍在录制。</value>
     <comment>Screen recording could not resume. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecordingOff" xml:space="preserve">
+    <value>屏幕录制已关闭</value>
+    <comment>Screen recording off</comment>
   </data>
   <data name="ScreenRecordingStoppedCouldNotWriteTheVideoTheSoundIsStillRe" xml:space="preserve">
     <value>屏幕录制已停止：无法写入视频。声音仍在录制。</value>
@@ -3105,6 +3105,10 @@
   <data name="ScreenRecordingStoppedTheScreenOrWindowIsNoLongerAvailableTh" xml:space="preserve">
     <value>屏幕录制已停止：屏幕或窗口已不可用。声音仍在录制。</value>
     <comment>Screen recording stopped: the screen or window is no longer available. The sound is still recording.</comment>
+  </data>
+  <data name="ScreenRecording_2" xml:space="preserve">
+    <value>屏幕录制</value>
+    <comment>Screen recording</comment>
   </data>
   <data name="ScreenRecordings" xml:space="preserve">
     <value>屏幕录制内容</value>
@@ -3813,6 +3817,10 @@
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>屏幕录制会移到废纸篓。对话中的其他内容都会保留。</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
+  </data>
+  <data name="TheScreenRecordingStoppedOnAnError" xml:space="preserve">
+    <value>屏幕录制因出错而停止</value>
+    <comment>The screen recording stopped on an error</comment>
   </data>
   <data name="TheScreenRecordingsAreMovedToTheTrashEverythingElseInTheseCo" xml:space="preserve">
     <value>屏幕录制会移到废纸篓。这些对话中的其他内容都会保留。</value>

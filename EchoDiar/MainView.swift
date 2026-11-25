@@ -257,6 +257,22 @@ struct MainView: View {
             }
             .disabled(model.isStarting)
             .help("Stop recording (⌘R)")
+            // Filled while the screen is recorded; off, it opens the source chooser on itself, whose pick turns it on.
+            let screen = model.screenRecording
+            let screenOn = screen.isOn
+            Button(action: model.toggleScreenRecording) {
+                Label {
+                    Text(screenOn ? "Stop recording the screen" : "Record the screen")
+                } icon: {
+                    Image(systemName: screenOn ? "video.fill" : "video")
+                        .foregroundStyle(screenOn ? AnyShapeStyle(Palette.screenRecording) : AnyShapeStyle(.primary))
+                }
+            }
+            .disabled(!screenOn && (paused || !screen.canStartDuringRecording))
+            .help(screenOn ? "Stop recording the screen"
+                  : !screen.canStartDuringRecording ? "The screen recording stopped on an error"
+                  : paused ? "Resume the recording to record the screen" : "Record the screen from now on")
+            .modifier(ScreenChooserHost(model: model, request: .duringRecording))
             Button(action: model.togglePause) {
                 Label(paused ? "Resume" : "Pause", systemImage: paused ? "play.circle" : "pause.circle")
             }
@@ -417,15 +433,16 @@ struct MainView: View {
     private static let trailingButtonsWidth: CGFloat = 244
 
     private var updateWidth: CGFloat { showsUpdate ? 52 : 0 }
-    /// The record capsule's microphone button, there only while recording (a conversation can be open meanwhile).
-    private var micButtonWidth: CGFloat { model.isRecording ? 36 : 0 }
+    /// The record capsule's camera and microphone buttons, there only while recording (a conversation can be open
+    /// meanwhile).
+    private var recordingButtonsWidth: CGFloat { model.isRecording ? 36 + 36 : 0 }
 
     /// What the toolbar's other items leave of the window, at most `titleMaxWidth`: the title truncates instead of
     /// pushing buttons into the overflow menu.
     private var titleWidth: CGFloat {
         min(Self.titleMaxWidth,
             windowWidth - Self.leadingWidth - Self.tabsWidth - Self.trailingButtonsWidth - updateWidth
-                - micButtonWidth)
+                - recordingButtonsWidth)
     }
 
     /// Too short a title is left out.
