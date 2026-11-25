@@ -283,13 +283,20 @@ public static class SourcePicker
 
         private static HFONT CreateFont(int pixels, int weight)
         {
-            fixed (char* face = "Segoe UI")
+            // CreateFontIndirect, not CreateFont: CsWin32 projects CreateFont's charset/precision/quality
+            // as byte enums while CreateFontW takes DWORDs, so the marshaller throws MarshalDirectiveException.
+            var logFont = new LOGFONTW
             {
-                var font = PInvoke.CreateFont(
-                    -pixels, 0, 0, 0, weight, 0, 0, 0, FONT_CHARSET.DEFAULT_CHARSET, FONT_OUTPUT_PRECISION.OUT_DEFAULT_PRECIS,
-                    FONT_CLIP_PRECISION.CLIP_DEFAULT_PRECIS, FONT_QUALITY.ANTIALIASED_QUALITY, 0, face);
-                return font.IsNull ? throw new Win32Exception() : font;
-            }
+                lfHeight = -pixels,
+                lfWeight = weight,
+                lfCharSet = FONT_CHARSET.DEFAULT_CHARSET,
+                lfOutPrecision = FONT_OUTPUT_PRECISION.OUT_DEFAULT_PRECIS,
+                lfClipPrecision = FONT_CLIP_PRECISION.CLIP_DEFAULT_PRECIS,
+                lfQuality = FONT_QUALITY.ANTIALIASED_QUALITY,
+                lfFaceName = "Segoe UI",
+            };
+            var font = PInvoke.CreateFontIndirect(&logFont);
+            return font.IsNull ? throw new Win32Exception() : font;
         }
 
         private void Loop()

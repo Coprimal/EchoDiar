@@ -241,7 +241,7 @@ CreateCompatibleDC
 DeleteDC
 SelectObject
 GdiFlush
-CreateFont
+CreateFontIndirect
 DrawText
 SetTextColor
 SetBkMode
