@@ -18,7 +18,7 @@ namespace EchoDiar.App.Views;
 /// then the conversation's title with its date and duration, or the page's name (Settings, Calendar, Recording while
 /// recording, else EchoDiar). The toolbar row: the sidebar button on the library pages (list, conversation, recording),
 /// which hides or shows the library sidebar; Back, always shown and enabled off the list (and on it while the library
-/// chat shows); Record with its menu of targets and the language (Stop, blinking, and Pause or Resume while recording);
+/// chat shows); Record with its options, target and language (Stop, blinking, and Pause or Resume while recording);
 /// Reveal and Delete, always shown and enabled on a conversation; Settings (opens the Settings page, or goes back from
 /// it), Calendar (the same for the Calendar page), Ask across conversations (opens or closes the library chat); Update
 /// while an App Installer update is available and nothing runs that installing would cut off (macOS hides it while
@@ -63,10 +63,6 @@ public sealed partial class TitleBarToolbar : UserControl
     /// <summary>The sidebar state the sidebar button was last labeled for.</summary>
     private bool? _shownSidebarHidden;
 
-    /// <summary>The Record menu's end: a separator and the Language submenu, kept while the targets are rebuilt.</summary>
-    private readonly MenuFlyoutSeparator _languageSeparator = new();
-    private readonly MenuFlyoutSubItem _languageItem = new() { Text = Loc.T("Language") };
-
     public TitleBarToolbar()
     {
         InitializeComponent();
@@ -76,8 +72,6 @@ public sealed partial class TitleBarToolbar : UserControl
         CalendarButton.Click += (_, _) => ToggleCalendar();
         AskButton.Click += (_, _) => ToggleGlobalChat();
         RecordSplitButton.Click += (_, _) => _ = _model?.StartRecordingAsync(_model.SelectedTarget);
-        TargetMenu.Items.Add(_languageSeparator);
-        TargetMenu.Items.Add(_languageItem);
         TargetMenu.Opening += (_, _) => OnTargetMenuOpening();
         StopButton.Click += (_, _) => _ = _model?.StopRecordingAsync();
         PauseButton.Click += (_, _) => _ = _model?.TogglePauseAsync();
@@ -102,6 +96,7 @@ public sealed partial class TitleBarToolbar : UserControl
         // Settings pages ask through here too, so the window never has two dialogs.
         model.Confirm = ConfirmAsync;
         model.DeleteFlow = (conversations, audioOnly) => DeleteAsync(conversations, audioOnly);
+        LanguageHost.Child ??= new LanguagePicker(model, shortLabel: false);
         _blinkTimer = DispatcherQueue.CreateTimer();
         _blinkTimer.Interval = BlinkInterval;
         _blinkTimer.Tick += (_, _) => Blink();
@@ -179,7 +174,7 @@ public sealed partial class TitleBarToolbar : UserControl
                 UpdateSidebarButton();
                 break;
             case nameof(AppViewModel.RecordTargets):
-                // Apps that started playing since the menu opened show up in it.
+                // Apps that started playing since the options opened show up in them.
                 if (TargetMenu.IsOpen) BuildTargetMenu();
                 break;
         }
@@ -448,44 +443,51 @@ public sealed partial class TitleBarToolbar : UserControl
         if (open) _model.SearchTerm = "";
     }
 
-    // Record menu
+    // Record options
 
     /// <summary>Built when it opens, then refreshed: apps that started playing since show up.</summary>
     private void OnTargetMenuOpening()
     {
-        if (_model is not null) LanguageOptions.Fill(_languageItem.Items, _model);
         BuildTargetMenu();
         _ = _model?.RefreshRecordTargetsAsync();
     }
 
     /// <summary>
-    /// "All system audio" first, then the apps with audio (the picked one is checked), then Language. Only the targets
-    /// are rebuilt, so an open Language submenu stays open.
+    /// "All system audio" first, then the apps with audio, the picked one checked. Only the targets are rebuilt, so an
+    /// open language menu stays open.
     /// </summary>
     private void BuildTargetMenu()
     {
         if (_model is null) return;
-        while (TargetMenu.Items[0] != _languageSeparator) TargetMenu.Items.RemoveAt(0);
-        var index = 0;
-        TargetMenu.Items.Insert(index++, TargetItem(Loc.T("All system audio"), null));
-        if (_model.RecordTargets.Count == 0) return;
-        TargetMenu.Items.Insert(index++, new MenuFlyoutSeparator());
+        // A refresh that found the same apps (each one assigns a new list) keeps the buttons, and the focus on them.
+        var shown = string.Join("\n", _model.RecordTargets.Select(g => $"{g.Exe}\t{g.Name}\t{g.NeedsGlobalTap}")
+            .Prepend(_model.SelectedTarget?.Exe ?? ""));
+        if (shown == _shownTargets) return;
+        _shownTargets = shown;
+        TargetsPanel.Children.Clear();
+        TargetsPanel.Children.Add(TargetItem(Loc.T("All system audio"), null));
         foreach (var group in _model.RecordTargets)
         {
-            TargetMenu.Items.Insert(index++, TargetItem(group.NeedsGlobalTap ? Loc.Format("%@ (records all system audio)", group.Name) : group.Name, group));
+            TargetsPanel.Children.Add(TargetItem(group.NeedsGlobalTap ? Loc.Format("%@ (records all system audio)", group.Name) : group.Name, group));
         }
     }
 
-    /// <summary>Matched by app, since process lists change.</summary>
-    private RadioMenuFlyoutItem TargetItem(string text, AudioProcessGroup? group)
+    /// <summary>The picked app and the apps the radio buttons were last built for.</summary>
+    private string? _shownTargets;
+
+    /// <summary>
+    /// Matched by app, since process lists change. Checking one picks it and leaves the options open; hooked after the
+    /// initial check, so a rebuild picks nothing.
+    /// </summary>
+    private RadioButton TargetItem(string text, AudioProcessGroup? group)
     {
-        var item = new RadioMenuFlyoutItem
+        var item = new RadioButton
         {
-            Text = text,
+            Content = text,
             GroupName = "RecordTarget",
             IsChecked = _model?.SelectedTarget?.Exe == group?.Exe,
         };
-        item.Click += (_, _) =>
+        item.Checked += (_, _) =>
         {
             if (_model is not null) _model.SelectedTarget = group;
         };
