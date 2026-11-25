@@ -215,6 +215,7 @@ struct MainView: View {
     /// unless paused or Reduce Motion) and Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the
     /// other buttons go to the overflow menu first.
     @ToolbarContentBuilder private var leadingItems: some ToolbarContent {
+        logoItem
         if Page(model.route) == .library {
             ToolbarItem(placement: leadingPlacement) {
                 SingleToolbarButton(title: model.sidebarHidden ? "Show Sidebar" : "Hide Sidebar",
@@ -239,6 +240,28 @@ struct MainView: View {
             // As far from the record capsule as Back is.
             fixedSpacer
             titleItem(conversation)
+        }
+    }
+
+    /// The app logo at the leading edge, on every page, without a capsule.
+    @ToolbarContentBuilder private var logoItem: some ToolbarContent {
+        if #available(macOS 26, *) {
+            ToolbarItem(placement: leadingPlacement) { toolbarLogo }
+                .sharedBackgroundVisibility(.hidden)
+                .highVisibilityPriority()
+        } else {
+            ToolbarItem(placement: leadingPlacement) { toolbarLogo }
+        }
+    }
+
+    @ViewBuilder private var toolbarLogo: some View {
+        if let logo = AboutInfo.logo {
+            Image(nsImage: logo)
+                .resizable()
+                .interpolation(.high)
+                // As tall as the buttons' capsules (36 pt).
+                .frame(width: 36, height: 36)
+                .accessibilityHidden(true)
         }
     }
 
