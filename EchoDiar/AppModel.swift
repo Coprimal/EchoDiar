@@ -22,8 +22,8 @@ final class AppModel {
     /// Settings or the Calendar page.
     enum Route: Equatable { case list, conversation(UUID), recording, settings, calendar }
 
-    /// The open conversation's tab.
-    enum DetailTab { case transcript, summary, chat }
+    /// The tab of the open conversation's AI panel, beside its transcript.
+    enum DetailTab { case summary, chat }
 
     /// The recording page's right panel: Catch-up | Chat.
     enum RecordingTab { case catchUp, chat }
@@ -39,7 +39,10 @@ final class AppModel {
 
     private(set) var settings = AppSettings()
     var route: Route = .list
-    var detailTab: DetailTab = .transcript
+    var detailTab: DetailTab = .summary
+    /// Bumped by an explicit request for the open conversation's Chat (the View menu's Chat), so its question takes the
+    /// focus even when Chat is already the tab; a conversation merely opened on Chat leaves the focus to the list.
+    private(set) var chatFocusRequests = 0
     /// The recording page's right panel tab: `.catchUp` at start; the finished recording opens on the matching
     /// `DetailTab` when its page was showing at Stop.
     var recordingTab: RecordingTab = .catchUp
@@ -391,7 +394,7 @@ final class AppModel {
     /// Folder of the recording that ended on its page; opened once the library lists it, dropped if the list is left.
     @ObservationIgnored private var pendingOpenFolder: URL?
     /// The tab `pendingOpenFolder` opens on: the recording page's tab at Stop.
-    @ObservationIgnored private var pendingOpenTab: DetailTab = .transcript
+    @ObservationIgnored private var pendingOpenTab: DetailTab = .summary
     @ObservationIgnored private var terminateObserver: (any NSObjectProtocol)?
     /// `supportedLanguages(engineID:)` by catalog id, sorted by name once.
     @ObservationIgnored private var languageCache: [String: [String]] = [:]
@@ -546,13 +549,13 @@ final class AppModel {
                     guard let pending = pendingOpenFolder else { continue }
                     if route != .list {
                         pendingOpenFolder = nil
-                        pendingOpenTab = .transcript
+                        pendingOpenTab = .summary
                     } else if let match = conversations.first(where: {
                         $0.folder.standardizedFileURL == pending.standardizedFileURL
                     }) {
                         pendingOpenFolder = nil
                         open(match.id, tab: pendingOpenTab)
-                        pendingOpenTab = .transcript
+                        pendingOpenTab = .summary
                     }
                 }
             }
@@ -1120,9 +1123,10 @@ final class AppModel {
                 if wasRecording && !isRecording {
                     if route == .recording {
                         pendingOpenFolder = activeFolder
-                        // The transcript first; a chat going on during the recording carries on in Chat.
+                        // Summary, whose Catch-ups section has the recording's catch-ups; a chat going on during
+                        // the recording carries on in Chat.
                         pendingOpenTab = switch recordingTab {
-                        case .catchUp: .transcript
+                        case .catchUp: .summary
                         case .chat: .chat
                         }
                         route = .list
@@ -2193,8 +2197,8 @@ final class AppModel {
 
     // MARK: - Navigation
 
-    /// Shows the conversation on `tab`.
-    func open(_ id: UUID, tab: DetailTab = .transcript) {
+    /// Shows the conversation with `tab` in its AI panel.
+    func open(_ id: UUID, tab: DetailTab = .summary) {
         #if DEBUG
         DetailTiming.open(id)
         #endif
@@ -2430,11 +2434,19 @@ extension AppModel {
         }
     }
 
-    /// Shows the conversation's transcript and keeps `time` for it to scroll and seek to.
+    /// Shows the conversation's transcript and keeps `time` for it to scroll and seek to. The transcript is always on
+    /// screen beside the AI panel: a citation in the open conversation leaves the panel's tab alone; another
+    /// conversation (a library-chat reference) opens on Summary.
     func openTranscript(conversationID: UUID, at time: Double) {
         pendingTranscriptTime = time
-        detailTab = .transcript
+        if route != .conversation(conversationID) { detailTab = .summary }
         route = .conversation(conversationID)
+    }
+
+    /// The View menu's Chat: the open conversation's Chat tab, with the cursor in its question.
+    func requestChat() {
+        detailTab = .chat
+        chatFocusRequests += 1
     }
 
     /// Starts a summary or a question with `provider` and `model` (saved as the summary or chat default), beside the

@@ -248,7 +248,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenShowsClicks: Bool = false,
         screenTranscribes: Bool = true,
         screenSource: RememberedScreenSource? = nil,
-        transcriptVideoLayout: TranscriptVideoLayout = .sideBySide,
+        transcriptVideoLayout: TranscriptVideoLayout = .stacked,
         screenCamera: Bool = false,
         screenKeyStrokes: Bool = false,
         screenAllKeys: Bool = false,
@@ -469,7 +469,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         screenTranscribes = try container.decodeIfPresent(Bool.self, forKey: .screenTranscribes) ?? true
         screenSource = try container.decodeIfPresent(RememberedScreenSource.self, forKey: .screenSource)
         transcriptVideoLayout =
-            try container.decodeIfPresent(TranscriptVideoLayout.self, forKey: .transcriptVideoLayout) ?? .sideBySide
+            try container.decodeIfPresent(TranscriptVideoLayout.self, forKey: .transcriptVideoLayout) ?? .stacked
         screenCamera = try container.decodeIfPresent(Bool.self, forKey: .screenCamera) ?? false
         screenKeyStrokes = try container.decodeIfPresent(Bool.self, forKey: .screenKeyStrokes) ?? false
         screenAllKeys = try container.decodeIfPresent(Bool.self, forKey: .screenAllKeys) ?? false
@@ -658,16 +658,15 @@ public enum PillSize: String, Codable, Sendable {
 
 /// Where the transcript shows a conversation's video.
 public enum TranscriptVideoLayout: String, Codable, Sendable, CaseIterable {
-    /// The video on the left, the transcript on the right.
-    case sideBySide
     /// The video above the transcript.
     case stacked
     /// No video.
     case hidden
 
-    /// An unrecognized raw value (written by another build) falls back to `sideBySide`, the default.
+    /// An unrecognized raw value (written by another build) falls back to `stacked`, the default. So does the former
+    /// `sideBySide` (the video left of the transcript), gone since the transcript shares the width with the AI panel.
     public init(from decoder: Decoder) throws {
-        self = TranscriptVideoLayout(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .sideBySide
+        self = TranscriptVideoLayout(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .stacked
     }
 }
 

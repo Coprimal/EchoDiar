@@ -39,7 +39,7 @@ struct SettingsStoreTests {
             #expect(!store.load().screenShowsClicks)
             #expect(store.load().screenTranscribes)
             #expect(store.load().screenSource == nil)
-            #expect(store.load().transcriptVideoLayout == .sideBySide)
+            #expect(store.load().transcriptVideoLayout == .stacked)
             #expect(!store.load().screenCamera)
             #expect(!store.load().screenKeyStrokes)
             #expect(!store.load().screenAllKeys)
@@ -186,16 +186,25 @@ struct SettingsStoreTests {
         }
     }
 
-    /// The transcript shows the video beside the text unless the user picked another layout.
-    @Test func transcriptVideoLayoutUnknownValueIsSideBySide() throws {
+    /// The transcript shows the video above the text unless the user hid it.
+    @Test func transcriptVideoLayoutUnknownValueIsStacked() throws {
         let json = #"{"transcriptVideoLayout":"diagonal"}"#
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
-        #expect(settings.transcriptVideoLayout == .sideBySide)
+        #expect(settings.transcriptVideoLayout == .stacked)
     }
 
-    @Test func transcriptVideoLayoutStackedRoundTrips() throws {
-        let data = try JSONEncoder().encode(AppSettings(transcriptVideoLayout: .stacked))
-        #expect(try JSONDecoder().decode(AppSettings.self, from: data).transcriptVideoLayout == .stacked)
+    /// The side-by-side layout is gone (the transcript shares the width with the AI panel): a stored one shows the
+    /// video on top.
+    @Test func transcriptVideoLayoutSideBySideLoadsAsStacked() throws {
+        let json = #"{"transcriptVideoLayout":"sideBySide"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
+        #expect(settings.transcriptVideoLayout == .stacked)
+    }
+
+    /// Hidden is the one layout a user can pick that is not the default: it must survive a relaunch.
+    @Test func transcriptVideoLayoutHiddenRoundTrips() throws {
+        let data = try JSONEncoder().encode(AppSettings(transcriptVideoLayout: .hidden))
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data).transcriptVideoLayout == .hidden)
     }
 
     /// The menu bar shows the file size while recording unless the user picked the icon alone or the elapsed time.

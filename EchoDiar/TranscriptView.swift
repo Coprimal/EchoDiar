@@ -4,14 +4,16 @@ import EchoTranscribe
 import SwiftUI
 
 extension Notification.Name {
-    /// Space in the main window on a conversation's Transcript tab (posted by the app delegate's key monitor).
+    /// Space in the main window while a conversation is shown (posted by the app delegate's key monitor).
     static let togglePlayback = Notification.Name("EchoDiar.togglePlayback")
 }
 
-/// One conversation inside the main window (its title, date, duration and size, its tabs and Reveal in Finder are in
-/// the toolbar). The Transcript tab ends with a bar of playback, actions and speakers (click to rename). The segments
-/// are one selectable text; a click on a segment's timestamp or name plays from its start; Space plays or pauses.
-/// Stays mounted across tabs, so playback goes on in Summary and Chat.
+/// One conversation inside the main window (its title, date, duration and size and Reveal in Finder are in the
+/// toolbar), in two columns split like the recording page: the transcript on the left (under the video, if any), the
+/// AI panel with its Summary | Chat tabs on the right, half and half at first, the gap between them dragging to resize.
+/// The transcript ends with a bar of playback, actions and speakers (click to rename). The segments are one selectable
+/// text; a click on a segment's timestamp or name plays from its start; Space plays or pauses. Playback lives here, so
+/// it goes on whichever tab the panel shows.
 struct TranscriptView: View {
     let conversation: Conversation
     let model: AppModel
@@ -34,7 +36,7 @@ struct TranscriptView: View {
     @State private var speakers: [String] = []
     /// `transcript.json` exists but could not be read.
     @State private var loadFailed = false
-    /// The first `load` has returned; until then the tab shows `DetailLoadingPane`.
+    /// The first `load` has returned; until then the left column shows `DetailLoadingPane`.
     @State private var loaded = false
     @State private var playback = PlaybackController()
     /// The speaker whose rename popover is open.
@@ -46,10 +48,10 @@ struct TranscriptView: View {
     @State private var retranscribeLanguage = ""
     /// The segment the list scrolls to, set by an AI citation; cleared once scrolled.
     @State private var scrollTarget: UUID?
-    /// The tab whose body is shown: follows `model.detailTab` one update later, so `forward` is set before the bodies
-    /// swap and both the outgoing and the incoming body slide the same way.
+    /// The AI panel's tab whose body is shown: follows `model.detailTab` one update later, so `forward` is set before
+    /// the bodies swap and both the outgoing and the incoming body slide the same way.
     @State private var shownTab: AppModel.DetailTab
-    /// The last tab switch went right (Transcript → Summary → Chat).
+    /// The last tab switch went right (Summary → Chat).
     @State private var forward = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -60,25 +62,19 @@ struct TranscriptView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            if shownTab == .transcript {
-                // The bar slides with the transcript: it has nothing for Summary and Chat. Until the files are read,
-                // a light pane (beside the video pane's placeholder when there is a video), so the click that opened
-                // the conversation shows at once.
-                VStack(spacing: 10) {
-                    withVideoPane {
-                        if loaded { content } else { DetailLoadingPane() }
-                    }
-                    if loaded { bottomBar }
+        PaneSplit(vertical: false, firstMinimum: 280, secondMinimum: 300) {
+            // Until the files are read, a light pane (under the video pane's placeholder when there is a video), so
+            // the click that opened the conversation shows at once.
+            VStack(spacing: 10) {
+                withVideoPane {
+                    if loaded { content } else { DetailLoadingPane() }
                 }
-                .transition(tabTransition)
-            } else {
-                AIPanelView(conversation: conversation, model: model, tab: shownTab, transition: tabTransition)
-                    .transition(tabTransition)
+                if loaded { bottomBar }
             }
+        } second: {
+            AIPanelView(conversation: conversation, model: model, tab: shownTab, transition: tabTransition)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipped()
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task(id: conversation) { await load() }
@@ -107,7 +103,8 @@ struct TranscriptView: View {
         }
     }
 
-    static let tabs: [AppModel.DetailTab] = [.transcript, .summary, .chat]
+    /// The AI panel's tabs, in order.
+    static let tabs: [AppModel.DetailTab] = [.summary, .chat]
 
     /// Moving right, the new body comes in a little from the trailing side and the old one leaves toward the leading
     /// side; the other way round moving left. The old body fades out faster, so the two never show through each other.
@@ -130,7 +127,6 @@ struct TranscriptView: View {
 
     static func tabTitle(_ tab: AppModel.DetailTab) -> LocalizedStringKey {
         switch tab {
-        case .transcript: "Transcript"
         case .summary: "Summary"
         case .chat: "Chat"
         }
@@ -138,7 +134,7 @@ struct TranscriptView: View {
 
     // MARK: - Bottom bar
 
-    /// Like the Summary and Chat tabs' bars: the transcription's state, then playback, actions and the speakers.
+    /// Like the AI panel's footer: the transcription's state, then playback, actions and the speakers.
     private var bottomBar: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Not wrapped in a row: its body is often empty, which then takes no space. A running job shows on
@@ -164,9 +160,11 @@ struct TranscriptView: View {
                     PlaybackTime(playback: playback).fixedSize()
                 }
             }
-            // Up to three speaker chips, fewer when the row is short; "+N" lists the others.
+            // Up to three speaker chips, fewer when the row is short; "+N" lists the others. A column too narrow for
+            // one row even without chips (a video's buttons beside the AI panel) wraps it in two.
             ViewThatFits(in: .horizontal) {
                 ForEach(chipCounts, id: \.self) { controlRow(chips: $0) }
+                ForEach(chipCounts, id: \.self) { wrappedControlRows(chips: $0) }
             }
         }
         .padding(.horizontal, 14)
@@ -220,29 +218,52 @@ struct TranscriptView: View {
     /// edge.
     private func controlRow(chips: Int) -> some View {
         HStack(spacing: 8) {
-            if conversation.hasAudio {
-                transport
-            } else if videoClip != nil {
-                // The video still plays.
-                transport
-                audioRemovedNote
-            } else {
-                audioRemovedNote
-            }
+            playbackControls
             primaryActions
             secondaryActions
             Spacer(minLength: 8)
-            if shownTranscript != nil && !speakers.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(speakers.prefix(chips), id: \.self, content: speakerChip)
-                    if chips < speakers.count { moreSpeakersChip(Array(speakers.dropFirst(chips))) }
-                }
+            speakerChips(chips)
+        }
+    }
+
+    /// `controlRow` in two rows: the transport, Re-transcribe and Summarize, then the other buttons and the chips.
+    private func wrappedControlRows(chips: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                playbackControls
+                primaryActions
+            }
+            HStack(spacing: 8) {
+                secondaryActions
+                Spacer(minLength: 8)
+                speakerChips(chips)
             }
         }
     }
 
-    /// Where the video shows: left of the transcript, above it, or not at all; saved in the settings. A menu whose
-    /// button shows the current layout's icon.
+    @ViewBuilder private var playbackControls: some View {
+        if conversation.hasAudio {
+            transport
+        } else if videoClip != nil {
+            // The video still plays.
+            transport
+            audioRemovedNote
+        } else {
+            audioRemovedNote
+        }
+    }
+
+    @ViewBuilder private func speakerChips(_ chips: Int) -> some View {
+        if shownTranscript != nil && !speakers.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(speakers.prefix(chips), id: \.self, content: speakerChip)
+                if chips < speakers.count { moreSpeakersChip(Array(speakers.dropFirst(chips))) }
+            }
+        }
+    }
+
+    /// Where the video shows: above the transcript or not at all; saved in the settings. A menu whose button shows the
+    /// current layout's icon.
     private var layoutSwitch: some View {
         let current = model.settings.transcriptVideoLayout
         return Menu {
@@ -268,7 +289,6 @@ struct TranscriptView: View {
 
     private static func layoutIcon(_ layout: TranscriptVideoLayout) -> String {
         switch layout {
-        case .sideBySide: "rectangle.split.2x1"
         case .stacked: "rectangle.split.1x2"
         case .hidden: "video.slash"
         }
@@ -276,7 +296,6 @@ struct TranscriptView: View {
 
     private static func layoutName(_ layout: TranscriptVideoLayout) -> LocalizedStringKey {
         switch layout {
-        case .sideBySide: "Video on the left"
         case .stacked: "Video on top"
         case .hidden: "Hide video"
         }
@@ -365,8 +384,8 @@ struct TranscriptView: View {
         .disabled(!DeleteMenuItems.canDelete(conversation, model))
     }
 
-    /// Opens the Summary tab, and starts a summary when there is none yet and the AI tab could start one; a spinner and
-    /// "Summarizing…" in its place while this conversation's summary is written.
+    /// Shows the AI panel's Summary tab, and starts a summary when there is none yet and the panel could start one; a
+    /// spinner and "Summarizing…" in its place while this conversation's summary is written.
     @ViewBuilder
     private var summaryButton: some View {
         if model.aiJobs.entry(for: conversation.id)?.kind == .summary {
@@ -386,8 +405,8 @@ struct TranscriptView: View {
         }
     }
 
-    /// The tab switches in the click's frame; the job starts as the Summary tab's Summarize button starts it, and
-    /// `startAIJob` does nothing while this conversation has a job (other conversations' jobs do not block it).
+    /// The panel's tab switches in the click's frame; the job starts as the Summary tab's Summarize button starts it,
+    /// and `startAIJob` does nothing while this conversation has a job (other conversations' jobs do not block it).
     private func summarize() {
         model.detailTab = .summary
         guard !conversation.hasSummary, let transcript, let provider = model.currentAIProvider(for: .summary) else {
@@ -607,8 +626,8 @@ struct TranscriptView: View {
 
     // MARK: - Segments
 
-    /// The segments in a card like Summary's and Chat's, or a note in its middle while there are none; the version
-    /// menu is pinned above them, as in Summary.
+    /// The segments in a card as tall as the AI panel's beside it, or a note in its middle while there are none; the
+    /// version menu is pinned above them, as in Summary.
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             if showsVersionMenu {
@@ -638,16 +657,15 @@ struct TranscriptView: View {
         .modifier(GlassCard(cornerRadius: 20))
     }
 
-    /// `main` (the transcript card, or its loading pane) with the video pane left of it or above it, as
-    /// `transcriptVideoLayout` says; alone without a video or when the layout hides it.
+    /// `main` (the transcript card, or its loading pane) with the video pane above it; alone without a video or when
+    /// `transcriptVideoLayout` hides it.
     @ViewBuilder
     private func withVideoPane<Main: View>(@ViewBuilder _ main: () -> Main) -> some View {
         if showsVideoPane {
-            let pane = VideoPaneView(playback: playback, clip: videoClip, conversationID: conversation.id)
-            if model.settings.transcriptVideoLayout == .stacked {
-                PaneSplit(vertical: true, firstMinimum: 120, secondMinimum: 160) { pane } second: { main() }
-            } else {
-                PaneSplit(vertical: false, firstMinimum: 200, secondMinimum: 260) { pane } second: { main() }
+            PaneSplit(vertical: true, firstMinimum: 120, secondMinimum: 160) {
+                VideoPaneView(playback: playback, clip: videoClip, conversationID: conversation.id)
+            } second: {
+                main()
             }
         } else {
             main()
@@ -823,9 +841,11 @@ struct TranscriptView: View {
     }
 }
 
-/// The open conversation's tab until its files are read: the card its content shows in, at once, and a spinner once
-/// the reading takes long enough to notice; a spinner shown for a frame or two reads as a flicker.
+/// The open conversation's transcript or AI panel content until its files are read: the card its content shows in,
+/// at once (none when `framed` is false: inside the AI panel, which draws its own), and a spinner once the reading
+/// takes long enough to notice; a spinner shown for a frame or two reads as a flicker.
 struct DetailLoadingPane: View {
+    var framed = true
     @State private var showsSpinner = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -833,7 +853,7 @@ struct DetailLoadingPane: View {
         ProgressView()
             .opacity(showsSpinner ? 1 : 0)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .modifier(GlassCard(cornerRadius: 20))
+            .modifier(FramedCard(framed: framed, cornerRadius: 20))
             .task {
                 try? await Task.sleep(for: .milliseconds(150))
                 guard !Task.isCancelled else { return }
@@ -929,9 +949,11 @@ private struct SpeakerChipShape: ViewModifier {
     }
 }
 
-/// The video pane and the transcript side by side or stacked, split half and half at first, with a 10 pt gap between
-/// the two cards that drags to resize them (a resize pointer over it). No divider line: unlike `HSplitView` and
-/// `VSplitView`, whose divider cannot be hidden, the cards' own edges separate them.
+/// Two cards side by side (the transcript column and the AI panel) or stacked (the video pane over the transcript),
+/// split half and half at first, with a 10 pt gap between them that drags to resize them (a resize pointer over it).
+/// No divider line: unlike `HSplitView` and `VSplitView`, whose divider cannot be hidden, the cards' own edges
+/// separate them, and two short grip lines in the gap's middle show it resizes (a bit brighter on hover and while
+/// dragged).
 private struct PaneSplit<First: View, Second: View>: View {
     let vertical: Bool
     let firstMinimum: CGFloat
@@ -942,6 +964,8 @@ private struct PaneSplit<First: View, Second: View>: View {
     @State private var fraction: CGFloat = 0.5
     /// The first pane's length when the drag began.
     @State private var dragStart: CGFloat?
+    /// The pointer is over the gap.
+    @State private var hovered = false
 
     private static var gap: CGFloat { 10 }
 
@@ -955,7 +979,10 @@ private struct PaneSplit<First: View, Second: View>: View {
                 Color.clear
                     .frame(width: vertical ? nil : Self.gap, height: vertical ? Self.gap : nil)
                     .contentShape(Rectangle())
+                    // Draws only: the gap keeps the drag and the resize pointer.
+                    .overlay { grip.allowsHitTesting(false) }
                     .pointerStyle(vertical ? .rowResize : .columnResize)
+                    .onHover { hovered = $0 }
                     .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
                         .onChanged { drag in
                             let start = dragStart ?? length
@@ -967,6 +994,21 @@ private struct PaneSplit<First: View, Second: View>: View {
                 second.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+
+    /// Two parallel lines across the gap's middle, along the edges it moves: vertical between columns, horizontal
+    /// between stacked panes.
+    private var grip: some View {
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 3)) : AnyLayout(HStackLayout(spacing: 3))
+        let active = hovered || dragStart != nil
+        return layout {
+            ForEach(0..<2, id: \.self) { _ in
+                Capsule()
+                    .fill(active ? Color.white.opacity(0.4) : Palette.switchOffFill)
+                    .frame(width: vertical ? 18 : 2, height: vertical ? 2 : 18)
+            }
+        }
+        .animation(Motion.hover, value: active)
     }
 
     /// `length` kept between the two minimums; half and half when the space is too small for both.

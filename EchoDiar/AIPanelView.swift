@@ -3,12 +3,13 @@ import EchoAI
 import EchoCore
 import SwiftUI
 
-/// The Summary or Chat tab of the open conversation (`AppModel.detailTab`): Chat (questions with streamed answers) or
-/// Summary (the kept summaries, the newest first with a menu for the earlier ones, Summarize / Re-summarize). The bar
-/// at the bottom has menus for the model (every usable provider with its models) and the output language with the "i"
-/// (where the data goes), then "Copy as prompt" and the tab's action; in Chat the menus sit above the question row,
-/// with "Start a fresh chat" and History (the earlier chats, in a panel at the pane's trailing edge). `[mm:ss]`
-/// citations open the transcript at that time.
+/// The open conversation's AI panel, right of its transcript and built like the recording page's side panel: one card
+/// with a header (the Summary | Chat tabs, `AppModel.detailTab`, then menus for the model, every usable provider with
+/// its models, and the output language, the "i" about where the data goes and, on Chat, "Start a fresh chat" and
+/// History, the earlier chats in a panel at the pane's trailing edge) over the selected tab, and the tab's footer
+/// inside the card. Summary shows the kept summaries, the newest first with a menu for the earlier ones; its footer has
+/// "Copy as prompt" and Summarize / Re-summarize. Chat shows questions with streamed answers; its footer is the
+/// question with "Copy as prompt" and Send. `[mm:ss]` citations scroll the transcript beside it to that time.
 struct AIPanelView: View {
     let conversation: Conversation
     let model: AppModel
@@ -27,6 +28,10 @@ struct AIPanelView: View {
     @State private var chatTitle: String?
     @State private var question = ""
     @FocusState private var questionFocused: Bool
+    /// An explicit switch to Chat (a tab click, the View menu's Chat) asked for the cursor in the question; kept until
+    /// the panel is loaded, so a click before that is not lost. Never set merely because the panel opens on Chat:
+    /// ↑/↓ through the cards and Space must keep working.
+    @State private var focusPending = false
     @State private var toast: LocalizedStringKey?
     /// Hides the toast 2 s after it shows; replaced by each new toast.
     @State private var toastTask: Task<Void, Never>?
@@ -42,7 +47,7 @@ struct AIPanelView: View {
     @State private var confirmingClear = false
     /// The earlier chat under the pointer, which shows its Remove button.
     @State private var hoveredEntry: UUID?
-    /// The first `load` has returned; until then the tab shows `DetailLoadingPane`.
+    /// The first `load` has returned; until then the header shows over an unframed `DetailLoadingPane`.
     @State private var loaded = false
     /// The catch-ups written while it was recorded (its `catchups.json`), oldest first.
     @State private var catchUps: [CatchUp] = []
@@ -53,48 +58,56 @@ struct AIPanelView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let chatEnd = "chatEnd"
-    /// The height of a one-line question field, and of every control of the bottom bar but Chat's menu row.
+    /// The height of a one-line question field, and of every control of the footer.
     private static let inputHeight = BottomBarButtonStyle.height
-    /// Chat's menu row, above the question: a bit smaller.
-    private static let chatMenuHeight: CGFloat = 28
+    /// The header's controls and the summary's version menu: a bit smaller, as in the recording's side panel.
+    private static let menuHeight: CGFloat = 28
     /// The model badge and the round Copy under an answer.
     private static let answerFooterHeight: CGFloat = 22
 
     var body: some View {
-        // Until the files are read, a light pane, so the click that opened the conversation shows at once.
-        Group {
+        VStack(spacing: 10) {
+            header
+            // Until the files are read, a spinner that shows only once the reading takes long enough to notice, so
+            // the click that opened the conversation shows at once.
             if loaded {
-                VStack(spacing: 10) {
-                    ZStack {
-                        if tab == .chat {
-                            chatPane
-                                .transition(transition)
-                        } else {
-                            summaryPane
-                                .transition(transition)
-                        }
+                ZStack {
+                    if tab == .chat {
+                        chatPane
+                            .transition(transition)
+                    } else {
+                        summaryPane
+                            .transition(transition)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    errorText
-                    bottomBar
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+                errorText
+                    .padding(.horizontal, 14)
+                footer
             } else {
-                DetailLoadingPane()
+                DetailLoadingPane(framed: false)
             }
         }
+        .padding(.top, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(GlassCard(cornerRadius: 20))
         .overlay(alignment: .bottom) { toastView }
         .environment(\.openURL, OpenURLAction(handler: openLink))
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
-        // Opening Chat (a card's Ask AI, a tab switch) puts the cursor in the question, once the tab's slide has put
-        // the field in the window, and once it is loaded, unless a sidebar card is being renamed.
-        .task(id: model.detailTab == .chat && loaded) {
-            guard model.detailTab == .chat, loaded else { return }
+        // A switch to Chat puts the cursor in the question, once the field is in the window and the panel is loaded,
+        // unless a sidebar card is being renamed.
+        .task(id: focusPending && loaded) {
+            guard focusPending, loaded else { return }
             try? await Task.sleep(for: .milliseconds(50))
-            guard !Task.isCancelled, model.renamingConversation == nil else { return }
+            guard !Task.isCancelled else { return }
+            focusPending = false
+            guard model.detailTab == .chat, model.renamingConversation == nil else { return }
             questionFocused = true
+        }
+        .onChange(of: model.chatFocusRequests) {
+            if model.detailTab == .chat { focusPending = true }
         }
         .task(id: LoadKey(id: conversation.id, hasTranscript: conversation.hasTranscript,
                           jobsEnded: model.aiJobEnds[conversation.id] ?? 0)) { await load() }
@@ -105,7 +118,11 @@ struct AIPanelView: View {
         .task(id: CatchUpKey(id: conversation.id, saved: model.recordingCatchUps.count)) { await loadCatchUps() }
         // A new conversation rebuilds the view (`MainView` gives it the conversation's id), which closes the panel too.
         .onChange(of: model.detailTab) { _, new in
-            if new != .chat { showingHistory = false }
+            if new == .chat {
+                focusPending = true
+            } else {
+                showingHistory = false
+            }
         }
     }
 
@@ -141,7 +158,6 @@ struct AIPanelView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .modifier(GlassCard(cornerRadius: 20))
         .overlay(alignment: .trailing) {
             if showingHistory {
                 historyPanel
@@ -401,7 +417,6 @@ struct AIPanelView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .modifier(GlassCard(cornerRadius: 20))
     }
 
     private var shownSummary: SummaryVersion? {
@@ -425,7 +440,7 @@ struct AIPanelView: View {
             AIMenuLabel(title: ([String(localized: "Version \(shown.number)")] + [versionModel(shown)].compactMap { $0 })
                 .joined(separator: " · "), systemImage: "clock.arrow.circlepath")
         }
-        .modifier(CompactMenu(maxWidth: 260, height: Self.chatMenuHeight))
+        .modifier(CompactMenu(maxWidth: 260, height: Self.menuHeight))
         .help("Earlier summaries of this conversation")
     }
 
@@ -509,35 +524,67 @@ struct AIPanelView: View {
         }
     }
 
-    // MARK: - Bottom bar
+    // MARK: - Header and footer
 
-    /// Summary: one row with the model menu, the "i" (where the data goes) and the language menu, then "Copy as
-    /// prompt" and the tab's action. Chat: the menus, the "i", "Start a fresh chat" and History (smaller), then the
-    /// question with "Copy as prompt" and Send. Then the missing-model warning.
-    private var bottomBar: some View {
+    /// The tabs, then the model and language menus, the "i" and, on Chat, "Start a fresh chat" and History, as in the
+    /// recording's side panel. Narrower, the language menu shows only its globe; narrower still, the tabs take a row
+    /// of their own above the menus.
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                tabs
+                Spacer(minLength: 8)
+                headerMenus(languageLabel: true)
+            }
+            HStack(spacing: 8) {
+                tabs
+                Spacer(minLength: 8)
+                headerMenus(languageLabel: false)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                tabs
+                HStack(spacing: 8) {
+                    headerMenus(languageLabel: false)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+    }
+
+    private var tabs: some View {
+        // A fill of its own: the panel is `Palette.surface` too, so the default track shows only its outline.
+        CapsuleTabs(selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
+                    tabs: TranscriptView.tabs, title: { Text(TranscriptView.tabTitle($0)) },
+                    drawsTrack: true, trackFill: Palette.inputSurface)
+            .fixedSize()
+    }
+
+    @ViewBuilder private func headerMenus(languageLabel: Bool) -> some View {
+        AIModelMenu(model: model, purpose: purpose, height: Self.menuHeight)
+        AILanguageMenu(model: model, height: Self.menuHeight, showsLabel: languageLabel)
+        dataNotesButton(height: Self.menuHeight)
+        if model.detailTab == .chat {
+            freshChatButton
+            Button {
+                withAnimation(Motion.standard) { showingHistory.toggle() }
+            } label: {
+                Label("History", systemImage: "clock.arrow.circlepath").labelStyle(.iconOnly)
+            }
+            .buttonStyle(BottomBarButtonStyle(height: Self.menuHeight, horizontalPadding: 0))
+            .help("Earlier chats of this conversation")
+        }
+    }
+
+    /// Inside the card, under the tab: Summary has "Copy as prompt" and its action, Chat the question row. Then the
+    /// missing-model warning.
+    private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
             busyElsewhere
             if model.detailTab == .chat {
-                HStack(spacing: 8) {
-                    AIModelMenu(model: model, purpose: .chat, height: Self.chatMenuHeight)
-                    AILanguageMenu(model: model, height: Self.chatMenuHeight)
-                    dataNotesButton(height: Self.chatMenuHeight)
-                    freshChatButton
-                    Button {
-                        withAnimation(Motion.standard) { showingHistory.toggle() }
-                    } label: {
-                        Label("History", systemImage: "clock.arrow.circlepath").labelStyle(.iconOnly)
-                    }
-                    .buttonStyle(BottomBarButtonStyle(height: Self.chatMenuHeight, horizontalPadding: 0))
-                    .help("Earlier chats of this conversation")
-                    Spacer(minLength: 0)
-                }
                 questionRow
             } else {
                 HStack(spacing: 8) {
-                    AIModelMenu(model: model, purpose: .summary, height: Self.inputHeight)
-                    dataNotesButton(height: Self.inputHeight)
-                    AILanguageMenu(model: model, height: Self.inputHeight)
                     Spacer(minLength: 0)
                     copyButton
                     if summaryJob != nil {
@@ -563,8 +610,7 @@ struct AIPanelView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .modifier(GlassCard(cornerRadius: 20))
+        .padding(.bottom, 10)
     }
 
     /// The question (1 to 6 lines; Return sends, Shift+Return starts a new line), "Copy as prompt" and Send
@@ -606,7 +652,7 @@ struct AIPanelView: View {
         Button { model.startFreshChat(conversation) } label: {
             Label("Start a fresh chat", systemImage: "plus.bubble").labelStyle(.iconOnly)
         }
-        .buttonStyle(BottomBarButtonStyle(height: Self.chatMenuHeight, horizontalPadding: 0))
+        .buttonStyle(BottomBarButtonStyle(height: Self.menuHeight, horizontalPadding: 0))
         .help("Start a fresh chat")
         .disabled(chat.isEmpty || questionJob != nil)
     }
@@ -692,7 +738,7 @@ struct AIPanelView: View {
 
     // MARK: - State
 
-    /// The bottom bar's tab: Chat's questions use the chat default, the Summary tab the summary default.
+    /// The panel's tab: Chat's questions use the chat default, the Summary tab the summary default.
     private var purpose: AppModel.AIPurpose {
         model.detailTab == .chat ? .chat : .summary
     }
@@ -825,8 +871,8 @@ struct AIPanelView: View {
 }
 
 /// Every provider with the models it offers, on this Mac first; Foundation Models shows why it cannot run (the AI
-/// pane's bottom bar, the global chat's and the recording's right panel). Shows and edits `purpose`'s default; for
-/// `.catchUp`, no in-app provider (the live transcriber holds the model during a recording).
+/// panel's header, the global chat's bottom bar and the recording's right panel). Shows and edits `purpose`'s
+/// default; for `.catchUp`, no in-app provider (the live transcriber holds the model during a recording).
 struct AIModelMenu: View {
     let model: AppModel
     let purpose: AppModel.AIPurpose
@@ -894,10 +940,12 @@ struct AIModelMenu: View {
     }
 }
 
-/// The output language of summaries and answers (the AI pane's bottom bar and the global chat's).
+/// The output language of summaries and answers (the AI panel's header and the global chat's bottom bar); only the
+/// globe without `showsLabel`, where the header is narrow.
 struct AILanguageMenu: View {
     let model: AppModel
     let height: CGFloat
+    var showsLabel = true
 
     var body: some View {
         Menu {
@@ -907,7 +955,16 @@ struct AILanguageMenu: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            AIMenuLabel(title: LanguageOptions.shortCode(model.settings.summaryLanguage), systemImage: "globe")
+            if showsLabel {
+                AIMenuLabel(title: LanguageOptions.shortCode(model.settings.summaryLanguage), systemImage: "globe")
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "globe")
+                    MenuChevron()
+                }
+                .accessibilityLabel("Language")
+                .accessibilityValue(Text(verbatim: LanguageOptions.shortCode(model.settings.summaryLanguage)))
+            }
         }
         .modifier(CompactMenu(maxWidth: nil, height: height))
         .help("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)")
@@ -1021,9 +1078,9 @@ struct HistoryRowStyle: ButtonStyle {
     }
 }
 
-/// A button of a tab's bottom bar (also the Transcript tab's): `height` tall (a circle for an icon, with no
-/// `horizontalPadding`), a capsule of the input color, or the accent color when `prominent`; lighter on hover, darker
-/// while pressed, dimmed when disabled.
+/// A button of the AI panel's header and footer and of the transcript's bar: `height` tall (a circle for an icon, with
+/// no `horizontalPadding`), a capsule of the input color, or the accent color when `prominent`; lighter on hover,
+/// darker while pressed, dimmed when disabled.
 struct BottomBarButtonStyle: ButtonStyle {
     /// Every control of the bottom bars: buttons, menus, speaker chips and the one-line question field.
     static let height: CGFloat = 34
@@ -1068,7 +1125,7 @@ struct BottomBarButtonStyle: ButtonStyle {
     }
 }
 
-/// The arrow of a bottom bar's menu (the Transcript tab's Re-transcribe too).
+/// The arrow of a bar's menu (the transcript's Re-transcribe too).
 struct MenuChevron: View {
     var body: some View {
         Image(systemName: "chevron.down")
@@ -1077,8 +1134,8 @@ struct MenuChevron: View {
     }
 }
 
-/// A capsule menu of the AI pane's bottom bar, `height` tall like the buttons beside it: its title's width, a long one
-/// cut to `maxWidth` with an ellipsis (never cut without one).
+/// A capsule menu of the AI panel's header and of the bars, `height` tall like the buttons beside it: its title's
+/// width, a long one cut to `maxWidth` with an ellipsis (never cut without one).
 struct CompactMenu: ViewModifier {
     let maxWidth: CGFloat?
     let height: CGFloat

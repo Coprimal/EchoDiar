@@ -277,7 +277,7 @@ private final class PlayerNSView: NSView {
 
 #if DEBUG
 /// DEBUG timings of opening a conversation (VM checks of "click reacts first, then loading state"): `AppModel.open`
-/// stamps the open (with how long after the click's event), and the Transcript tab logs its placeholder (at appear),
+/// stamps the open (with how long after the click's event), and `TranscriptView` logs its placeholder (at appear),
 /// its content, the video opened (asset measured, player loaded) and the layer's first frame once each, in milliseconds after it, on `ProcessInfo.systemUptime` (the clock of
 /// `NSEvent.timestamp`). Read with `log stream --predicate 'eventMessage CONTAINS "EchoDiar timing"'`.
 @MainActor

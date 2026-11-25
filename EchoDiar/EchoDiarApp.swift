@@ -245,9 +245,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         showMainWindow()
     }
 
-    /// The Chat tab of the open conversation.
+    /// The Chat tab of the open conversation's AI panel, with the cursor in its question.
     @objc private func openChat() {
-        model.detailTab = .chat
+        model.requestChat()
         showMainWindow()
     }
 
@@ -329,7 +329,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             model.goBack()
             return true
         case 49:  // kVK_Space
-            guard case .conversation = model.route, model.detailTab == .transcript else { return false }
+            // The transcript is always beside the AI panel; the guard above lets Space through to a text field.
+            guard case .conversation = model.route else { return false }
             NotificationCenter.default.post(name: .togglePlayback, object: nil)
             return true
         default:

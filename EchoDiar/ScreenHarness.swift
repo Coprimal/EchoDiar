@@ -803,7 +803,7 @@ final class ScreenHarness: NSObject, WKNavigationDelegate {
 
     // MARK: - Playback
 
-    /// Plays the folder's audio (the session's `audioFileName`, as the Transcript tab finds it) and video
+    /// Plays the folder's audio (the session's `audioFileName`, as `TranscriptView` finds it) and video
     /// (`LibraryStore.videoFiles`, `ScreenSource.videoFileName` first) in a `PlaybackController` with the sound muted.
     /// Every 100 ms while playing it reads the exact play head and the video player's time at once; `maxDrift` is the
     /// largest |video - play head| after the first second of playback, while the play head is inside the video

@@ -6,8 +6,8 @@ import SwiftUI
 /// The main window, three pages: the library (the cards as a sidebar with its own search field and pages, then a
 /// conversation, the open recording while recording, or the welcome pane), Settings and the Calendar. The sidebar
 /// button, Back, Record (or Stop and Pause) and a conversation's title on the leading side; a conversation's Reveal in
-/// Finder, Settings, Calendar and the library chat, then the conversation's tabs on the trailing side. The library
-/// chat takes the sidebar's place.
+/// Finder, Settings, Calendar and the library chat on the trailing side (a conversation's Summary | Chat tabs are in
+/// its AI panel). The library chat takes the sidebar's place.
 struct MainView: View {
     let model: AppModel
     let updater: Updater
@@ -177,7 +177,6 @@ struct MainView: View {
                 }
                 .help("Ask across conversations")
             }
-            tabsItem
         }
         .task { model.refreshTargets() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -425,11 +424,9 @@ struct MainView: View {
 
     private static let titleMaxWidth: CGFloat = 360
     private static let titleMinWidth: CGFloat = 120
-    /// Approximate widths of the other items: the traffic lights, the sidebar button, Back and the record capsule; the
-    /// tabs; Reveal in Finder with Delete, Settings, Calendar and the library chat. Only the conversation page has a
-    /// title: the recording page has no toolbar tabs, so it needs no width.
+    /// Approximate widths of the other items: the traffic lights, the sidebar button, Back and the record capsule;
+    /// Reveal in Finder with Delete, Settings, Calendar and the library chat. Only the conversation page has a title.
     private static let leadingWidth: CGFloat = 302
-    private static let tabsWidth: CGFloat = 240
     private static let trailingButtonsWidth: CGFloat = 244
 
     private var updateWidth: CGFloat { showsUpdate ? 52 : 0 }
@@ -441,8 +438,7 @@ struct MainView: View {
     /// pushing buttons into the overflow menu.
     private var titleWidth: CGFloat {
         min(Self.titleMaxWidth,
-            windowWidth - Self.leadingWidth - Self.tabsWidth - Self.trailingButtonsWidth - updateWidth
-                - recordingButtonsWidth)
+            windowWidth - Self.leadingWidth - Self.trailingButtonsWidth - updateWidth - recordingButtonsWidth)
     }
 
     /// Too short a title is left out.
@@ -471,7 +467,7 @@ struct MainView: View {
         }
     }
 
-    /// The Settings section's inner tabs, in a capsule like a conversation's tabs, after the record capsule. Hidden
+    /// The Settings section's inner tabs, in a capsule of their own like the buttons', after the record capsule. Hidden
     /// while Settings is searched: its results replace the section.
     @ToolbarContentBuilder private var settingsTabsItem: some ToolbarContent {
         let section = model.settingsTab
@@ -485,6 +481,8 @@ struct MainView: View {
                     tabs: section.subTabs.map(\.id),
                     title: { id in Text(section.subTabs.first { $0.id == id }?.title ?? "") }
                 )
+                // AppKit pads the sides less than the top and bottom: 4 pt more puts the selected tab as far from the
+                // capsule's sides as from its top and bottom.
                 .padding(.horizontal, 4)
                 .fixedSize()
                 // Each section's own tabs: another section replaces them, instead of the selection sliding and
@@ -492,26 +490,6 @@ struct MainView: View {
                 .id(section)
             }
         }
-    }
-
-    /// A conversation's tabs, in a capsule of their own like the buttons', at the trailing edge after Settings and the
-    /// library chat (the recording's right panel has its own tabs).
-    @ToolbarContentBuilder private var tabsItem: some ToolbarContent {
-        if toolbarConversation != nil {
-            fixedSpacer
-            ToolbarItem { tabs }
-        }
-    }
-
-    /// AppKit pads the sides less than the top and bottom: 4 pt more puts the selected tab as far from the capsule's
-    /// sides as from its top and bottom.
-    private var tabs: some View {
-        CapsuleTabs(
-            selection: Binding(get: { model.detailTab }, set: { model.detailTab = $0 }),
-            tabs: TranscriptView.tabs, title: { Text(TranscriptView.tabTitle($0)) }
-        )
-        .padding(.horizontal, 4)
-        .fixedSize()
     }
 
     @ToolbarContentBuilder private var flexibleSpacer: some ToolbarContent {

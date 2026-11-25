@@ -8,8 +8,8 @@ import SwiftUI
 /// rename), then "date time · duration · size" and status on one smaller line (the size tinted by how large it is), a
 /// video badge on the icon for a screen recording, then a row with the
 /// transcription progress or its action. The actions are in the context menu and the detail. A click elsewhere opens
-/// the conversation on its Transcript tab; selected adds an accent fill and stroke. ⌘-click and ⇧-click select cards
-/// instead of opening.
+/// the conversation with Summary in its AI panel; selected adds an accent fill and stroke. ⌘-click and ⇧-click select
+/// cards instead of opening.
 struct ConversationCard: View {
     let conversation: Conversation
     let model: AppModel
@@ -185,10 +185,10 @@ struct ConversationCard: View {
     }
 
     /// Not while the title is being edited: clicks in its field must not open the conversation.
-    /// Always on the Transcript tab (↑/↓ in the list keep the tab the detail shows).
+    /// Always with Summary in the AI panel (↑/↓ in the list keep the panel's tab).
     private func open() {
         guard !editing else { return }
-        model.open(conversation.id, tab: .transcript)
+        model.open(conversation.id)
     }
 
     private func revealInFinder() {
@@ -200,7 +200,7 @@ struct ConversationCard: View {
 /// Delete's choices: the audio only (most of the size, often useless once transcribed), the video (the screen
 /// recording, when there is one) or the whole conversation, each asked first unless "Delete conversations without
 /// confirmation" is on. In the card's context menu, the conversation's toolbar and Storage's largest conversations;
-/// the list page's selection bar uses the bulk `delete`, the Transcript tab the video one.
+/// the list page's selection bar uses the bulk `delete`, the transcript's bar the video one.
 struct DeleteMenuItems: View {
     let conversation: Conversation
     let model: AppModel
