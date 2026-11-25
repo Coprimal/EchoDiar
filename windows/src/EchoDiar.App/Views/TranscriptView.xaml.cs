@@ -97,6 +97,8 @@ public sealed partial class TranscriptView : UserControl
     /// <summary>What the chips were last built from: they are rebuilt only when it changes, not on every job update.</summary>
     private IReadOnlyList<SpeakerChip>? _chipSpeakers;
     private bool _chipsEnabled;
+    /// <summary>The chips <see cref="ChipsPanel"/> has room for; the speakers after them are behind "+N".</summary>
+    private int _chipsShown;
 
     private string? _retranscribeTip;
     private string? _stepTip;
@@ -112,6 +114,7 @@ public sealed partial class TranscriptView : UserControl
     public TranscriptView()
     {
         InitializeComponent();
+        ChipsPanel.ShownChanged += OnChipsShown;
         FollowUserScrolling();
         SegmentText.PreviewKeyDown += OnTextPreviewKeyDown;
         // Also when the text already handled it: RichTextBlock's own menu (Copy, Select All, removed in the XAML) may
@@ -997,7 +1000,8 @@ public sealed partial class TranscriptView : UserControl
 
     // Speakers
 
-    /// <summary>Up to three chips, then "+N" for the others; disabled while a rename could not be saved.</summary>
+    /// <summary>Up to three chips, then "+N" for the others; disabled while a rename could not be saved. The chips that
+    /// do not fit the row go behind "+N" too (<see cref="ChipRowPanel"/>, <see cref="OnChipsShown"/>).</summary>
     private void UpdateChips()
     {
         if (_transcript is null) return;
@@ -1007,6 +1011,7 @@ public sealed partial class TranscriptView : UserControl
         _chipSpeakers = speakers;
         _chipsEnabled = enabled;
         ChipsPanel.Children.Clear();
+        if (speakers.Count == 0) return;
         foreach (var chip in speakers.Take(MaxSpeakerChips))
         {
             var button = new Button { Content = SpeakerLabel(chip), IsEnabled = enabled };
@@ -1015,20 +1020,32 @@ public sealed partial class TranscriptView : UserControl
             button.Click += (_, _) => OpenRename(chip, button);
             ChipsPanel.Children.Add(button);
         }
-        if (speakers.Count > MaxSpeakerChips)
-        {
-            var hidden = speakers.Skip(MaxSpeakerChips).ToList();
-            var more = new Button { Content = $"+{hidden.Count}", IsEnabled = enabled };
-            AutomationProperties.SetName(more, Loc.T("Show the other speakers"));
-            ToolTipService.SetToolTip(more, Loc.T("Show the other speakers"));
-            more.Click += (_, _) => OpenMoreSpeakers(hidden, more);
-            ChipsPanel.Children.Add(more);
-        }
+        // Always the last child: the panel arranges it only while some speakers have no chip on screen.
+        var more = new Button { IsEnabled = enabled };
+        AutomationProperties.SetName(more, Loc.T("Show the other speakers"));
+        ToolTipService.SetToolTip(more, Loc.T("Show the other speakers"));
+        more.Click += (_, _) => OpenMoreSpeakers(speakers.Skip(_chipsShown).ToList(), more);
+        ChipsPanel.Extra = Math.Max(0, speakers.Count - MaxSpeakerChips);
+        ChipsPanel.Children.Add(more);
+        ChipsPanel.Reset();
         if (!enabled)
         {
             RenameFlyout.Hide();
             MoreSpeakersFlyout.Hide();
         }
+    }
+
+    /// <summary>The chips the row has room for: "+N" counts the speakers behind it.</summary>
+    private void OnChipsShown(int shown)
+    {
+        _chipsShown = shown;
+        var children = ChipsPanel.Children;
+        if (_chipSpeakers is not { } speakers || children.Count == 0 || children[^1] is not Button more) return;
+        more.Content = $"+{Math.Max(1, speakers.Count - shown)}";
+        // The chips behind "+N" (and "+N" while it is not shown) are not arranged: Tab skips them.
+        for (var i = 0; i < children.Count - 1; i++)
+            if (children[i] is Control chip) chip.IsTabStop = i < shown;
+        more.IsTabStop = ChipsPanel.MoreShows(shown);
     }
 
     /// <summary>A dot in the speaker's color, then the name.</summary>

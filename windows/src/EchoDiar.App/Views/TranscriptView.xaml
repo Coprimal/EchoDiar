@@ -353,10 +353,10 @@
                         </StackPanel>
                     </Grid>
 
-                    <StackPanel
+                    <!-- As many chips as fit, then "+N" (ChipRowPanel): a narrow row never cuts a chip off. -->
+                    <views:ChipRowPanel
                         x:Name="ChipsPanel"
                         HorizontalAlignment="Right"
-                        Orientation="Horizontal"
                         Spacing="6">
                         <!-- The rename field of a chip: Enter saves, Esc or a click elsewhere cancels. -->
                         <FlyoutBase.AttachedFlyout>
@@ -370,7 +370,7 @@
                                 </StackPanel>
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
-                    </StackPanel>
+                    </views:ChipRowPanel>
                 </views:WrapPairPanel>
             </StackPanel>
         </Border>
