@@ -134,9 +134,10 @@ public sealed partial class AppViewModel : ObservableObject
         get => _route;
         private set
         {
-            // Another page (list, entry, Settings) clears the search (macOS MainView.swift), before the route changes: the
-            // library lists every conversation again before the page and the sidebar are shown. Another conversation or
-            // the recording keeps it, for the sidebar it filters. The Settings page's search goes with it.
+            // Another page (the library, Settings, the Calendar) clears the search (macOS MainView.swift), before the route
+            // changes: the library lists every conversation again before the page and the sidebar are shown. The list,
+            // a conversation and the recording keep it, for the sidebar it filters (search results can be opened one after
+            // another). The Settings page's search goes with it.
             if (PageOf(value) != PageOf(_route))
             {
                 SearchTerm = "";
@@ -587,14 +588,15 @@ public sealed partial class AppViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Back: a conversation or the recording goes to the list (the library chat stays open), the list closes the library
-    /// chat; Settings and the Calendar page go to the page they were opened from, or the list when that conversation is
-    /// gone or that recording has ended (macOS AppModel <c>goBack</c>).
+    /// Back: a conversation or the recording goes to the list (the sidebar keeps its tab); the list has nowhere to go
+    /// back to (the library chat is a sidebar tab, not a page); Settings and the Calendar page go to the page they were
+    /// opened from, or the list when that conversation is gone or that recording has ended (macOS AppModel
+    /// <c>goBack</c>).
     /// </summary>
     public void GoBack()
     {
-        if (Route.Kind == RouteKind.List) GlobalChatOpen = false;
-        else Route = Route.Kind switch
+        if (Route.Kind == RouteKind.List) return;
+        Route = Route.Kind switch
         {
             RouteKind.Settings => ReturnRoute(_settingsReturnRoute),
             RouteKind.Calendar => ReturnRoute(_calendarReturnRoute),
@@ -602,10 +604,10 @@ public sealed partial class AppViewModel : ObservableObject
         };
     }
 
-    /// <summary>The pages that slide on macOS (MainView.swift <c>Page</c>): a conversation and the recording share one.</summary>
+    /// <summary>The pages that slide on macOS (MainView.swift <c>Page</c>): the list, a conversation and the recording share
+    /// the library page.</summary>
     public static int PageOf(Route route) => route.Kind switch
     {
-        RouteKind.List => 0,
         RouteKind.Settings => 2,
         RouteKind.Calendar => 3,
         _ => 1,

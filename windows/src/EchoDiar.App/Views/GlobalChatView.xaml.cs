@@ -13,10 +13,10 @@ using VirtualKey = Windows.System.VirtualKey;
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The chat across the library (macOS GlobalChatView.swift): questions answered from the indexed conversations, each
-/// answer with its numbered sources under it. <c>[n mm:ss]</c> / <c>[n]</c> citations and the sources open the
-/// conversation at that moment or its summary, the chat staying beside it (<see cref="AppViewModel.OpenReference"/>).
-/// Laid out like the AI panel's Chat tab. The state is <see cref="LibraryChatViewModel"/>; the question runs in
+/// The chat across the library (macOS GlobalChatView.swift), the library sidebar's Chat tab: questions answered from the
+/// indexed conversations, each answer with its numbered sources under it. <c>[n mm:ss]</c> / <c>[n]</c> citations and
+/// the sources open the conversation at that moment or its summary, the chat staying beside it in the sidebar
+/// (<see cref="AppViewModel.OpenReference"/>). Unframed in the sidebar's card, under its header. The state is <see cref="LibraryChatViewModel"/>; the question runs in
 /// <see cref="AppViewModel"/> beside the conversations' jobs, so it goes on when the chat closes. Answers are Markdown
 /// rendered by <see cref="MarkdownView"/> with their saved references only (never null, so a bare <c>[mm:ss]</c> stays
 /// plain text); web links open once their destination is confirmed. Attached while it is in the window.
@@ -80,7 +80,7 @@ public sealed partial class GlobalChatView : UserControl
         _model.AIJobTextChanged += OnJobTextChanged;
         _chat.Attach();
         Update();
-        // Opening the chat puts the cursor in the question.
+        // Opening the Chat tab puts the cursor in the question.
         _focusTimer.Start();
     }
 
@@ -310,7 +310,8 @@ public sealed partial class GlobalChatView : UserControl
 
     /// <summary>
     /// Enter sends; Shift+Enter starts a new line (the box accepts returns). Esc closes the History panel, or with no
-    /// question typed goes back (the box has the focus whenever the chat shows, so the window's Esc never gets it).
+    /// question typed goes back (the box takes the focus when the Chat tab opens, so the window's Esc never gets it): a
+    /// conversation or the recording goes to the list, nothing on the list. The tab stays open either way.
     /// </summary>
     private void OnQuestionKeyDown(object sender, KeyRoutedEventArgs e)
     {

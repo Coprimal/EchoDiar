@@ -21,10 +21,11 @@ using Windows.UI.Core;
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The library (macOS ConversationListView.swift and MainView.swift libraryPane): the search box, then the current
-/// page's conversation cards under section headers (Today, Previous 3 days, Last 7 days, Last 30 days, Older), filtered
-/// by the search, with the model download banner (MVP) and the page bar under the cards while there is more than one
-/// page. While recording, the recording's card sits above them on every page and with a search, outside the pages and
+/// The library (macOS ConversationListView.swift and MainView.swift libraryPane), in the sidebar's card under its header
+/// (<see cref="MainWindow"/>, which has the search box): the current page's conversation cards under section headers
+/// (Today, Previous 3 days, Last 7 days, Last 30 days, Older), filtered by the search, with the model download banner
+/// (MVP) and the page bar under the cards while there is more than one page. While recording, the recording's card
+/// sits above them on every page and with a search, outside the pages and
 /// their count, and the recording's own entry is left out. Ctrl-click and Shift-click select cards (from the open
 /// entry in the sidebar, as in Mail); the selection bar then shows above the
 /// list, which moves down, with Delete and Cancel (Esc, the window's: <see cref="MainWindow"/>). Delete deletes the selection (the
@@ -34,11 +35,7 @@ namespace EchoDiar.App.Views;
 /// </summary>
 public sealed partial class ConversationListView : UserControl
 {
-    /// <summary>The cards are filtered once typing pauses this long (at once when cleared).</summary>
-    private static readonly TimeSpan SearchDelay = TimeSpan.FromMilliseconds(200);
-
     private readonly AppViewModel _model;
-    private readonly DispatcherQueueTimer _searchTimer;
 
     /// <summary>
     /// Section headers and cards, in list order, each in its own ListViewItem (so a card is never moved between item
@@ -83,34 +80,16 @@ public sealed partial class ConversationListView : UserControl
         SelectionCancelButton.Click += (_, _) => ClearSelection();
         PreviousPageButton.Click += (_, _) => StepPage(-1);
         NextPageButton.Click += (_, _) => StepPage(1);
-        _searchTimer = DispatcherQueue.CreateTimer();
-        _searchTimer.Interval = SearchDelay;
-        _searchTimer.IsRepeating = false;
-        _searchTimer.Tick += (timer, _) =>
-        {
-            timer.Stop();
-            _model.SearchTerm = SearchBox.Text;
-        };
-        SearchBox.TextChanged += (_, _) => OnSearchTextChanged();
-        // The inner text field handles Esc first.
-        SearchBox.AddHandler(KeyDownEvent, new KeyEventHandler(OnSearchKeyDown), handledEventsToo: true);
         // Also the keys a focused item or the list already handled (Space, Enter).
         AddHandler(KeyDownEvent, new KeyEventHandler(OnKeyDown), handledEventsToo: true);
         Loaded += (_, _) =>
         {
             StartupTrace.Write("library view Loaded");
             _model.PropertyChanged += OnModelChanged;
-            // The search may have been cleared while the library chat was shown in this view's place.
-            OnSearchTermChanged();
             UpdateRows();
             UpdateBanner();
         };
-        Unloaded += (_, _) =>
-        {
-            _model.PropertyChanged -= OnModelChanged;
-            // Typing not applied yet is dropped: a later tick would bring back a search the model has cleared since.
-            _searchTimer.Stop();
-        };
+        Unloaded += (_, _) => _model.PropertyChanged -= OnModelChanged;
     }
 
     /// <summary>
@@ -123,9 +102,6 @@ public sealed partial class ConversationListView : UserControl
     {
         switch (e.PropertyName)
         {
-            case nameof(AppViewModel.SearchTerm):
-                OnSearchTermChanged();
-                break;
             case nameof(AppViewModel.Conversations):
             case nameof(AppViewModel.SearchResults):
             case nameof(AppViewModel.LibraryPage):
@@ -575,65 +551,6 @@ public sealed partial class ConversationListView : UserControl
 
     internal static bool IsKeyDown(VirtualKey key) =>
         InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(CoreVirtualKeyStates.Down);
-
-    // Search
-
-    /// <summary>
-    /// Ctrl+F (macOS <c>showSearch</c>): the focus goes to the search box. The view put back in the sidebar in place of
-    /// the library chat is not loaded yet: the box takes the focus once it is.
-    /// </summary>
-    public void FocusSearch()
-    {
-        if (IsLoaded)
-        {
-            FocusSearchBox();
-            return;
-        }
-        Loaded -= OnLoadedFocusSearch;
-        Loaded += OnLoadedFocusSearch;
-    }
-
-    private void OnLoadedFocusSearch(object sender, RoutedEventArgs e)
-    {
-        Loaded -= OnLoadedFocusSearch;
-        FocusSearchBox();
-    }
-
-    /// <summary>A box just laid out may not take the focus at once: it tries once more after the layout.</summary>
-    private void FocusSearchBox()
-    {
-        if (!SearchBox.Focus(FocusState.Programmatic))
-        {
-            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => SearchBox.Focus(FocusState.Programmatic));
-        }
-    }
-
-    /// <summary>
-    /// The model cleared the search (another page of the window, the window hidden, the library chat opened): the box
-    /// follows, and typing not applied yet is dropped. The box's own clearing, or a blank term, leaves it as it is.
-    /// </summary>
-    private void OnSearchTermChanged()
-    {
-        if (_model.SearchTerm.Length > 0 || SearchBox.Text.Trim().Length == 0) return;
-        _searchTimer.Stop();
-        SearchBox.Text = "";
-    }
-
-    /// <summary>Filters once typing pauses; a cleared field shows every conversation at once.</summary>
-    private void OnSearchTextChanged()
-    {
-        _searchTimer.Stop();
-        if (SearchBox.Text.Length == 0) _model.SearchTerm = "";
-        else _searchTimer.Start();
-    }
-
-    /// <summary>Esc clears the search (macOS clears the query first).</summary>
-    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key != VirtualKey.Escape || SearchBox.Text.Length == 0) return;
-        e.Handled = true;
-        SearchBox.Text = "";
-    }
 
     /// <summary>
     /// The models still missing: speech models until one is installed, then speaker models while "Tell speakers

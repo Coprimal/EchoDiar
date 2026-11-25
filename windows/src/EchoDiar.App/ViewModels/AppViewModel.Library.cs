@@ -58,7 +58,9 @@ public sealed partial class AppViewModel
 
     private int TranscriptEdits(Guid id) => _transcriptEdits.GetValueOrDefault(id);
 
-    /// <summary>The toolbar's search, trimmed (the toolbar debounces typing); empty shows every conversation.</summary>
+    /// <summary>
+    /// The library sidebar header's search, trimmed (the window debounces typing); empty shows every conversation.
+    /// </summary>
     public string SearchTerm
     {
         get => _searchTerm;
@@ -108,7 +110,7 @@ public sealed partial class AppViewModel
 
     /// <summary>
     /// The one path that hides or shows the library sidebar (macOS <c>setSidebarHidden</c>): hiding it closes the
-    /// library chat, which lives in it.
+    /// library chat, which lives in it (the sidebar shows again on its Conversations tab).
     /// </summary>
     public void SetSidebarHidden(bool hidden)
     {

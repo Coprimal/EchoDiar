@@ -3,9 +3,9 @@
     The window's header (macOS MainView.swift toolbar) in two rows on the window's Mica, like Paint. The title row is
     the window's title bar (MainWindow.SetTitleBar): the logo, the page's or the conversation's title and, for a
     conversation, its date and duration; all of it drags the window, the caption buttons sit at its right. The toolbar
-    row below, from the left: the sidebar button (library pages), Back, the record group, Reveal and Delete, Settings,
-    Calendar and Ask across conversations, Update; at the right edge a Settings section's inner tabs (a conversation's
-    Summary | Chat tabs are in its AI panel). Icon buttons are 32 x 32 subtle buttons with 16 px Segoe Fluent Icons;
+    row below, from the left: the sidebar button (library pages), Back, the record group, Reveal and Delete, Settings
+    and Calendar, Update; at the right edge a Settings section's inner tabs (a conversation's Summary | Chat tabs are in
+    its AI panel, the library chat is the library sidebar's Chat tab). Icon buttons are 32 x 32 subtle buttons with 16 px Segoe Fluent Icons;
     4 px between the buttons of a group, 8 px between groups.
 -->
 <UserControl
@@ -211,10 +211,7 @@
                     </Button>
                 </StackPanel>
 
-                <!--
-                    Settings opens the Settings page, or goes back from it, and Calendar the Calendar page; Ask across
-                    conversations opens or closes the library chat.
-                -->
+                <!-- Settings opens the Settings page, or goes back from it, and Calendar the Calendar page. -->
                 <StackPanel x:Name="AppGroup" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <Button
                         x:Name="SettingsButton"
@@ -235,16 +232,6 @@
                         AutomationProperties.Name="{local:T Text='Calendar'}"
                         ToolTipService.ToolTip="{local:T Text='Calendar'}">
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE787;" />
-                    </Button>
-                    <Button
-                        x:Name="AskButton"
-                        Width="32"
-                        Height="32"
-                        Padding="0"
-                        Style="{StaticResource SubtleButtonStyle}"
-                        AutomationProperties.Name="{local:T Text='Ask across conversations'}"
-                        ToolTipService.ToolTip="{local:T Text='Ask across conversations'}">
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE8BD;" />
                     </Button>
                 </StackPanel>
 

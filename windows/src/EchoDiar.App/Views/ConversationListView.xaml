@@ -18,24 +18,12 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Padding="12,8,12,12">
+    <!-- In the sidebar's card (MainWindow), under its header; the search box is in that header. -->
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
-        <!--
-            Filters the cards as typed (macOS sidebarSearchField), above the cards and the empty states; Ctrl+F focuses
-            it, Esc clears it.
-        -->
-        <AutoSuggestBox
-            x:Name="SearchBox"
-            Margin="0,0,0,12"
-            HorizontalAlignment="Stretch"
-            AutomationProperties.Name="{local:T Text='Search conversations'}"
-            PlaceholderText="{local:T Text='Search conversations'}"
-            QueryIcon="Find" />
 
         <!--
             Shown until a speech model is installed (and a speaker model, with "Tell speakers apart" on), at the top of
@@ -44,8 +32,7 @@
         -->
         <InfoBar
             x:Name="ModelBanner"
-            Grid.Row="1"
-            Margin="0,0,0,12"
+            Margin="12,0,12,8"
             IsClosable="False"
             IsOpen="False"
             Severity="Informational"
@@ -82,14 +69,8 @@
             </StackPanel>
         </InfoBar>
 
-        <!-- The cards on a card panel like the detail's (macOS libraryWell); the cards a subtle fill above it. -->
-        <Border
-            Grid.Row="2"
-            Padding="0,8"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource OverlayCornerRadius}">
+        <!-- The cards on the sidebar's card, a panel like the detail's (macOS libraryWell); the cards a subtle fill above it. -->
+        <Border Grid.Row="1" Padding="0,0,0,8">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The chat across the library (macOS GlobalChatView.swift), in place of the cards on the list or of the sidebar beside a
-    conversation: the questions with their streamed answers and numbered sources, the History panel at the trailing
-    edge, then a bar with a job running elsewhere, the index's progress, the model and language menus, "Start a fresh
-    chat" and History in one row, and the question. With RAG off, an intro and the way to Settings › AI Settings ›
-    Library chat. Fluent cards in theme resources (Light and Dark); the messages, sources and history rows are built in
-    code.
+    The chat across the library (macOS GlobalChatView.swift), the library sidebar's Chat tab: the questions with their
+    streamed answers and numbered sources, the History panel at the trailing edge, then a bar with a job running
+    elsewhere, the index's progress, the model and language menus, "Start a fresh chat" and History in one row, and the
+    question. With RAG off, an intro and the way to Settings › AI Settings › Library chat. Unframed: the sidebar's card
+    (MainWindow) draws the card under its Conversations | Chat header (macOS framed: false); the History panel and the
+    toast keep their raised cards. Theme resources (Light and Dark); the messages, sources and history rows are built
+    in code.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.GlobalChatView"
@@ -14,12 +15,6 @@
     xmlns:local="using:EchoDiar.App">
 
     <UserControl.Resources>
-        <Style x:Key="PaneStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{StaticResource OverlayCornerRadius}" />
-        </Style>
         <Style x:Key="SecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
@@ -51,12 +46,11 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Padding="12">
+    <Grid>
         <!-- RAG off: what the chat does, and the way to turn it on. -->
         <Border
             x:Name="IntroPane"
             Padding="20"
-            Style="{StaticResource PaneStyle}"
             Visibility="Collapsed">
             <StackPanel
                 MaxWidth="360"
@@ -96,7 +90,7 @@
             </Grid.RowDefinitions>
 
             <!-- The messages, or a hint with example questions while there are none; History over the trailing edge. -->
-            <Border Style="{StaticResource PaneStyle}">
+            <Border>
                 <Grid>
                     <StackPanel
                         x:Name="EmptyHint"
@@ -174,11 +168,11 @@
                 </Grid>
             </Border>
 
-            <!-- Why the last library question failed. -->
+            <!-- Why the last library question failed; inset like the bar's content (no card around either). -->
             <TextBlock
                 x:Name="ErrorText"
                 Grid.Row="1"
-                Margin="4,0"
+                Margin="14,0"
                 Style="{StaticResource BodyTextBlockStyle}"
                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                 IsTextSelectionEnabled="True"
@@ -188,7 +182,7 @@
                 Visibility="Collapsed" />
 
             <!-- The index's progress, the menus, the question, the setup hints. -->
-            <Border Grid.Row="2" Padding="14,10" Style="{StaticResource PaneStyle}">
+            <Border Grid.Row="2" Padding="14,10">
                 <StackPanel Spacing="8">
                     <!-- While the index is built or still empty: how far it is, or why it waits. Asking stays allowed. -->
                     <Grid x:Name="IndexingRow" ColumnSpacing="6" Visibility="Collapsed">

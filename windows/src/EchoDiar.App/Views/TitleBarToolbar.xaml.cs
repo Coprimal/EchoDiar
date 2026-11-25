@@ -17,12 +17,12 @@ namespace EchoDiar.App.Views;
 /// The window's header (macOS MainView.swift toolbar) in two rows. The title row is the window's title bar: the logo,
 /// then the conversation's title with its date and duration, or the page's name (Settings, Calendar, Recording while
 /// recording, else EchoDiar). The toolbar row: the sidebar button on the library pages (list, conversation, recording),
-/// which hides or shows the library sidebar; Back, always shown and enabled off the list (and on it while the library
-/// chat shows); Record with its options, target and language (Stop, blinking, and Pause or Resume while recording);
-/// Reveal and Delete, always shown and enabled on a conversation; Settings (opens the Settings page, or goes back from
-/// it), Calendar (the same for the Calendar page), Ask across conversations (opens or closes the library chat); Update
-/// while an App Installer update is available and nothing runs that installing would cut off (macOS hides it while
-/// recording). At the right edge: a Settings section's inner tabs (a conversation's tabs are in its AI panel). It also
+/// which hides or shows the library sidebar; Back, always shown and enabled off the list only (the library chat is the
+/// sidebar's Chat tab, not a page to go back from); Record with its options, target and language (Stop, blinking, and
+/// Pause or Resume while recording); Reveal and Delete, always shown and enabled on a conversation; Settings (opens the
+/// Settings page, or goes back from it), Calendar (the same for the Calendar page); Update while an App Installer update
+/// is available and nothing runs that installing would cut off (macOS hides it while recording). At the right edge: a
+/// Settings section's inner tabs (a conversation's tabs are in its AI panel). It also
 /// hosts the window's dialogs (it lives as long as the window): the delete confirmations (of this conversation, and of
 /// the library's cards and selection), "Recording problem", the cloud confirmations (audio for transcription,
 /// transcripts for the library index), the update's confirmation and answers, and the Settings pages' confirmations
@@ -67,7 +67,6 @@ public sealed partial class TitleBarToolbar : UserControl
         BackButton.Click += (_, _) => _model?.GoBack();
         SettingsButton.Click += (_, _) => ToggleSettings();
         CalendarButton.Click += (_, _) => ToggleCalendar();
-        AskButton.Click += (_, _) => ToggleGlobalChat();
         RecordSplitButton.Click += (_, _) => _ = _model?.StartRecordingAsync(_model.SelectedTarget);
         TargetMenu.Opening += (_, _) => OnTargetMenuOpening();
         StopButton.Click += (_, _) => _ = _model?.StopRecordingAsync();
@@ -141,7 +140,6 @@ public sealed partial class TitleBarToolbar : UserControl
                 Update();
                 break;
             case nameof(AppViewModel.Route):
-            case nameof(AppViewModel.GlobalChatOpen):
             case nameof(AppViewModel.RecordingSnapshot):
             case nameof(AppViewModel.IsStarting):
             case nameof(AppViewModel.TranscriptionProgress):
@@ -177,7 +175,7 @@ public sealed partial class TitleBarToolbar : UserControl
         if (_model is null) return;
         // The library pages (macOS Page.library: the list, a conversation, the recording).
         SidebarButton.Visibility = Shown(_model.Route.Kind is RouteKind.List or RouteKind.Conversation or RouteKind.Recording);
-        BackButton.IsEnabled = _model.Route.Kind != RouteKind.List || _model.GlobalChatOpen;
+        BackButton.IsEnabled = _model.Route.Kind != RouteKind.List;
         UpdateSettingsTabs();
 
         var recording = _model.IsRecording;
@@ -377,23 +375,6 @@ public sealed partial class TitleBarToolbar : UserControl
         if (_model is null) return;
         if (_model.Route.Kind == RouteKind.Calendar) _model.GoBack();
         else _model.OpenCalendar();
-    }
-
-    // Library chat
-
-    /// <summary>
-    /// macOS's Ask across conversations toggle: on Settings or the Calendar page it goes back first (twice from Settings
-    /// opened from the Calendar page); opening the chat clears the search, which would filter the cards it replaces.
-    /// </summary>
-    private void ToggleGlobalChat()
-    {
-        if (_model is null) return;
-        var open = _model.Route.Kind is RouteKind.Settings or RouteKind.Calendar || !_model.GlobalChatOpen;
-        if (_model.Route.Kind == RouteKind.Settings) _model.GoBack();
-        if (_model.Route.Kind == RouteKind.Calendar) _model.GoBack();
-        _model.GlobalChatOpen = open;
-        // The library's search box follows the cleared term (ConversationListView).
-        if (open) _model.SearchTerm = "";
     }
 
     // Record options

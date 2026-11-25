@@ -30,6 +30,10 @@ public sealed partial class MainWindow : Window
     /// <summary>The welcome pane, made when first shown and kept while the window lives.</summary>
     private WelcomeView? _welcome;
 
+    /// <summary>The cards are filtered once typing in the sidebar's search box pauses this long (at once when cleared).</summary>
+    private static readonly TimeSpan SearchDelay = TimeSpan.FromMilliseconds(200);
+    private readonly DispatcherQueueTimer _searchTimer;
+
     /// <summary>
     /// Set first in <see cref="Window.Closed"/>: the window then puts its content to null and fails every call on its
     /// properties (0x800710DD) while layout and rendering events still fire, so no handler touches it after this.
@@ -94,6 +98,8 @@ public sealed partial class MainWindow : Window
         // window's dialogs one at a time.
         _library = new ConversationListView(_model) { Delete = Toolbar.DeleteAsync };
         ListHost.Content = _library;
+        _searchTimer = DispatcherQueue.CreateTimer();
+        AttachSidebarHeader();
         AddAccelerators();
 
         _frames = new WindowFrames(AppWindow);
@@ -209,6 +215,7 @@ public sealed partial class MainWindow : Window
         Toolbar.TitleBar.LayoutUpdated -= OnTitleBarLayoutUpdated;
         if (_xamlRoot is not null) _xamlRoot.Changed -= OnXamlRootChanged;
         _model.PropertyChanged -= OnModelChanged;
+        _searchTimer.Stop();
         Toolbar.Detach();
         _frames.Save();
     }
@@ -229,8 +236,8 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// The text of the first frame can be lost while the window is first shown (seen in a VM on warm launches: the
     /// toolbar's icons and labels and the library header stayed blank, while backgrounds and later text drew). A text
-    /// element makes its glyphs again only when it leaves the tree and enters it again, so the toolbar's and the
-    /// library's content are taken out and put back: 300 ms after the first presented frame (the first Rendering whose
+    /// element makes its glyphs again only when it leaves the tree and enters it again, so the toolbar's, the library's
+    /// and the sidebar header's content are taken out and put back: 300 ms after the first presented frame (the first Rendering whose
     /// rendering time has started; the loss comes after the earlier ones), and once more 1.5 s after the window shows.
     /// </summary>
     private void OnFirstActivated(object sender, WindowActivatedEventArgs args)
@@ -279,7 +286,7 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// Lost surface contents (the graphics device was lost or its surfaces were trimmed) leave the same blank text: the
-    /// toolbar and the library are put back once the next frame is drawn.
+    /// toolbar, the library and the sidebar header are put back once the next frame is drawn.
     /// </summary>
     private void OnSurfaceContentsLost(object? sender, object e)
     {
@@ -298,6 +305,10 @@ public sealed partial class MainWindow : Window
         StartupTrace.Write($"begin reattach {reason}");
         Reattach(Toolbar);
         Reattach(_library);
+        // The sidebar's header is the window's own: its tabs' and buttons' text too.
+        var header = SidebarHeader.Child;
+        SidebarHeader.Child = null;
+        SidebarHeader.Child = header;
         StartupTrace.Write("end reattach");
     }
 
@@ -332,6 +343,9 @@ public sealed partial class MainWindow : Window
                 break;
             case nameof(AppViewModel.GlobalChatOpen):
                 ShowLibraryOrChat();
+                break;
+            case nameof(AppViewModel.SearchTerm):
+                OnSearchTermChanged();
                 break;
             // Only the column: ShowRoute would rebuild the detail (playback, the live chat's input, the recording page).
             case nameof(AppViewModel.SidebarHidden):
@@ -379,6 +393,8 @@ public sealed partial class MainWindow : Window
             { Kind: RouteKind.Calendar } => new CalendarPage(_model) { ShowDialog = Toolbar.ShowDialogAsync },
             _ => _welcome ??= new WelcomeView(_model),
         };
+        // Another page (Settings, Calendar: no sidebar) collapses the sidebar's search (macOS MainView.swift).
+        if (route.Kind is RouteKind.Settings or RouteKind.Calendar) CollapseSearch();
         UpdateSidebar();
         _library.ShowAsSidebar(route.ConversationId);
         ShowLibraryOrChat();
@@ -397,17 +413,138 @@ public sealed partial class MainWindow : Window
     {
         var hidden = _model.Route.Kind is RouteKind.Settings or RouteKind.Calendar || _model.SidebarHidden;
         SidebarColumn.Width = new GridLength(hidden ? 0 : 360);
-        ListHost.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
+        SidebarCard.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>
-    /// The library chat in place of the cards while it is open (macOS MainView.swift <c>chatOr</c>): the sidebar beside
-    /// the detail.
+    /// The sidebar's tab (macOS MainView.swift <c>chatOr</c>): the library chat in place of the cards on Chat, under the
+    /// header, which stays; the new one is there in the click's frame. Chat, whoever selects it (its tab, a citation),
+    /// shows no search box and ends a selection of cards.
     /// </summary>
     private void ShowLibraryOrChat()
     {
-        UIElement content = _model.GlobalChatOpen ? _globalChat ??= new GlobalChatView(_model) : _library;
+        var chat = _model.GlobalChatOpen;
+        var tab = chat ? ChatTab : ConversationsTab;
+        if (SidebarTabsBar.SelectedItem != tab) SidebarTabsBar.SelectedItem = tab;
+        // The cards go off screen: their selection goes too, so Esc and Delete never act on cards that are not shown.
+        if (chat)
+        {
+            CollapseSearch();
+            _library.ClearSelection();
+        }
+        UIElement content = chat ? _globalChat ??= new GlobalChatView(_model) : _library;
         if (!ReferenceEquals(ListHost.Content, content)) ListHost.Content = content;
+    }
+
+    // Sidebar header
+
+    private void AttachSidebarHeader()
+    {
+        SidebarTabsBar.SelectionChanged += (_, _) => OnSidebarTabSelected();
+        SearchButton.Click += (_, _) => ShowSearch();
+        CloseSearchButton.Click += (_, _) => CollapseSearch();
+        // The header keeps the tabs' height while the search box replaces them.
+        SidebarTabsRow.SizeChanged += (_, e) =>
+        {
+            if (e.NewSize.Height > 0) SidebarHeader.MinHeight = e.NewSize.Height;
+        };
+        _searchTimer.Interval = SearchDelay;
+        _searchTimer.IsRepeating = false;
+        _searchTimer.Tick += (timer, _) =>
+        {
+            timer.Stop();
+            if (!_closing) _model.SearchTerm = SearchBox.Text;
+        };
+        SearchBox.TextChanged += (_, _) => OnSearchTextChanged();
+        // The inner text field handles Esc first.
+        SearchBox.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnSearchKeyDown), handledEventsToo: true);
+    }
+
+    /// <summary>A tab picked in the header; only a pick that differs from the model's tab is written.</summary>
+    private void OnSidebarTabSelected()
+    {
+        if (_closing || SidebarTabsBar.SelectedItem is not { } item) return;
+        var chat = item == ChatTab;
+        if (chat != _model.GlobalChatOpen) _model.GlobalChatOpen = chat;
+    }
+
+    /// <summary>The search box in place of the tabs, at once; it takes the focus once it is shown (<see cref="ShowSearch"/>).</summary>
+    private void ExpandSearch()
+    {
+        // The tabs were never laid out (Ctrl+F with the sidebar hidden, or from Settings or Calendar, at launch): measure
+        // them now, so the header still keeps their height and the cards do not move when the search closes.
+        if (SidebarHeader.MinHeight <= 0)
+        {
+            SidebarTabsRow.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            if (SidebarTabsRow.DesiredSize.Height > 0) SidebarHeader.MinHeight = SidebarTabsRow.DesiredSize.Height;
+        }
+        SidebarTabsRow.Visibility = Visibility.Collapsed;
+        SearchRow.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>A control just shown or laid out may not take the focus at once: it tries once more after the layout.</summary>
+    private void FocusSoon(Control control)
+    {
+        if (control.Focus(FocusState.Programmatic)) return;
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (!_closing) control.Focus(FocusState.Programmatic);
+        });
+    }
+
+    /// <summary>
+    /// Back to the tabs (macOS <c>collapseSearch</c>): the search cleared, so the cards are never filtered by a term that
+    /// is not on screen. The focus, only when it was in the box or on its close button, goes to the search button in
+    /// their place, so typing stops going to the box (WinUI would move it to the next tab stop).
+    /// </summary>
+    private void CollapseSearch()
+    {
+        if (SearchRow.Visibility != Visibility.Visible) return;
+        var hadFocus = RootGrid.XamlRoot is { } root && FocusManager.GetFocusedElement(root) is DependencyObject focused
+            && IsWithin(focused, SearchRow);
+        _searchTimer.Stop();
+        SearchBox.Text = "";
+        _model.SearchTerm = "";
+        SidebarTabsRow.Visibility = Visibility.Visible;
+        if (hadFocus) FocusSoon(SearchButton);
+        SearchRow.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// The model cleared the search (another page, the window hidden): the box follows, and typing not applied yet is
+    /// dropped. The box's own clearing, or a blank term, leaves it as it is.
+    /// </summary>
+    private void OnSearchTermChanged()
+    {
+        if (_model.SearchTerm.Length > 0 || SearchBox.Text.Trim().Length == 0) return;
+        _searchTimer.Stop();
+        SearchBox.Text = "";
+    }
+
+    /// <summary>Filters once typing pauses; a cleared box shows every conversation at once.</summary>
+    private void OnSearchTextChanged()
+    {
+        _searchTimer.Stop();
+        if (SearchBox.Text.Length == 0) _model.SearchTerm = "";
+        else _searchTimer.Start();
+    }
+
+    /// <summary>Esc clears the search, then collapses it (macOS <c>sidebarSearchField</c>); never Back.</summary>
+    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Escape) return;
+        e.Handled = true;
+        if (SearchBox.Text.Length > 0) SearchBox.Text = "";
+        else CollapseSearch();
+    }
+
+    private static bool IsWithin(DependencyObject element, DependencyObject ancestor)
+    {
+        for (DependencyObject? e = element; e is not null; e = VisualTreeHelper.GetParent(e))
+        {
+            if (e == ancestor) return true;
+        }
+        return false;
     }
 
     // In-app shortcuts
@@ -530,16 +667,16 @@ public sealed partial class MainWindow : Window
                 return true;
             // Esc first ends a selection of cards (macOS listSelectionActive), wherever the focus is: a Ctrl-click does
             // not move the focus into the list.
-            case InAppAction.Back when plain && ListHost.Visibility == Visibility.Visible && _library.HasSelection:
+            case InAppAction.Back when plain && SidebarCard.Visibility == Visibility.Visible && _library.HasSelection:
                 _library.ClearSelection();
                 return true;
             // Delete deletes a selection of cards (asking first), wherever the focus is, as Esc ends it.
-            case InAppAction.DeleteSelection when plain && ListHost.Visibility == Visibility.Visible && _library.HasSelection:
+            case InAppAction.DeleteSelection when plain && SidebarCard.Visibility == Visibility.Visible && _library.HasSelection:
                 _library.DeleteSelection();
                 return true;
             // Else the open conversation, unless the focus is in a text field, anywhere in the library's cards (the list
             // deletes a focused card; a button on a card is not the open conversation) or in another list or its item.
-            case InAppAction.DeleteSelection when plain && route == RouteKind.Conversation && ListHost.Visibility == Visibility.Visible
+            case InAppAction.DeleteSelection when plain && route == RouteKind.Conversation && SidebarCard.Visibility == Visibility.Visible
                 && !_model.GlobalChatOpen && !InTextInput(focused) && !(focused is DependencyObject inCards && InLibrary(inCards))
                 && focused is not (Selector or SelectorItem):
                 return _library.DeleteOpen();
@@ -551,8 +688,8 @@ public sealed partial class MainWindow : Window
             case InAppAction.Back when plain && route is not (RouteKind.Settings or RouteKind.Calendar) && ListHost.Content is GlobalChatView chat
                 && chat.CloseHistory():
                 return true;
-            // Back from the list closes the library chat.
-            case InAppAction.Back when route != RouteKind.List || _model.GlobalChatOpen:
+            // Not on the list, whichever sidebar tab shows: the library chat is a tab, not a page to go back from.
+            case InAppAction.Back when route != RouteKind.List:
                 _model.GoBack();
                 return true;
             // The transcript and its player are always beside the AI panel; a text field (above) and a control reached with
@@ -567,18 +704,19 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Ctrl+F off Settings (macOS <c>showSearch</c>): leaves the Calendar page, closes the library chat and shows the
-    /// sidebar, then focuses the library's search box once it is shown (a box just made visible cannot take the focus
-    /// in the same tick).
+    /// Ctrl+F off Settings and the sidebar header's search button (macOS <c>showSearch</c>): leaves the Calendar page,
+    /// switches the sidebar to Conversations and shows it, then expands the header's search box at once and focuses it
+    /// once it is shown (a box just made visible cannot take the focus in the same tick).
     /// </summary>
     private void ShowSearch()
     {
         if (_model.Route.Kind == RouteKind.Calendar) _model.GoBack();
         _model.GlobalChatOpen = false;
         _model.SetSidebarHidden(false);
+        ExpandSearch();
         DispatcherQueue.TryEnqueue(() =>
         {
-            if (!_closing) _library.FocusSearch();
+            if (!_closing) FocusSoon(SearchBox);
         });
     }
 
@@ -599,14 +737,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>The element is in the library's cards (a card's item or a control on it).</summary>
-    private bool InLibrary(DependencyObject element)
-    {
-        for (DependencyObject? e = element; e is not null; e = VisualTreeHelper.GetParent(e))
-        {
-            if (e == _library) return true;
-        }
-        return false;
-    }
+    private bool InLibrary(DependencyObject element) => IsWithin(element, _library);
 
     /// <summary>Text is typed there: Delete and ↑/↓ are the field's.</summary>
     private static bool InTextInput(object? focused) => focused is TextBox or PasswordBox or RichEditBox or AutoSuggestBox;
@@ -615,14 +746,14 @@ public sealed partial class MainWindow : Window
     /// ↑/↓ on the library page (list, conversation, recording; not the library chat, a hidden sidebar, Settings or
     /// Calendar) with no card selected open the previous or next card (macOS handleSidebarKey). Not while a dialog, menu
     /// or flyout is open, nor from a control that uses the arrows (a text field, the playback slider, a combo, a selector
-    /// or its item outside the library, a radio button), nor from text with a selection (the transcript, the live
+    /// or its item outside the library and the sidebar's tabs, a radio button), nor from text with a selection (the transcript, the live
     /// captions: a click on a timestamp leaves the arrows to the cards).
     /// </summary>
     private bool MoveInLibrary(int delta)
     {
         if (_closing || _model.IsCapturingHotKey || PopupOpen()) return false;
         if (_model.Route.Kind is not (RouteKind.List or RouteKind.Conversation or RouteKind.Recording)) return false;
-        if (_model.GlobalChatOpen || _model.SidebarHidden || ListHost.Visibility != Visibility.Visible) return false;
+        if (_model.GlobalChatOpen || _model.SidebarHidden || SidebarCard.Visibility != Visibility.Visible) return false;
         if (_library.HasSelection) return false;
         var focused = RootGrid.XamlRoot is { } root ? FocusManager.GetFocusedElement(root) : null;
         if (UsesArrows(focused)) return false;
@@ -634,7 +765,9 @@ public sealed partial class MainWindow : Window
         _ when InTextInput(focused) => true,
         RichTextBlock text => text.SelectedText.Length > 0,
         TextBlock text => text.SelectedText.Length > 0,
-        Slider or ComboBox or RadioButton or RadioButtons or SelectorBarItem => true,
+        Slider or ComboBox or RadioButton or RadioButtons => true,
+        // The sidebar's own tabs leave ↑/↓ to the cards (a clicked tab keeps the focus).
+        SelectorBarItem item => !IsWithin(item, SidebarTabsBar),
         // The library's own list and items are the cards' (its model picker is a ComboBox, above).
         DependencyObject element when element is Selector or SelectorItem => !InLibrary(element),
         _ => false,
