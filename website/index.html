@@ -76,6 +76,7 @@
     <main id="main">
       <section class="hero wrap">
         <div class="hero__copy">
+          <a class="hero__news" href="#screen"><span>New</span> Record the screen only when you need it</a>
           <h1>Record any meeting, see who said what, and ask AI about it.</h1>
           <p class="lede">A lightweight meeting recorder for Mac and Windows. <a href="#live">Catch up or ask AI</a> while the meeting is still on. Transcription and AI can run fully on your computer.</p>
           <div class="actions" id="download">
@@ -159,6 +160,67 @@
           <figcaption class="visually-hidden">
             An EchoDiar window during a sprint planning call: your mic and the meeting audio on two channels, the transcript
             appearing line by line with each speaker named, and an AI answer that cites the moment it comes from.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section wrap live screen-rec" id="screen" aria-labelledby="screen-title">
+        <div class="screen-rec__head">
+          <p class="live__new">New on Mac</p>
+          <h2 id="screen-title">Record the screen only when it matters</h2>
+          <p class="live__lede">Switch the screen on, off or to something else at any time. The recording never stops.</p>
+        </div>
+
+        <div class="live__copy">
+          <dl class="live__legend">
+            <div>
+              <dt>Only when you need it</dt>
+              <dd>Screen on for the demo, off for the rest. Audio and transcript keep going.</dd>
+            </div>
+            <div>
+              <dt>Change what you record</dt>
+              <dd>Mid-meeting, pick another window, a whole display or a region you drag.</dd>
+            </div>
+            <div>
+              <dt>One meeting, one video</dt>
+              <dd>A recorded window is followed to another display, in sync with the transcript.</dd>
+            </div>
+          </dl>
+          <p class="live__note">A small HEVC file: about 5 MB per minute for a meeting window.</p>
+        </div>
+
+        <figure class="live__art">
+          <div class="win screen-win" aria-hidden="true">
+            <div class="win__bar">
+              <span class="win__lights"><i></i><i></i><i></i></span>
+              <span class="win__title">
+                <strong>Design review: checkout flow</strong>
+                <span>Recording now</span>
+              </span>
+              <span class="rec-pill"><i></i><span>32:10</span></span>
+            </div>
+            <div class="screen-win__body">
+              <div class="screen-win__pick">
+                <span>Entire screen</span>
+                <span class="is-on">Window</span>
+                <span>Portion of the screen</span>
+              </div>
+              <div class="screen-tl">
+                <span class="screen-tl__seg" style="--w: 26%"><b>Window</b>Figma</span>
+                <span class="screen-tl__seg screen-tl__seg--off" style="--w: 30%"><b>Off</b>Discussion</span>
+                <span class="screen-tl__seg" style="--w: 20%"><b>Portion</b>A chart</span>
+                <span class="screen-tl__seg" style="--w: 24%"><b>Display</b>Demo</span>
+              </div>
+              <div class="screen-tl__times"><span>0:00</span><span>32:10</span></div>
+              <div class="capsule screen-win__capsule">
+                <b class="capsule__stop">Stop</b><b class="capsule__video">Screen</b><b>Camera</b>
+              </div>
+            </div>
+          </div>
+          <figcaption class="visually-hidden">
+            One recording of a design review: the screen is recorded for a Figma window, turned off during the discussion,
+            turned back on for a portion of the screen with a chart, then for the whole display during a demo, all in one video without
+            stopping the recording.
           </figcaption>
         </figure>
       </section>

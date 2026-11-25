@@ -2738,3 +2738,138 @@ kbd {
     transform: scaleY(var(--still, 0.5));
   }
 }
+
+/* Hero: a short link to the newest feature, above the headline. */
+.hero__news {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: 0.25rem 0.8rem 0.25rem 0.3rem;
+  border: 1px solid color-mix(in oklch, var(--color-accent) 28%, var(--color-rule));
+  border-radius: var(--radius-pill);
+  color: var(--color-strong);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: background var(--dur-short) var(--ease-out);
+}
+
+.hero__news span {
+  padding: 0.05rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero__news::after {
+  content: "→";
+  color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .hero__news:hover {
+    background: var(--color-hover);
+  }
+}
+
+/* Screen recording: one recording whose screen goes on, off and to other sources. */
+.screen-rec + .live {
+  margin-top: var(--space-xl);
+}
+
+.screen-win__body {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  color: var(--app-body);
+  font-size: var(--text-xs);
+}
+
+.screen-win__pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.screen-win__pick span {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--app-rule);
+  border-radius: var(--radius-pill);
+}
+
+.screen-win__pick span.is-on {
+  border-color: var(--app-accent);
+  color: var(--app-accent);
+}
+
+.screen-tl {
+  display: flex;
+  gap: 3px;
+  height: 4.5rem;
+}
+
+.screen-tl__seg {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  width: var(--w);
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(var(--app-surface-2) 0 28%, var(--app-surface) 28%);
+  color: var(--app-muted);
+  white-space: nowrap;
+}
+
+.screen-tl__seg b {
+  color: var(--app-ink);
+  font-weight: 600;
+}
+
+.screen-tl__seg--off {
+  background: oklch(8% 0 0);
+}
+
+.screen-tl__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: calc(var(--space-sm) * -1);
+  color: var(--app-muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+.screen-win__capsule {
+  justify-content: center;
+}
+
+.screen-win__capsule .capsule__stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Title and lede span both columns; the legend and the window sit below them. */
+.screen-rec__head {
+  grid-column: 1 / -1;
+}
+
+.screen-rec__head .live__lede {
+  max-width: none;
+}
+
+.screen-rec .live__legend {
+  margin-top: 0;
+}
+
+@media (min-width: 60rem) {
+  .screen-rec {
+    row-gap: var(--space-xl);
+  }
+}
