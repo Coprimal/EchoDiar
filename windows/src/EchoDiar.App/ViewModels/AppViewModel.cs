@@ -148,7 +148,7 @@ public sealed partial class AppViewModel : ObservableObject
         Updater = new Updater(dispatcher);
         Updater.PropertyChanged += OnUpdaterChanged;
         EndPromptNotifier = new EndPromptNotifier(() => Settings.EndPromptNotification);
-        _screen = new ScreenRecordingController(services.Engine, Post);
+        _screen = new ScreenRecordingController(services.Engine, services.Paths.Probes, Post);
         _screen.Changed += () =>
         {
             OnPropertyChanged(nameof(ScreenOn));
@@ -215,6 +215,8 @@ public sealed partial class AppViewModel : ObservableObject
             // "No system audio" counts only with "Record the screen too" on (macOS updateSettings).
             if (!value.ScreenRecordingEnabled) SystemAudioOff = false;
             if (value.ScreenRecordingEnabled != old.ScreenRecordingEnabled) OnPropertyChanged(nameof(ScreenRecordingOn));
+            // The camera bubble follows its option during a video too (macOS setOverlays), wherever it was changed.
+            if (value.ScreenCamera != old.ScreenCamera) _screen.SetCameraOption(value.ScreenCamera);
             SyncMeetingDetection();
             OnCalendarSettingsChanged(old.Calendar, value.Calendar);
             if (value.LibraryPageSize != old.LibraryPageSize) ResetLibraryPage();

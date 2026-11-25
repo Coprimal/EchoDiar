@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using EchoDiar.Core.Audio;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Screen;
 using EchoDiar.Core.Settings;
 using EchoDiar.Platform.Screen;
 
@@ -8,11 +10,12 @@ namespace EchoDiar.App.Services;
 
 /// <summary>
 /// The screen video of the current recording (macOS ScreenRecordingController.swift): the source picker, the video's
-/// state, its <see cref="ScreenRecorder"/> and the outline around a Portion. The view model calls it when the recording
-/// starts, pauses, resumes and ends; a video that ends early never stops the audio. The screen can be turned off and on
-/// any number of times in a recording: one recorder writes one <see cref="VideoFileName"/>, with the "Screen recording
-/// off" frame where the screen was off. UI thread only: the picker's result comes back through an await on it, the
-/// recorder's end is posted to it, and the recorder works on the thread pool.
+/// state, its <see cref="ScreenRecorder"/>, the outline around a Portion, the camera bubble and the click watcher. The
+/// view model calls it when the recording starts, pauses, resumes and ends; a video that ends early never stops the
+/// audio. The screen can be turned off and on any number of times in a recording: one recorder writes one
+/// <see cref="VideoFileName"/>, with the "Screen recording off" frame where the screen was off. UI thread only: the
+/// picker's and the camera's results come back through an await on it, the recorder's end and the camera's failure are
+/// posted to it, and the recorder and the camera work on the thread pool.
 /// </summary>
 internal sealed class ScreenRecordingController
 {
@@ -65,10 +68,57 @@ internal sealed class ScreenRecordingController
     /// <summary>Bumped by every start, turn-on, turn-off and end: a late start or turn-on never changes a newer state.</summary>
     private int _generation;
 
+    /// <summary>The App's probes folder, where a DEBUG build's camera looks for its <c>fake-camera</c> marker.</summary>
+    private readonly string _probes;
+
+    /// <summary>
+    /// The camera and its bubble, made together on first use (nothing is created while "Camera bubble" stays off) and
+    /// kept until <see cref="Shutdown"/>.
+    /// </summary>
+    private CameraSource? _camera;
+    private CameraBubbleWindow? _bubble;
+
+    /// <summary>
+    /// The app's one click watcher (Raw Input registration is process-wide), made on the first video with "Highlight
+    /// clicks" on; each recorder registers it only while it captures.
+    /// </summary>
+    private ClickWatcher? _clicks;
+
+    /// <summary>
+    /// "Camera bubble" for the current video (macOS <c>showsCamera</c>): read at each start and turn-on, changed by
+    /// <see cref="SetCameraOption"/>; off for the video when its camera could not open.
+    /// </summary>
+    private bool _showsCamera;
+
+    /// <summary>The bubble shows and its camera is open or opening.</summary>
+    private bool _cameraOn;
+
+    /// <summary>The source the bubble was shown for while <see cref="_cameraOn"/>.</summary>
+    private ScreenSource? _cameraSource;
+
+    /// <summary>The recorder drawing the camera into its video, from the camera's open until the bubble hides.</summary>
+    private ScreenRecorder? _cameraRecorder;
+
+    /// <summary>Bumped by every camera on and off: a late open never changes a newer state.</summary>
+    private int _cameraGeneration;
+
+    /// <summary>The camera's opens and stops, one at a time in call order on the thread pool (a stop can block).</summary>
+    private Task _cameraWork = Task.CompletedTask;
+
+    /// <summary><see cref="Shutdown"/> ran: no camera or watcher is made again.</summary>
+    private bool _shutDown;
+
+    // The camera's frame copied for the bubble, under _frameGate (camera threads).
+    private readonly object _frameGate = new();
+    private byte[]? _frame;
+    private long _frameNumber;
+
+    /// <param name="probesFolder">The App's probes folder (<c>AppPaths.Probes</c>), for the DEBUG fake camera's marker.</param>
     /// <param name="post">Runs an action on the UI thread (the recorder's end arrives on a background thread).</param>
-    public ScreenRecordingController(RecordingEngine engine, Action<Action> post)
+    public ScreenRecordingController(RecordingEngine engine, string probesFolder, Action<Action> post)
     {
         _engine = engine;
+        _probes = probesFolder;
         _post = post;
     }
 
@@ -124,11 +174,13 @@ internal sealed class ScreenRecordingController
     /// <summary>
     /// Starts the video of the recording the engine runs in <paramref name="folder"/>, on the audio file's clock, with
     /// the screen settings read now (macOS <c>start</c>); the recording's <c>session.json</c> gets the video once it has
-    /// started. Started after the recording began, the file starts with the "Screen recording off" frame. A start that
+    /// started. <paramref name="withRecording"/>: picked before the recording started, so the picture starts at file
+    /// time 0 however long the engine's start took (its first mic open runs after the audio clock started); else
+    /// (started during the recording) the file starts with the "Screen recording off" frame up to now. A start that
     /// fails ends the video for this recording with a notice; the sound goes on. No-op when a video already runs or the
     /// engine stopped meanwhile.
     /// </summary>
-    public void Start(ScreenSource source, string folder, AppSettings settings, bool skipsTranscription)
+    public void Start(ScreenSource source, string folder, AppSettings settings, bool skipsTranscription, bool withRecording = true)
     {
         if (_recorder is not null || _engine.CurrentSnapshot().State == RecordingEngine.State.Idle) return;
         var recorder = new ScreenRecorder();
@@ -136,6 +188,7 @@ internal sealed class ScreenRecordingController
         _paused = false;
         _endReason = null;
         _skipsTranscription = skipsTranscription;
+        _showsCamera = settings.ScreenCamera;
         recorder.Ended += reason => _post(() => OnEnded(recorder, reason));
         var generation = Prepare(source);
         var video = new SessionVideo
@@ -152,7 +205,7 @@ internal sealed class ScreenRecordingController
             Width = 0,
             Height = 0,
         };
-        _ = StartVideoAsync(recorder, source, generation, Path.Combine(folder, VideoFileName), settings, video);
+        _ = StartVideoAsync(recorder, source, generation, Path.Combine(folder, VideoFileName), settings, video, withRecording);
     }
 
     /// <summary>
@@ -166,10 +219,21 @@ internal sealed class ScreenRecordingController
         if (!CanStartDuringRecording) return;
         if (_recorder is not { } recorder)
         {
-            Start(source, folder, settings, skipsTranscription);
+            Start(source, folder, settings, skipsTranscription, withRecording: false);
             return;
         }
+        _showsCamera = settings.ScreenCamera;
         _ = TurnOnAsync(recorder, source, Prepare(source));
+    }
+
+    /// <summary>
+    /// "Camera bubble" changed (the toolbar's camera button, the Record options or Settings): applies it to the running
+    /// video (macOS <c>setOverlays</c>); the next start or turn-on reads the setting again.
+    /// </summary>
+    public void SetCameraOption(bool on)
+    {
+        _showsCamera = on;
+        SyncCamera();
     }
 
     /// <summary>
@@ -192,7 +256,7 @@ internal sealed class ScreenRecordingController
         _paused = true;
         recorder.Pause();
         if (State == ScreenState.Recording) State = ScreenState.Paused;
-        SyncOutline();
+        SyncOverlays();
         Changed?.Invoke();
     }
 
@@ -203,7 +267,7 @@ internal sealed class ScreenRecordingController
         _paused = false;
         recorder.Resume();
         if (State == ScreenState.Paused) State = ScreenState.Recording;
-        SyncOutline();
+        SyncOverlays();
         Changed?.Invoke();
     }
 
@@ -222,7 +286,7 @@ internal sealed class ScreenRecordingController
         State = ScreenState.Off;
         _source = null;
         _generation++;
-        SyncOutline();
+        SyncOverlays();
         _endedRecorder = null;
         var finishing = _stopping;
         _stopping = null;
@@ -246,18 +310,42 @@ internal sealed class ScreenRecordingController
         CancelPicker();
         _outline?.Dispose();
         _outline = null;
+        _shutDown = true;
+        CameraOff();
+        _bubble?.Dispose();
+        _bubble = null;
+        // The video still running stops with the audio without rings (its watcher calls never throw once disposed).
+        _clicks?.Dispose();
+        _clicks = null;
+        if (_camera is { } camera)
+        {
+            _camera = null;
+            // Released after the stops queued before it; the quit waits for it with the videos.
+            Track(_cameraWork.ContinueWith(_ =>
+            {
+                try
+                {
+                    camera.Dispose();
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"EchoDiar: could not release the camera: {e}");
+                }
+            }, TaskScheduler.Default));
+        }
         return (_recorder, _finishing);
     }
 
     // Private
 
-    private async Task StartVideoAsync(
-        ScreenRecorder recorder, ScreenSource source, int generation, string path, AppSettings settings, SessionVideo video)
+    private async Task StartVideoAsync(ScreenRecorder recorder, ScreenSource source, int generation, string path,
+        AppSettings settings, SessionVideo video, bool withRecording)
     {
         try
         {
             await recorder.StartAsync(source, settings.ScreenFPS, settings.ScreenQuality, settings.ScreenShowsCursor,
-                settings.ScreenShowsClicks, path, RecordingEngine.LowDiskBytes, _engine.FileTime, Loc.T("Screen recording off"));
+                settings.ScreenShowsClicks, path, RecordingEngine.LowDiskBytes, _engine.FileTime, Loc.T("Screen recording off"),
+                settings.ScreenShowsClicks ? Clicks() : null, startsWithRecording: withRecording);
         }
         catch (Exception e)
         {
@@ -314,7 +402,7 @@ internal sealed class ScreenRecordingController
         State = ScreenState.Starting;
         _source = source;
         _generation++;
-        SyncOutline();
+        SyncOverlays();
         Changed?.Invoke();
         return _generation;
     }
@@ -324,7 +412,7 @@ internal sealed class ScreenRecordingController
     {
         if (generation != _generation || State != ScreenState.Starting) return;
         State = _paused ? ScreenState.Paused : ScreenState.Recording;
-        SyncOutline();
+        SyncOverlays();
         Changed?.Invoke();
     }
 
@@ -334,8 +422,15 @@ internal sealed class ScreenRecordingController
         State = ScreenState.Off;
         _source = null;
         _generation++;
-        SyncOutline();
+        SyncOverlays();
         Changed?.Invoke();
+    }
+
+    /// <summary>The outline and the camera bubble follow the screen's state (macOS <c>syncOverlays</c>).</summary>
+    private void SyncOverlays()
+    {
+        SyncOutline();
+        SyncCamera();
     }
 
     /// <summary>The outline shows around a Portion while its video starts or records, not while paused (macOS <c>syncOverlays</c>).</summary>
@@ -353,6 +448,137 @@ internal sealed class ScreenRecordingController
             _outline = RecordingOutline.Show(source.Handle, source.Region, Log);
         }
     }
+
+    /// <summary>
+    /// The camera bubble shows with "Camera bubble" on while the video starts or records, not while paused (macOS
+    /// <c>syncOverlays</c>): on the recorded display, in a Portion's area, or on a window's monitor (read once per
+    /// source; the bubble stays where it is when the window moves). The camera opens off the UI thread and the bubble
+    /// shows its placeholder until the first frame; the recorder draws the camera from its open. Off in every other
+    /// state: the bubble hides, the video stops drawing it and the camera is released.
+    /// </summary>
+    private void SyncCamera()
+    {
+        if (!_showsCamera || _paused || State is not (ScreenState.Starting or ScreenState.Recording)
+            || _source is not { } source || _recorder is not { } recorder || _shutDown)
+        {
+            CameraOff();
+            return;
+        }
+        if (_cameraOn && _cameraSource == source) return;
+        var (camera, bubble) = Camera();
+        _cameraSource = source;
+        switch (source.Kind)
+        {
+            case ScreenSourceKind.Area:
+                bubble.Show(source.Handle, source.Region);
+                break;
+            case ScreenSourceKind.Window:
+                bubble.Show(MonitorFromWindow(source.Handle, MonitorDefaultToNearest));
+                break;
+            default:
+                bubble.Show(source.Handle);
+                break;
+        }
+        if (_cameraOn) return;
+        _cameraOn = true;
+        var generation = ++_cameraGeneration;
+        var opening = _cameraWork.ContinueWith(_ => camera.StartAsync(), CancellationToken.None,
+            TaskContinuationOptions.None, TaskScheduler.Default).Unwrap();
+        _cameraWork = opening;
+        _ = OpenCameraAsync(opening, camera, bubble, recorder, generation);
+    }
+
+    /// <summary>
+    /// The camera's open came back: the recorder draws it (with the bubble's placement), unless the bubble was turned off
+    /// meanwhile. A camera that could not open turns the bubble off for this video, with a notice when access is off.
+    /// </summary>
+    private async Task OpenCameraAsync(Task<CameraOpenResult> opening, CameraSource camera, CameraBubbleWindow bubble,
+        ScreenRecorder recorder, int generation)
+    {
+        CameraOpenResult result;
+        try
+        {
+            result = await opening;
+        }
+        catch (Exception e)
+        {
+            result = new CameraOpenResult(CameraOpenStatus.Failed, $"{e.GetType().Name}: {e.Message}");
+        }
+        // Turned off meanwhile: its stop is queued after this open.
+        if (generation != _cameraGeneration) return;
+        if (result.Status == CameraOpenStatus.Started)
+        {
+            if (result.IsFake) Log("camera bubble: the fake camera");
+            _cameraRecorder = recorder;
+            recorder.SetCamera(camera, () => bubble.Placement);
+            // Access turned on since an earlier try: the notice no longer applies.
+            if (Notice == CameraNotice)
+            {
+                Notice = null;
+                Changed?.Invoke();
+            }
+            return;
+        }
+        Log($"camera bubble: the camera did not open ({result.Status}) {result.Message}");
+        _showsCamera = false;
+        CameraOff();
+        if (result.Status != CameraOpenStatus.AccessDenied) return;
+        Notice = CameraNotice;
+        Changed?.Invoke();
+    }
+
+    private static string CameraNotice =>
+        Loc.T("Camera access is off. Turn on EchoDiar in Windows Settings › Privacy & security › Camera.");
+
+    /// <summary>The running camera stopped by itself (unplugged, taken by another app): the bubble is off for this video.</summary>
+    private void OnCameraFailed(CameraSource camera, string message)
+    {
+        // A failure of a camera stopped before (its session is gone) and opened again meanwhile changes nothing.
+        if (!_cameraOn || !ReferenceEquals(_camera, camera) || camera.IsRunning) return;
+        Log($"camera bubble: the camera stopped: {message}");
+        _showsCamera = false;
+        CameraOff();
+    }
+
+    /// <summary>Hides the bubble, takes the camera out of the video and releases the camera (off the UI thread).</summary>
+    private void CameraOff()
+    {
+        if (!_cameraOn) return;
+        _cameraOn = false;
+        _cameraSource = null;
+        _cameraGeneration++;
+        _bubble?.Hide();
+        _cameraRecorder?.SetCamera(null, null);
+        _cameraRecorder = null;
+        if (_camera is { } camera) _cameraWork = _cameraWork.ContinueWith(_ => camera.Stop(), TaskScheduler.Default);
+    }
+
+    /// <summary>The camera and its bubble, made together on first use; their frames go from one to the other.</summary>
+    private (CameraSource Camera, CameraBubbleWindow Bubble) Camera()
+    {
+        if (_camera is { } made && _bubble is { } shown) return (made, shown);
+        var camera = new CameraSource(_probes);
+        var bubble = new CameraBubbleWindow(Log);
+        camera.FrameAvailable += () => ShowFrame(camera, bubble);
+        camera.Failed += message => _post(() => OnCameraFailed(camera, message));
+        _camera = camera;
+        _bubble = bubble;
+        return (camera, bubble);
+    }
+
+    /// <summary><see cref="CameraSource.FrameAvailable"/>, on a camera thread: the newest frame to the bubble.</summary>
+    private void ShowFrame(CameraSource camera, CameraBubbleWindow bubble)
+    {
+        lock (_frameGate)
+        {
+            if (camera.CopyLatest(ref _frame, _frameNumber) is not { } info || _frame is not { } frame) return;
+            _frameNumber = info.Number;
+            bubble.SetFrame(frame, info.Width, info.Height, info.Stride);
+        }
+    }
+
+    /// <summary>The app's one click watcher, made on first use; null once the app quits.</summary>
+    private ClickWatcher? Clicks() => _shutDown ? null : _clicks ??= new ClickWatcher(Log);
 
     private void OnEnded(ScreenRecorder recorder, ScreenRecorderEnd reason)
     {
@@ -378,7 +604,7 @@ internal sealed class ScreenRecordingController
         Notice = NoticeText(reason, _skipsTranscription);
         _source = null;
         _generation++;
-        SyncOutline();
+        SyncOverlays();
         _recorder = null;
         _endedRecorder = recorder;
         // Its file is already finished (or was never created): nothing to pad.
@@ -438,4 +664,9 @@ internal sealed class ScreenRecordingController
     private static long Now() => Stopwatch.GetElapsedTime(0).Ticks;
 
     private static void Log(string message) => Debug.WriteLine($"EchoDiar: {message}");
+
+    private const uint MonitorDefaultToNearest = 2; // MONITOR_DEFAULTTONEAREST
+
+    [DllImport("user32.dll")]
+    private static extern nint MonitorFromWindow(nint hwnd, uint flags);
 }

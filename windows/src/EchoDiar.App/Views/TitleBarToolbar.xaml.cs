@@ -66,6 +66,9 @@ public sealed partial class TitleBarToolbar : UserControl
     /// <summary>The screen state the screen button was last labeled for.</summary>
     private bool? _shownScreenOn;
 
+    /// <summary>The screen state and "Camera bubble" the camera button was last labeled for.</summary>
+    private (bool ScreenOn, bool Camera)? _shownCamera;
+
     /// <summary>The sidebar state the sidebar button was last labeled for.</summary>
     private bool? _shownSidebarHidden;
 
@@ -83,6 +86,11 @@ public sealed partial class TitleBarToolbar : UserControl
         TargetMenu.Opening += (_, _) => OnTargetMenuOpening();
         StopButton.Click += (_, _) => _ = _model?.StopRecordingAsync();
         ScreenButton.Click += (_, _) => _model?.ToggleScreenRecording();
+        // macOS writes the setting (also for later recordings); the model applies it to the running video.
+        CameraButton.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenCamera = !_model.Settings.ScreenCamera;
+        };
         ScreenOptionsPanel.Visibility = Shown(Features.ScreenRecording);
         ScreenRecordingCheckBox.Content = $"{Loc.T("Record the screen too")} {Loc.T("(Beta)")}";
         // Click, not Checked: only the user's toggle writes the setting, never a sync from the model.
@@ -94,6 +102,14 @@ public sealed partial class TitleBarToolbar : UserControl
         ScreenTranscribesCheckBox.Click += (_, _) =>
         {
             if (_model is not null) _model.SettingsModel.ScreenTranscribes = ScreenTranscribesCheckBox.IsChecked == true;
+        };
+        ScreenCameraCheckBox.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenCamera = ScreenCameraCheckBox.IsChecked == true;
+        };
+        ScreenClicksCheckBox.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenShowsClicks = ScreenClicksCheckBox.IsChecked == true;
         };
         PauseButton.Click += (_, _) => _ = _model?.TogglePauseAsync();
         RevealButton.Click += (_, _) => Reveal();
@@ -200,6 +216,7 @@ public sealed partial class TitleBarToolbar : UserControl
                 break;
             case nameof(AppViewModel.Settings):
                 UpdateLayoutButton();
+                UpdateCameraButton();
                 SyncScreenOptions();
                 break;
             case nameof(AppViewModel.RecordTargets):
@@ -228,6 +245,7 @@ public sealed partial class TitleBarToolbar : UserControl
         StopButton.Visibility = Shown(recording);
         StopButton.IsEnabled = !_model.IsStarting;
         UpdateScreenButton(recording, paused);
+        UpdateCameraButton();
         PauseButton.Visibility = Shown(recording);
         // The snapshot changes at 15 Hz: a tooltip set again each time would close under the pointer.
         if (paused != _shownPaused)
@@ -285,6 +303,26 @@ public sealed partial class TitleBarToolbar : UserControl
         var label = Loc.T(screenOn ? "Stop recording the screen" : "Record the screen");
         AutomationProperties.SetName(ScreenButton, label);
         ToolTipService.SetToolTip(ScreenButton, label);
+    }
+
+    /// <summary>
+    /// The camera bubble shown or hidden while recording (macOS MainView's camera button): enabled only while the screen
+    /// is recorded, red while it is and "Camera bubble" is on. Its label and icon are set again only when either changes,
+    /// so a tooltip under the pointer stays (the snapshot changes at 15 Hz).
+    /// </summary>
+    private void UpdateCameraButton()
+    {
+        if (_model is null) return;
+        CameraButton.Visibility = Shown(Features.ScreenRecording && _model.IsRecording);
+        var shown = (ScreenOn: _model.ScreenOn, Camera: _model.Settings.ScreenCamera);
+        CameraButton.IsEnabled = shown.ScreenOn;
+        if (shown == _shownCamera) return;
+        _shownCamera = shown;
+        CameraOffIcon.Visibility = Shown(!(shown.ScreenOn && shown.Camera));
+        CameraOnIcon.Visibility = Shown(shown.ScreenOn && shown.Camera);
+        var label = Loc.T(shown.Camera ? "Hide the camera bubble" : "Show the camera bubble");
+        AutomationProperties.SetName(CameraButton, label);
+        ToolTipService.SetToolTip(CameraButton, shown.ScreenOn ? label : Loc.T("Record the screen to show the camera bubble"));
     }
 
     /// <summary>The conversation page's conversation, while it exists; null on the other pages.</summary>
@@ -510,8 +548,8 @@ public sealed partial class TitleBarToolbar : UserControl
 
     /// <summary>
     /// The screen options and the system audio rows that depend on them, set from the model in place (no rebuild, so
-    /// the focus stays): "Transcribe this recording" and "No system audio" are enabled only while "Record the screen
-    /// too" is on, muted (WinUI's disabled text colour) otherwise; "All system audio" is checked again when the model
+    /// the focus stays): "Transcribe this recording", "Camera bubble", "Highlight clicks" and "No system audio" are
+    /// enabled only while "Record the screen too" is on, muted (WinUI's disabled text colour) otherwise; "All system audio" is checked again when the model
     /// leaves "No system audio" (turning the screen option off clears it).
     /// </summary>
     private void SyncScreenOptions()
@@ -521,6 +559,10 @@ public sealed partial class TitleBarToolbar : UserControl
         ScreenRecordingCheckBox.IsChecked = _model.Settings.ScreenRecordingEnabled;
         ScreenTranscribesCheckBox.IsChecked = _model.Settings.ScreenTranscribes;
         ScreenTranscribesCheckBox.IsEnabled = screenOn;
+        ScreenCameraCheckBox.IsChecked = _model.Settings.ScreenCamera;
+        ScreenCameraCheckBox.IsEnabled = screenOn;
+        ScreenClicksCheckBox.IsChecked = _model.Settings.ScreenShowsClicks;
+        ScreenClicksCheckBox.IsEnabled = screenOn;
         _syncingTargets = true;
         try
         {

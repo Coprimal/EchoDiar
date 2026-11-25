@@ -18,7 +18,9 @@ namespace EchoDiar.Platform.Screen;
 /// Draws one video frame of a fixed, even output size with Direct2D on the <see cref="CaptureDevice"/>: black, then
 /// a captured texture aspect-fitted (black bars) or the placeholder (macOS <c>ScreenPlaceholder</c>: the localized
 /// text in bold white letters of about height / 12, centred, wrapped to 80 % of the width), then <see cref="Overlay"/>.
-/// <see cref="ReadPixels"/> copies the last drawn frame to the CPU (staging texture) as top-down BGRA rows.
+/// The last captured picture is kept without overlays, so <see cref="Recompose"/> draws new overlays on it (a moving
+/// camera bubble, fading click rings) when no new capture frame came. <see cref="ReadPixels"/> copies the last drawn
+/// frame to the CPU (staging texture) as top-down BGRA rows.
 /// </summary>
 /// <remarks>
 /// Not thread-safe; create, use and dispose it off the UI thread (MTA), as the device. It turns on the device's
@@ -31,6 +33,8 @@ internal sealed class FrameCompositor : IDisposable
 
     private static readonly D2D1_COLOR_F Black = new() { a = 1 };
     private static readonly D2D1_COLOR_F White = new() { r = 1, g = 1, b = 1, a = 1 };
+    private static readonly D2D1_COLOR_F BubblePlaceholder = Gray(0x3B); // CameraBubbleWindow's placeholder grey
+    private static readonly D2D1_COLOR_F RingColor = new() { r = 1, g = 0xD6 / 255f, b = 0x0A / 255f, a = 1 }; // yellow
 
     // Every COM object created here, released in reverse order by Dispose. Interface casts of these (QueryInterface
     // on the same wrapper) are not listed: releasing the wrapper releases them.
@@ -40,10 +44,20 @@ internal sealed class FrameCompositor : IDisposable
     private readonly ID2D1DeviceContext _target;
     private readonly ID3D11Texture2D _render;
     private readonly ID3D11Texture2D _staging;
+    private readonly ID2D1Bitmap1 _targetBitmap; // the output, drawn on
+    private readonly ID2D1Bitmap1 _base; // the last captured picture, aspect-fitted, without overlays
+    private readonly ID2D1SolidColorBrush _overlayBrush;
     private readonly IDWriteTextFormat _textFormat;
     private readonly ID2D1SolidColorBrush _textBrush;
     private readonly string _placeholderText;
+    private bool _hasBase;
     private bool _disposed;
+
+    // The camera bubble's latest frame (replaced when its size changes), released by Dispose.
+    private ID2D1Bitmap? _camera;
+    private ID2D1BitmapBrush1? _cameraBrush;
+    private int _cameraWidth;
+    private int _cameraHeight;
 
     /// <param name="size">The output size, even and positive.</param>
     /// <param name="placeholderText">Already localized ("Screen recording off").</param>
@@ -64,6 +78,8 @@ internal sealed class FrameCompositor : IDisposable
 
             _render = Own(CreateTexture(device.Device, size, D3D11_USAGE.D3D11_USAGE_DEFAULT,
                 D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE, 0));
+            var baseTexture = Own(CreateTexture(device.Device, size, D3D11_USAGE.D3D11_USAGE_DEFAULT,
+                D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE, 0));
             _staging = Own(CreateTexture(device.Device, size, D3D11_USAGE.D3D11_USAGE_STAGING, 0,
                 D3D11_CPU_ACCESS_FLAG.D3D11_CPU_ACCESS_READ));
 
@@ -78,9 +94,17 @@ internal sealed class FrameCompositor : IDisposable
                 BitmapProperties(D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED,
                     D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_CANNOT_DRAW),
                 out var targetBitmap);
-            _target.SetTarget(Own(targetBitmap));
+            _targetBitmap = Own(targetBitmap);
+            _target.SetTarget(_targetBitmap);
+            // A target too (the source is drawn on it), and drawable (it is drawn on the output).
+            _target.CreateBitmapFromDxgiSurface((IDXGISurface)baseTexture,
+                BitmapProperties(D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_BITMAP_OPTIONS.D2D1_BITMAP_OPTIONS_TARGET),
+                out var baseBitmap);
+            _base = Own(baseBitmap);
             _target.CreateSolidColorBrush(White, null, out var brush);
             _textBrush = Own(brush);
+            _target.CreateSolidColorBrush(White, null, out var overlayBrush);
+            _overlayBrush = Own(overlayBrush);
 
             PInvoke.DWriteCreateFactory(DWRITE_FACTORY_TYPE.DWRITE_FACTORY_TYPE_SHARED, out IDWriteFactory dwrite).ThrowOnFailure();
             var locale = CultureInfo.CurrentUICulture.Name;
@@ -112,24 +136,132 @@ internal sealed class FrameCompositor : IDisposable
     /// pixels, clipped to the texture) and aspect-fitted, or the placeholder when <paramref name="source"/> is null.
     /// An empty crop leaves the frame black. Throws <see cref="COMException"/> when Direct2D fails.
     /// </summary>
-    public unsafe void Compose(ID3D11Texture2D? source, ScreenGeometry.Rect crop)
+    public void Compose(ID3D11Texture2D? source, ScreenGeometry.Rect crop)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _target.BeginDraw();
-        try
+        Draw(() =>
         {
-            _target.Clear(Black);
-            if (source is null) DrawPlaceholder();
-            else DrawSource(source, crop);
-            Overlay?.Invoke(_target, Size);
-        }
-        catch
+            if (source is null)
+            {
+                _target.Clear(Black);
+                DrawPlaceholder();
+                _hasBase = false;
+                return;
+            }
+            _target.SetTarget(_base);
+            try
+            {
+                _target.Clear(Black);
+                DrawSource(source, crop);
+            }
+            finally
+            {
+                _target.SetTarget(_targetBitmap);
+            }
+            _hasBase = true;
+            DrawBase();
+        });
+    }
+
+    /// <summary>
+    /// Draws the last captured picture again with <see cref="Overlay"/> on it (no new capture frame). False, and
+    /// nothing drawn, when the last frame was the placeholder or none was composed. Throws <see cref="COMException"/>
+    /// when Direct2D fails.
+    /// </summary>
+    public bool Recompose()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!_hasBase) return false;
+        Draw(DrawBase);
+        return true;
+    }
+
+    /// <summary>
+    /// Keeps <paramref name="bgra"/> (top-down, <paramref name="stride"/> bytes a row, opaque) as the camera frame
+    /// <see cref="DrawBubble"/> draws. Throws <see cref="COMException"/> when Direct2D fails.
+    /// </summary>
+    public unsafe void SetCameraFrame(ReadOnlySpan<byte> bgra, int width, int height, int stride)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (width <= 0 || height <= 0 || stride < width * 4 || bgra.Length < (long)stride * (height - 1) + width * 4)
         {
-            _target.EndDraw(null, null); // so the next BeginDraw works; the drawing error is the one thrown
-            throw;
+            throw new ArgumentException($"A {width}x{height} camera frame needs rows of {width * 4} bytes: stride {stride}, {bgra.Length} bytes");
         }
-        var hr = _target.EndDraw(null, null);
-        if (hr.Failed) throw new COMException($"ID2D1DeviceContext.EndDraw failed: 0x{hr.Value:X8}", hr.Value);
+        fixed (byte* pixels = bgra)
+        {
+            if (_camera is not null && width == _cameraWidth && height == _cameraHeight)
+            {
+                _camera.CopyFromMemory(null, pixels, (uint)stride);
+                return;
+            }
+            ReleaseCamera();
+            // The blittable D2D1_BITMAP_PROPERTIES overload (no COM field to marshal, unlike _PROPERTIES1).
+            var properties = new D2D1_BITMAP_PROPERTIES
+            {
+                pixelFormat = new D2D1_PIXEL_FORMAT
+                {
+                    format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM, alphaMode = D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED,
+                },
+                dpiX = Dpi,
+                dpiY = Dpi,
+            };
+            _target.CreateBitmap(new D2D_SIZE_U { width = (uint)width, height = (uint)height }, pixels, (uint)stride,
+                &properties, out ID2D1Bitmap camera);
+            _camera = camera;
+            _target.CreateBitmapBrush(camera, new D2D1_BITMAP_BRUSH_PROPERTIES1
+            {
+                extendModeX = D2D1_EXTEND_MODE.D2D1_EXTEND_MODE_CLAMP,
+                extendModeY = D2D1_EXTEND_MODE.D2D1_EXTEND_MODE_CLAMP,
+                interpolationMode = D2D1_INTERPOLATION_MODE.D2D1_INTERPOLATION_MODE_LINEAR,
+            }, null, out var brush);
+            _cameraBrush = brush;
+            _cameraWidth = width;
+            _cameraHeight = height;
+        }
+    }
+
+    /// <summary>
+    /// The camera bubble in <paramref name="bounds"/> (output pixels): the camera frame's centred square in a circle,
+    /// or the grey placeholder without <paramref name="camera"/> or a frame. Inside <see cref="Overlay"/> only.
+    /// </summary>
+    public unsafe void DrawBubble(ScreenGeometry.Rect bounds, bool camera)
+    {
+        float width = bounds.Width, height = bounds.Height;
+        var ellipse = new D2D1_ELLIPSE
+        {
+            point = new D2D_POINT_2F { x = bounds.X + width / 2, y = bounds.Y + height / 2 },
+            radiusX = width / 2,
+            radiusY = height / 2,
+        };
+        if (!camera || _cameraBrush is null)
+        {
+            _overlayBrush.SetColor(BubblePlaceholder);
+            _target.FillEllipse(ellipse, _overlayBrush);
+            return;
+        }
+        // The brush maps the frame's centred square onto the bubble.
+        float side = Math.Min(_cameraWidth, _cameraHeight);
+        float scaleX = width / side, scaleY = height / side;
+        var transform = new D2D_MATRIX_3X2_F();
+        transform.m11 = scaleX;
+        transform.m22 = scaleY;
+        transform.dx = bounds.X - (_cameraWidth - side) / 2 * scaleX;
+        transform.dy = bounds.Y - (_cameraHeight - side) / 2 * scaleY;
+        _cameraBrush.SetTransform(&transform);
+        _target.FillEllipse(ellipse, _cameraBrush);
+    }
+
+    /// <summary>
+    /// A click ring at (<paramref name="x"/>, <paramref name="y"/>), output pixels: yellow, with a dark edge on both
+    /// sides so it reads on any background. Inside <see cref="Overlay"/> only.
+    /// </summary>
+    public void DrawRing(float x, float y, float radius, float stroke, float opacity)
+    {
+        var ellipse = new D2D1_ELLIPSE { point = new D2D_POINT_2F { x = x, y = y }, radiusX = radius, radiusY = radius };
+        _overlayBrush.SetColor(new D2D1_COLOR_F { a = 0.55f * opacity });
+        _target.DrawEllipse(ellipse, _overlayBrush, stroke * 2);
+        _overlayBrush.SetColor(RingColor with { a = 0.95f * opacity });
+        _target.DrawEllipse(ellipse, _overlayBrush, stroke);
     }
 
     /// <summary>
@@ -256,9 +388,46 @@ internal sealed class FrameCompositor : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        ReleaseCamera();
         if (_target is not null) _target.SetTarget(null);
         for (var i = _owned.Count - 1; i >= 0; i--) Marshal.ReleaseComObject(_owned[i]);
         _owned.Clear();
+    }
+
+    /// <summary>BeginDraw, <paramref name="draw"/> on the output, <see cref="Overlay"/>, EndDraw.</summary>
+    private unsafe void Draw(Action draw)
+    {
+        _target.BeginDraw();
+        try
+        {
+            draw();
+            Overlay?.Invoke(_target, Size);
+        }
+        catch
+        {
+            _target.EndDraw(null, null); // so the next BeginDraw works; the drawing error is the one thrown
+            throw;
+        }
+        var hr = _target.EndDraw(null, null);
+        if (hr.Failed) throw new COMException($"ID2D1DeviceContext.EndDraw failed: 0x{hr.Value:X8}", hr.Value);
+    }
+
+    /// <summary>The kept captured picture on the output, 1:1 (both are the output size).</summary>
+    private void DrawBase()
+    {
+        _target.Clear(Black);
+        _target.DrawBitmap(_base, Rect(0, 0, Size.Width, Size.Height), 1,
+            D2D1_BITMAP_INTERPOLATION_MODE.D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, null);
+    }
+
+    private void ReleaseCamera()
+    {
+        if (_cameraBrush is not null) Marshal.ReleaseComObject(_cameraBrush);
+        if (_camera is not null) Marshal.ReleaseComObject(_camera);
+        _cameraBrush = null;
+        _camera = null;
+        _cameraWidth = 0;
+        _cameraHeight = 0;
     }
 
     private void DrawSource(ID3D11Texture2D source, ScreenGeometry.Rect crop)
@@ -327,6 +496,8 @@ internal sealed class FrameCompositor : IDisposable
         dpiY = Dpi,
         bitmapOptions = options,
     };
+
+    private static D2D1_COLOR_F Gray(int value) => new() { r = value / 255f, g = value / 255f, b = value / 255f, a = 1 };
 
     private static D2D_RECT_F Rect(float x, float y, float width, float height) =>
         new() { left = x, top = y, right = x + width, bottom = y + height };
