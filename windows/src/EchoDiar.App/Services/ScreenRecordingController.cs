@@ -641,7 +641,6 @@ internal sealed class ScreenRecordingController
 
     private void OnEnded(ScreenRecorder recorder, ScreenRecorderEnd reason)
     {
-        Debug.WriteLine($"EchoDiar screen: controller ended {reason}, current recorder {ReferenceEquals(_recorder, recorder)}");
         if (!ReferenceEquals(_recorder, recorder)) return;
         End(reason switch
         {
