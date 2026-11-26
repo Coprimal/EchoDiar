@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
+   
+With icons only a tab is shorter: the track keeps 32 px (MinHeight) and centres them, so the
+header and its line stay level with the sidebar's. The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
     title, the state, the elapsed time with the size so far and the "screen recorded" glyph, the mic and system meters,
     "Catch up" and the language, the calendar suggestion, the capture warnings and the screen video's notice, pinned on
     top; under them the live transcript (or the wave and why there is none) on the
@@ -400,12 +402,13 @@
                             <Border
                                 x:Name="PanelTabsTrack"
                                 Padding="2"
+                                MinHeight="32"
                                 VerticalAlignment="Center"
                                 Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{StaticResource OverlayCornerRadius}">
-                                <SelectorBar x:Name="PanelTabsBar" Padding="0">
+                                <SelectorBar x:Name="PanelTabsBar" Padding="0" VerticalAlignment="Center">
                                     <SelectorBar.Resources>
                                         <!--
                                             Compact tabs (macOS: 28 → 24 pt items): 3 px above the name and 1 px under

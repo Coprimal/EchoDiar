@@ -94,17 +94,20 @@
                 <Border
                     x:Name="PanelTabsTrack"
                     Padding="2"
+                    MinHeight="32"
                     VerticalAlignment="Center"
                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource OverlayCornerRadius}">
-                    <SelectorBar x:Name="PanelTabsBar" Padding="0">
+                    <SelectorBar x:Name="PanelTabsBar" Padding="0" VerticalAlignment="Center">
                         <SelectorBar.Resources>
                             <!--
                                 Compact tabs (macOS: 28 → 24 pt items): 3 px above the name and 1 px under it, then the
                                 3 px selection pill, instead of 10 and 7. A tab is then 26 px (a 19 px name), the track
                                 32 px with its padding and border, Fluent's control height; the name stays centred.
+                                With icons only a tab is shorter: the track keeps 32 px (MinHeight) and centres them, so the
+                                header and its line stay level with the sidebar's.
                             -->
                             <Style TargetType="SelectorBarItem">
                                 <Setter Property="Padding" Value="12,3,12,1" />
