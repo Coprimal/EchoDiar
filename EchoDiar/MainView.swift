@@ -215,7 +215,6 @@ struct MainView: View {
     /// unless paused or Reduce Motion) and Pause/Resume. ⌘R and ⇧⌘P come from the main menu. In a narrow window the
     /// other buttons go to the overflow menu first.
     @ToolbarContentBuilder private var leadingItems: some ToolbarContent {
-        logoItem
         if Page(model.route) == .library {
             ToolbarItem(placement: leadingPlacement) {
                 SingleToolbarButton(title: model.sidebarHidden ? "Show Sidebar" : "Hide Sidebar",
@@ -241,28 +240,6 @@ struct MainView: View {
             fixedSpacer
             titleItem(conversation)
         }
-    }
-
-    /// The app logo at the leading edge, on every page, without a capsule.
-    @ToolbarContentBuilder private var logoItem: some ToolbarContent {
-        if #available(macOS 26, *) {
-            ToolbarItem(placement: leadingPlacement) { toolbarLogo }
-                .sharedBackgroundVisibility(.hidden)
-                .highVisibilityPriority()
-        } else {
-            ToolbarItem(placement: leadingPlacement) { toolbarLogo }
-        }
-    }
-
-    /// The app icon, not `AboutInfo.logo`: macOS draws it from `logo.icon` at the exact size, with smooth edges,
-    /// where the 512 px PNG scaled down to 36 pt looked jagged.
-    private var toolbarLogo: some View {
-        Image(nsImage: NSApp.applicationIconImage)
-            .resizable()
-            // The icon's own margin leaves a ~35 pt squircle, about as tall as the 36 pt capsules.
-            .frame(width: 42, height: 42)
-            .padding(.trailing, 6)
-            .accessibilityHidden(true)
     }
 
     /// On macOS 26, a regular item declared first, before the flexible spacer, still at the leading edge (no

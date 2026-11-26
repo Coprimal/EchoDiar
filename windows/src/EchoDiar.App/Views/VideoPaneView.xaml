@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The conversation's screen recording (macOS VideoPaneView.swift): the muted picture in the panes' rounded card,
-    without transport controls; a click anywhere asks the playback controller to play or pause. Until the video is open
-    the card is a placeholder whose ring fades in after 150 ms; a note covers the picture while the play head has none,
-    or when the video is HEVC and no HEVC decoder is installed (set in code).
+    The conversation's screen recording (macOS VideoPaneView.swift): the muted picture in the transcript's card, which
+    clips its corners, without transport controls; a click anywhere asks the playback controller to play or pause. Until
+    the video is open the pane is a placeholder whose ring fades in after 150 ms; a note covers the picture while the
+    play head has none, or when the video is HEVC and no HEVC decoder is installed (set in code).
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.VideoPaneView"
@@ -11,42 +11,36 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:EchoDiar.App">
 
-    <Border
-        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-        BorderThickness="1"
-        CornerRadius="{StaticResource OverlayCornerRadius}">
-        <Grid>
-            <!-- Hidden (opacity 0, so it stays laid out) until the video is open and while a note covers it. -->
-            <MediaPlayerElement
-                x:Name="Picture"
-                AreTransportControlsEnabled="False"
-                AutomationProperties.Name="{local:T Text='Screen recording'}"
-                IsHitTestVisible="False"
-                Opacity="0"
-                Stretch="Uniform" />
+    <Grid>
+        <!-- Hidden (opacity 0, so it stays laid out) until the video is open and while a note covers it. -->
+        <MediaPlayerElement
+            x:Name="Picture"
+            AreTransportControlsEnabled="False"
+            AutomationProperties.Name="{local:T Text='Screen recording'}"
+            IsHitTestVisible="False"
+            Opacity="0"
+            Stretch="Uniform" />
 
-            <!-- Takes the clicks over the whole card, the picture's included. -->
-            <Grid x:Name="ClickLayer" Background="Transparent" />
+        <!-- Takes the clicks over the whole pane, the picture's included. -->
+        <Grid x:Name="ClickLayer" Background="Transparent" />
 
-            <ProgressRing
-                x:Name="LoadingRing"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                IsActive="False"
-                IsHitTestVisible="False"
-                Opacity="0" />
+        <ProgressRing
+            x:Name="LoadingRing"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            IsActive="False"
+            IsHitTestVisible="False"
+            Opacity="0" />
 
-            <TextBlock
-                x:Name="NoteText"
-                Margin="20,0"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                IsHitTestVisible="False"
-                TextAlignment="Center"
-                TextWrapping="Wrap"
-                Visibility="Collapsed" />
-        </Grid>
-    </Border>
+        <TextBlock
+            x:Name="NoteText"
+            Margin="20,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            IsHitTestVisible="False"
+            TextAlignment="Center"
+            TextWrapping="Wrap"
+            Visibility="Collapsed" />
+    </Grid>
 </UserControl>

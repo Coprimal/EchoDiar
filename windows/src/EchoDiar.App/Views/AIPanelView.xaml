@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The open conversation's AI panel, right of its transcript (macOS AIPanelView.swift): a header on the window, as the
+    The open conversation's AI panel, right of its transcript (macOS AIPanelView.swift), one card: a header, as the
     sidebar's (the Summary | Catch-up | Chat tabs in a track, Catch-up only with catch-ups, the model and language menus,
-    the "i" about where the data goes and, on Chat, a fresh chat and History), over one card with the tab's pane, then
-    its footer. Summary shows the kept summaries (the newest first with a menu for the earlier ones); its footer has Copy
+    the "i" about where the data goes and, on Chat, a fresh chat and History), a line, then the tab's pane and its
+    footer. Summary shows the kept summaries (the newest first with a menu for the earlier ones); its footer has Copy
     as prompt and Summarize / Re-summarize / Stop. Catch-up shows the catch-ups written while recording, read-only, with
     no footer and the menus hidden. Chat shows the questions with their streamed answers and the History panel at the trailing
     edge; its footer is the question row (Send only). Until the files are read, the header over a loading ring. Fluent theme
@@ -66,134 +66,161 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid RowSpacing="8">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <!-- One card (macOS GlassCard around the whole panel): the header, a line, then the tab's pane, the error and the footer. -->
+    <Border Style="{StaticResource PaneStyle}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!--
-            The header on the window, above the card, as the sidebar's (the two line up): the tabs, then at the trailing
-            edge the model, the language, the "i" and, on Chat, a fresh chat and History; the menus open downwards. One
-            row, never wrapped (macOS headerRow): too narrow, the language shows only its globe, then the model only its
-            chip, their names in the tooltips, then the tabs only their icons, then the "i" hides and the menus and
-            buttons narrow; the same step on both tabs (FitHeader).
-        -->
-        <Grid x:Name="HeaderRow" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <!-- On the window, as the sidebar's tabs: a track of the cards' fill. -->
-            <Border
-                x:Name="PanelTabsTrack"
-                Padding="2"
-                VerticalAlignment="Center"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource OverlayCornerRadius}">
-                <SelectorBar x:Name="PanelTabsBar" Padding="0">
-                    <SelectorBarItem x:Name="SummaryPanelTab" Text="{local:T Text='Summary'}" />
-                    <!-- Only for a conversation with catch-ups (set in code). -->
-                    <SelectorBarItem
-                        x:Name="CatchUpPanelTab"
-                        Text="{local:T Text='Catch-up'}"
-                        Visibility="Collapsed" />
-                    <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
-                </SelectorBar>
-            </Border>
-            <!-- Margins space the menus: a collapsed one's column would keep a ColumnSpacing. -->
+            <!--
+                The header, 10 px inside the card as the sidebar's (the two line up): the tabs, then at the trailing edge
+                the model, the language, the "i" and, on Chat, a fresh chat and History; the menus open downwards. One
+                row, never wrapped (macOS headerRow): too narrow, the language shows only its globe, then the model only
+                its chip, their names in the tooltips, then the tabs only their icons, then the "i" hides and the menus
+                and buttons narrow; the same step on both tabs (FitHeader).
+            -->
             <Grid
-                x:Name="HeaderMenus"
-                Grid.Column="1"
-                HorizontalAlignment="Right">
+                x:Name="HeaderRow"
+                Margin="10"
+                ColumnSpacing="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <DropDownButton
-                    x:Name="ModelButton"
-                    MaxWidth="180"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center">
-                    <!--
-                        A Grid, not a horizontal StackPanel: its star column gives the name a finite width to trim with
-                        "…". The name's margin spaces it, so the chip alone (the name collapsed) keeps no gap.
-                    -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
-                        <TextBlock
-                            x:Name="ModelText"
-                            Grid.Column="1"
-                            Margin="6,0,0,0"
-                            MaxLines="1"
-                            TextTrimming="CharacterEllipsis"
-                            TextWrapping="NoWrap" />
-                    </Grid>
-                    <DropDownButton.Flyout>
-                        <MenuFlyout x:Name="ModelMenu" Placement="BottomEdgeAlignedRight" />
-                    </DropDownButton.Flyout>
-                </DropDownButton>
-                <DropDownButton
-                    x:Name="LanguageButton"
+                <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
+                <Border
+                    x:Name="PanelTabsTrack"
+                    Padding="2"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource OverlayCornerRadius}">
+                    <SelectorBar x:Name="PanelTabsBar" Padding="0">
+                        <SelectorBar.Resources>
+                            <!--
+                                Compact tabs (macOS: 28 → 24 pt items): 3 px above the name and 1 px under it, then the
+                                3 px selection pill, instead of 10 and 7. A tab is then 26 px (a 19 px name), the track
+                                32 px with its padding and border, Fluent's control height; the name stays centred.
+                            -->
+                            <Style BasedOn="{StaticResource DefaultSelectorBarItemStyle}" TargetType="SelectorBarItem">
+                                <Setter Property="Padding" Value="12,3,12,1" />
+                            </Style>
+                        </SelectorBar.Resources>
+                        <SelectorBarItem x:Name="SummaryPanelTab" Text="{local:T Text='Summary'}" />
+                        <!-- Only for a conversation with catch-ups (set in code). -->
+                        <SelectorBarItem
+                            x:Name="CatchUpPanelTab"
+                            Text="{local:T Text='Catch-up'}"
+                            Visibility="Collapsed" />
+                        <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
+                    </SelectorBar>
+                </Border>
+                <!--
+                    Margins space the menus: a collapsed one's column would keep a ColumnSpacing. Each as tall as the tabs'
+                    track (set in code).
+                -->
+                <Grid
+                    x:Name="HeaderMenus"
                     Grid.Column="1"
-                    Margin="8,0,0,0"
-                    VerticalAlignment="Center">
-                    <!-- The name's margin spaces it, as the model's: the globe alone keeps no gap. -->
-                    <StackPanel Orientation="Horizontal">
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
-                        <TextBlock x:Name="LanguageText" Margin="6,0,0,0" />
-                    </StackPanel>
-                    <DropDownButton.Flyout>
-                        <MenuFlyout x:Name="LanguageMenu" Placement="BottomEdgeAlignedRight" />
-                    </DropDownButton.Flyout>
-                </DropDownButton>
-                <Button
-                    x:Name="DataNotesButton"
-                    Grid.Column="2"
-                    Margin="8,0,0,0"
-                    VerticalAlignment="Center"
-                    AutomationProperties.Name="{local:T Text='About where data goes'}"
-                    ToolTipService.ToolTip="{local:T Text='About where data goes'}">
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE946;" />
-                    <Button.Flyout>
-                        <Flyout x:Name="DataNotesFlyout" Placement="Bottom">
-                            <StackPanel x:Name="DataNotesPanel" MaxWidth="280" Spacing="8" />
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
-                <Button
-                    x:Name="FreshChatButton"
-                    Grid.Column="3"
-                    Margin="8,0,0,0"
-                    VerticalAlignment="Center"
-                    AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
-                    ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
-                </Button>
-                <ToggleButton
-                    x:Name="HistoryButton"
-                    Grid.Column="4"
-                    Margin="8,0,0,0"
-                    VerticalAlignment="Center"
-                    AutomationProperties.Name="{local:T Text='History'}"
-                    ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
-                </ToggleButton>
+                    HorizontalAlignment="Right">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <DropDownButton
+                        x:Name="ModelButton"
+                        MaxWidth="180"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                        <!--
+                            A Grid, not a horizontal StackPanel: its star column gives the name a finite width to trim with
+                            "…". The name's margin spaces it, so the chip alone (the name collapsed) keeps no gap.
+                        -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
+                            <TextBlock
+                                x:Name="ModelText"
+                                Grid.Column="1"
+                                Margin="6,0,0,0"
+                                MaxLines="1"
+                                TextTrimming="CharacterEllipsis"
+                                TextWrapping="NoWrap" />
+                        </Grid>
+                        <DropDownButton.Flyout>
+                            <MenuFlyout x:Name="ModelMenu" Placement="BottomEdgeAlignedRight" />
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
+                    <DropDownButton
+                        x:Name="LanguageButton"
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center">
+                        <!-- The name's margin spaces it, as the model's: the globe alone keeps no gap. -->
+                        <StackPanel Orientation="Horizontal">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
+                            <TextBlock x:Name="LanguageText" Margin="6,0,0,0" />
+                        </StackPanel>
+                        <DropDownButton.Flyout>
+                            <MenuFlyout x:Name="LanguageMenu" Placement="BottomEdgeAlignedRight" />
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
+                    <Button
+                        x:Name="DataNotesButton"
+                        Grid.Column="2"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{local:T Text='About where data goes'}"
+                        ToolTipService.ToolTip="{local:T Text='About where data goes'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE946;" />
+                        <Button.Flyout>
+                            <Flyout x:Name="DataNotesFlyout" Placement="Bottom">
+                                <StackPanel x:Name="DataNotesPanel" MaxWidth="280" Spacing="8" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button
+                        x:Name="FreshChatButton"
+                        Grid.Column="3"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
+                        ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
+                    </Button>
+                    <ToggleButton
+                        x:Name="HistoryButton"
+                        Grid.Column="4"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{local:T Text='History'}"
+                        ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                    </ToggleButton>
+                </Grid>
             </Grid>
-        </Grid>
 
-        <!-- The card under the header: the tab's pane (10 px under its top edge), the error and the footer. -->
-        <Border Grid.Row="1" Style="{StaticResource PaneStyle}">
-            <Grid Padding="0,10,0,0" RowSpacing="10">
+            <!-- Across the card under the header, lined up with the sidebar's. -->
+            <Border
+                Grid.Row="1"
+                Height="1"
+                Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+            <!-- The tab's pane (10 px under the line), the error and the footer. -->
+            <Grid
+                Grid.Row="2"
+                Padding="0,10,0,0"
+                RowSpacing="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
@@ -219,10 +246,13 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
+                                <!-- Smaller than the header's menus (macOS headerControlHeight): 28 px, no padding above or below. -->
                                 <DropDownButton
                                     x:Name="VersionButton"
+                                    Height="28"
                                     MaxWidth="260"
                                     Margin="14,0,14,0"
+                                    Padding="11,0"
                                     ToolTipService.ToolTip="{local:T Text='Earlier summaries of this conversation'}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
@@ -483,6 +513,6 @@
                     <TextBlock x:Name="ToastText" />
                 </Border>
             </Grid>
-        </Border>
-    </Grid>
+        </Grid>
+    </Border>
 </UserControl>

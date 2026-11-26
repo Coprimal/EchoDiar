@@ -16,9 +16,9 @@ using VirtualKey = Windows.System.VirtualKey;
 namespace EchoDiar.App.Views;
 
 /// <summary>
-/// The open conversation's AI panel beside its transcript, with its Summary | Chat tabs in the header above its card
-/// (macOS AIPanelView.swift, with its AIModelMenu, AILanguageMenu, AISetupHints and WebLinkConfirmation); the tab is
-/// <see cref="AppViewModel.DetailTab"/>. The state is <see cref="AIPanelViewModel"/>; the jobs run in
+/// The open conversation's AI panel beside its transcript, with its Summary | Chat tabs in the header inside its card,
+/// above a line (macOS AIPanelView.swift, with its AIModelMenu, AILanguageMenu, AISetupHints and WebLinkConfirmation);
+/// the tab is <see cref="AppViewModel.DetailTab"/>. The state is <see cref="AIPanelViewModel"/>; the jobs run in
 /// <see cref="AppViewModel"/>, one per conversation, so one goes on when the page changes and the conversation's other
 /// tab shows it as busy, with Stop. Answers are Markdown rendered by <see cref="MarkdownView"/> (at most every 120 ms
 /// while streaming, as the model batches the text, and once more when saved); <c>[mm:ss]</c> citations call the seek
@@ -112,6 +112,13 @@ public sealed partial class AIPanelView : UserControl
         ToolTipService.SetToolTip(LanguageButton,
             Loc.T("Language of summaries and answers (Auto = the transcript's language for summaries, the question's for answers)"));
         HeaderRow.SizeChanged += (_, _) => FitHeader();
+        // The menus and buttons exactly as tall as the tabs' track (macOS MainView.headerHeight), again when the tabs
+        // change to their icons; their icons and names stay centred.
+        PanelTabsTrack.SizeChanged += (_, _) =>
+        {
+            foreach (var child in HeaderMenus.Children)
+                if (child is FrameworkElement element) element.Height = PanelTabsTrack.ActualHeight;
+        };
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
         VersionMenu.Opening += (_, _) => BuildVersionMenu();
         ModelMenu.Opening += (_, _) => BuildModelMenu();

@@ -2,6 +2,8 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.Shapes;
 using Windows.UI.ViewManagement;
 using VirtualKey = Windows.System.VirtualKey;
 
@@ -15,7 +17,9 @@ namespace EchoDiar.App.Views;
 /// both splits half and half instead of overflowing (macOS <c>PaneSplit.clamped</c>). The resize pointer shows over it,
 /// ←/→ (↑/↓) move it by <see cref="KeyStep"/> once it has the focus. Its content (set in XAML, so its brushes follow the
 /// theme) is the grip, two short lines in the middle, turned across the gap: dimmed at rest, full while the pointer is
-/// over the gap, it drags or has the keyboard focus. Not saved: 50/50 again for each conversation.
+/// over the gap, it drags or has the keyboard focus. <see cref="Lined"/> shows a line across the whole gap instead
+/// (macOS <c>PaneSplit(lined: true)</c>, between the video and the transcript in one card): the divider colour,
+/// brighter on the same triggers. Not saved: 50/50 again for each conversation.
 /// </summary>
 public sealed partial class PaneSplitter : UserControl
 {
@@ -41,6 +45,14 @@ public sealed partial class PaneSplitter : UserControl
     /// <summary>The grid whose size changes <see cref="Clamp"/> follows.</summary>
     private Grid? _followedGrid;
 
+    private bool _lined;
+
+    /// <summary>The line shown while <see cref="Lined"/>: its root (the whole gap) and the brighter line over the divider.</summary>
+    private (Grid Root, UIElement Bright)? _line;
+
+    /// <summary>The content the view set (the grip), kept while <see cref="Lined"/> replaces it.</summary>
+    private UIElement? _grip;
+
     public PaneSplitter()
     {
         // Tab reaches it; a click leaves the focus where it was (the question keeps its cursor).
@@ -50,6 +62,8 @@ public sealed partial class PaneSplitter : UserControl
         ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
         Loaded += (_, _) =>
         {
+            // After XAML has set the content too, whichever came first.
+            ApplyLined();
             TurnGrip();
             UpdateGrip();
             _followedGrid = ParentGrid;
@@ -84,6 +98,23 @@ public sealed partial class PaneSplitter : UserControl
 
     /// <summary>Between two rows of the parent grid (the panes stacked) instead of two columns.</summary>
     public bool Vertical => _vertical;
+
+    /// <summary>
+    /// A 1 px line across the whole gap, along it, in the divider colour, the strong stroke colour over it while the
+    /// grip would be full (macOS <c>PaneSplit.line</c>), instead of the view's grip; built here, so its brushes are
+    /// ThemeResources that follow Light and Dark.
+    /// </summary>
+    public bool Lined
+    {
+        get => _lined;
+        set
+        {
+            _lined = value;
+            ApplyLined();
+            TurnGrip();
+            UpdateGrip();
+        }
+    }
 
     /// <summary>
     /// Once the view has put the gap and the panes in the parent grid's columns, or rows when
@@ -211,12 +242,53 @@ public sealed partial class PaneSplitter : UserControl
     }
 
     /// <summary>
+    /// The line as the content while <see cref="Lined"/>, the view's grip back otherwise. The line is read from XAML so
+    /// its brushes are ThemeResources; its root is transparent, so the whole gap takes the pointer, as the grip's does.
+    /// </summary>
+    private void ApplyLined()
+    {
+        if (_lined)
+        {
+            if (_line is null)
+            {
+                var root = (Grid)XamlReader.Load(
+                    "<Grid xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Background='Transparent'>"
+                    + "<Rectangle Fill='{ThemeResource DividerStrokeColorDefaultBrush}' />"
+                    + "<Rectangle Fill='{ThemeResource ControlStrongStrokeColorDefaultBrush}' Opacity='0' />"
+                    + "</Grid>");
+                _line = (root, root.Children[1]);
+            }
+            if (Content != _line.Value.Root)
+            {
+                _grip = Content;
+                Content = _line.Value.Root;
+            }
+        }
+        else if (_line is { } line && Content == line.Root)
+        {
+            Content = _grip;
+            _grip = null;
+        }
+    }
+
+    /// <summary>
     /// The grip's lines (the shapes of the first <see cref="StackPanel"/> in the content) parallel to the edges the gap
     /// moves: side by side and upright between columns, one over the other and lying between rows (macOS
-    /// <c>PaneSplit.grip</c>).
+    /// <c>PaneSplit.grip</c>); with <see cref="Lined"/>, the line upright down the gap or lying across it.
     /// </summary>
     private void TurnGrip()
     {
+        if (_lined && _line is { } lined)
+        {
+            foreach (var shape in lined.Root.Children.OfType<Rectangle>())
+            {
+                shape.Width = _vertical ? double.NaN : 1;
+                shape.Height = _vertical ? 1 : double.NaN;
+                shape.HorizontalAlignment = _vertical ? HorizontalAlignment.Stretch : HorizontalAlignment.Center;
+                shape.VerticalAlignment = _vertical ? VerticalAlignment.Center : VerticalAlignment.Stretch;
+            }
+            return;
+        }
         var lines = Content as StackPanel ?? (Content as Panel)?.Children.OfType<StackPanel>().FirstOrDefault();
         if (lines is null) return;
         lines.Orientation = _vertical ? Orientation.Vertical : Orientation.Horizontal;
@@ -228,11 +300,18 @@ public sealed partial class PaneSplitter : UserControl
         }
     }
 
-    /// <summary>The grip at full opacity while the gap is hovered, dragged or focused with Tab; faded, unless animations are off.</summary>
+    /// <summary>
+    /// The grip at full opacity while the gap is hovered, dragged or focused with Tab (with <see cref="Lined"/>, the
+    /// brighter line shown over the divider); faded, unless animations are off.
+    /// </summary>
     private void UpdateGrip()
     {
-        if (Content is not UIElement grip) return;
-        grip.OpacityTransition = UISettings.AnimationsEnabled ? new ScalarTransition { Duration = TimeSpan.FromMilliseconds(150) } : null;
-        grip.Opacity = _hovered || _drag is not null || FocusState == FocusState.Keyboard ? 1 : RestOpacity;
+        var active = _hovered || _drag is not null || FocusState == FocusState.Keyboard;
+        var (target, opacity) = _lined && _line is { } line
+            ? (line.Bright, active ? 1.0 : 0)
+            : (Content as UIElement, active ? 1.0 : RestOpacity);
+        if (target is null) return;
+        target.OpacityTransition = UISettings.AnimationsEnabled ? new ScalarTransition { Duration = TimeSpan.FromMilliseconds(150) } : null;
+        target.Opacity = opacity;
     }
 }

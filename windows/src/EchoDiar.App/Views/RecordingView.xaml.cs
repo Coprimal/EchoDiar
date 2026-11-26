@@ -132,6 +132,12 @@ public sealed partial class RecordingView : UserControl
         };
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
         PanelHeader.SizeChanged += (_, _) => FitHeader();
+        // The menus and Search exactly as tall as the tabs' track, as the AI panel's.
+        PanelTabsTrack.SizeChanged += (_, _) =>
+        {
+            foreach (var child in PanelHeaderMenus.Children)
+                if (child is FrameworkElement element) element.Height = PanelTabsTrack.ActualHeight;
+        };
         CatchUpSearchButton.Click += (_, _) => SetCatchUpSearch(CatchUpSearchButton.IsChecked == true);
         CatchUpSearchBox.TextChanged += (_, _) =>
         {

@@ -31,6 +31,9 @@ public sealed partial class ConversationView : UserControl
     private const double PanelMinWidth = 280;
     private const double StackedMinHeight = 200;
 
+    /// <summary>The lined gap between the video and the transcript in their card: 9 px, so its 1 px line sits on the pixel grid (macOS PaneSplit).</summary>
+    private const double VideoGap = 9;
+
     /// <summary>
     /// The video's and the transcript's minimums, the video above (macOS withVideoPane: 120 / 160) or left of the
     /// transcript with Stack Panes (200 / 280).
@@ -226,8 +229,8 @@ public sealed partial class ConversationView : UserControl
 
     /// <summary>
     /// The video pane above the transcript, or left of it with <see cref="AppSettings.StackedPanes"/> (the column is
-    /// then wide and short), the gap between them (macOS TranscriptView <c>withVideoPane</c>,
-    /// <c>PaneSplit(vertical: !stacked)</c>); the transcript alone without a video or when "Hide video" hides it. The
+    /// then wide and short), in one card with a lined gap between them (macOS TranscriptView <c>withVideoPane</c>,
+    /// <c>PaneSplit(vertical: !stacked, lined: true)</c>); the transcript alone without a video or when "Hide video" hides it. The
     /// column's rows or columns are made again, so the split is 50/50 again, only when that changed: another setting
     /// keeps a dragged split. The pane only hides: its video stays open, so the transport still plays it.
     /// </summary>
@@ -249,13 +252,13 @@ public sealed partial class ConversationView : UserControl
             if (layout.Stacked)
             {
                 columns.Add(new ColumnDefinition());
-                columns.Add(new ColumnDefinition { Width = new GridLength(PaneGap) });
+                columns.Add(new ColumnDefinition { Width = new GridLength(VideoGap) });
                 columns.Add(new ColumnDefinition());
             }
             else
             {
                 rows.Add(new RowDefinition());
-                rows.Add(new RowDefinition { Height = new GridLength(PaneGap) });
+                rows.Add(new RowDefinition { Height = new GridLength(VideoGap) });
                 rows.Add(new RowDefinition());
             }
             transcriptCell = 2;

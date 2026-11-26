@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The conversation's transcript, left of its AI panel (macOS TranscriptView.swift): the segments in a card, with the
-    version menu pinned above them, then a bar with the transcription's state, the speaker notes, playback, the speaker
-    chips (click to rename), Show/Hide video, Copy and Re-transcribe.
+    The conversation's transcript, left of its AI panel (macOS TranscriptView.swift), in the transcript column's card
+    (ConversationView, with the video when there is one): the segments, with the version menu pinned above them, a line,
+    then a bar with the transcription's state, the speaker notes, playback, the speaker chips (click to rename),
+    Show/Hide video, Copy and Re-transcribe.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.TranscriptView"
@@ -44,118 +45,115 @@
         <Style x:Key="Speaker7" BasedOn="{StaticResource Speaker2}" TargetType="TextBlock" />
     </UserControl.Resources>
 
-    <Grid RowSpacing="12">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- The segments, or a note in the card's middle while there are none. -->
-        <Border
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource OverlayCornerRadius}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+        <!-- The segments, or a note in their middle while there are none. -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-                <!-- From two kept transcripts: the shown one's number and engine; the others are view-only. -->
-                <DropDownButton
-                    x:Name="VersionButton"
-                    MaxWidth="320"
-                    Margin="14,16,14,0"
-                    HorizontalAlignment="Left"
-                    ToolTipService.ToolTip="{local:T Text='Earlier transcripts of this conversation'}"
-                    Visibility="Collapsed">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
-                        <TextBlock x:Name="VersionText" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                    </StackPanel>
-                    <DropDownButton.Flyout>
-                        <MenuFlyout x:Name="VersionMenu" Placement="BottomEdgeAlignedLeft" />
-                    </DropDownButton.Flyout>
-                </DropDownButton>
-
-                <!--
-                    The segments as one selectable text (macOS TranscriptTextView), built in code: per segment the start
-                    and the speaker (both play from the segment's start), then the text. A drag selects across segments;
-                    Ctrl+C copies "Name [mm:ss]: text" lines. The segment under the play head has a fill (placed in
-                    code behind its paragraph, macOS SegmentFragment's row fill), and a speaker icon after its name
-                    while it plays. No built-in context menu: the code shows its own, with Play from here.
-                -->
-                <ScrollViewer
-                    x:Name="SegmentScroller"
-                    Grid.Row="1"
-                    HorizontalScrollBarVisibility="Disabled"
-                    HorizontalScrollMode="Disabled"
-                    VerticalScrollBarVisibility="Auto"
-                    Visibility="Collapsed">
-                    <Grid Padding="18,14,18,4">
-                        <Canvas IsHitTestVisible="False">
-                            <Border
-                                x:Name="ActiveFill"
-                                Background="{ThemeResource TextFillColorPrimaryBrush}"
-                                CornerRadius="{StaticResource ControlCornerRadius}"
-                                Opacity="0.12"
-                                Visibility="Collapsed" />
-                        </Canvas>
-                        <RichTextBlock
-                            x:Name="SegmentText"
-                            ContextFlyout="{x:Null}"
-                            IsTextSelectionEnabled="True"
-                            SelectionFlyout="{x:Null}"
-                            TextWrapping="Wrap" />
-                        <Canvas IsHitTestVisible="False">
-                            <FontIcon
-                                x:Name="SpeakingIcon"
-                                AutomationProperties.AccessibilityView="Raw"
-                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                FontSize="12"
-                                Glyph="&#xE767;"
-                                Visibility="Collapsed" />
-                        </Canvas>
-                    </Grid>
-                </ScrollViewer>
-
-                <ProgressRing
-                    x:Name="LoadingRing"
-                    Grid.Row="1"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    IsActive="False"
-                    Visibility="Collapsed" />
-
-                <StackPanel
-                    x:Name="EmptyPanel"
-                    Grid.Row="1"
-                    MaxWidth="480"
-                    Padding="20"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Spacing="10"
-                    Visibility="Collapsed">
-                    <TextBlock
-                        x:Name="EmptyText"
-                        HorizontalAlignment="Center"
-                        Style="{StaticResource BodyTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        TextAlignment="Center" />
-                    <!-- The transcription's state while there is no transcript. -->
-                    <Border x:Name="EmptyStatusHost" HorizontalAlignment="Center" />
+            <!--
+                From two kept transcripts: the shown one's number and engine; the others are view-only. 28 px, as the
+                summary's version menu, no padding above or below.
+            -->
+            <DropDownButton
+                x:Name="VersionButton"
+                Height="28"
+                MaxWidth="320"
+                Margin="14,16,14,0"
+                Padding="11,0"
+                HorizontalAlignment="Left"
+                ToolTipService.ToolTip="{local:T Text='Earlier transcripts of this conversation'}"
+                Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                    <TextBlock x:Name="VersionText" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                 </StackPanel>
-            </Grid>
-        </Border>
+                <DropDownButton.Flyout>
+                    <MenuFlyout x:Name="VersionMenu" Placement="BottomEdgeAlignedLeft" />
+                </DropDownButton.Flyout>
+            </DropDownButton>
 
-        <Border
-            Grid.Row="1"
-            Padding="14,10"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource OverlayCornerRadius}">
+            <!--
+                The segments as one selectable text (macOS TranscriptTextView), built in code: per segment the start
+                and the speaker (both play from the segment's start), then the text. A drag selects across segments;
+                Ctrl+C copies "Name [mm:ss]: text" lines. The segment under the play head has a fill (placed in
+                code behind its paragraph, macOS SegmentFragment's row fill), and a speaker icon after its name
+                while it plays. No built-in context menu: the code shows its own, with Play from here.
+            -->
+            <ScrollViewer
+                x:Name="SegmentScroller"
+                Grid.Row="1"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                Visibility="Collapsed">
+                <Grid Padding="18,14,18,4">
+                    <Canvas IsHitTestVisible="False">
+                        <Border
+                            x:Name="ActiveFill"
+                            Background="{ThemeResource TextFillColorPrimaryBrush}"
+                            CornerRadius="{StaticResource ControlCornerRadius}"
+                            Opacity="0.12"
+                            Visibility="Collapsed" />
+                    </Canvas>
+                    <RichTextBlock
+                        x:Name="SegmentText"
+                        ContextFlyout="{x:Null}"
+                        IsTextSelectionEnabled="True"
+                        SelectionFlyout="{x:Null}"
+                        TextWrapping="Wrap" />
+                    <Canvas IsHitTestVisible="False">
+                        <FontIcon
+                            x:Name="SpeakingIcon"
+                            AutomationProperties.AccessibilityView="Raw"
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="12"
+                            Glyph="&#xE767;"
+                            Visibility="Collapsed" />
+                    </Canvas>
+                </Grid>
+            </ScrollViewer>
+
+            <ProgressRing
+                x:Name="LoadingRing"
+                Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsActive="False"
+                Visibility="Collapsed" />
+
+            <StackPanel
+                x:Name="EmptyPanel"
+                Grid.Row="1"
+                MaxWidth="480"
+                Padding="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="10"
+                Visibility="Collapsed">
+                <TextBlock
+                    x:Name="EmptyText"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    TextAlignment="Center" />
+                <!-- The transcription's state while there is no transcript. -->
+                <Border x:Name="EmptyStatusHost" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Between the segments and the bar, across the whole card (macOS Divider). -->
+        <Border Grid.Row="1" Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+        <Border Grid.Row="2" Padding="14,10">
             <StackPanel Spacing="10">
                 <!-- The transcription's state with a transcript: why it failed and Retry, or Needs model. -->
                 <Border x:Name="BarStatusHost">
@@ -320,8 +318,8 @@
                                     Text="{local:T Text='Transcribing…'}" />
                                 <Button
                                     x:Name="StopTranscriptionButton"
-                                    Width="32"
-                                    Height="32"
+                                    Width="28"
+                                    Height="28"
                                     Padding="0"
                                     Style="{StaticResource SubtleButtonStyle}"
                                     AutomationProperties.Name="{local:T Text='Stop transcription'}"
@@ -333,6 +331,8 @@
                             <!-- Its title, or in the compact row a refresh icon (its chevron stays). -->
                             <DropDownButton
                                 x:Name="RetranscribeButton"
+                                Height="28"
+                                Padding="11,0"
                                 AutomationProperties.Name="{local:T Text='Re-transcribe'}">
                                 <Grid>
                                     <TextBlock x:Name="RetranscribeText" Text="{local:T Text='Re-transcribe'}" />
@@ -351,7 +351,11 @@
                                 Opens the Summary tab, and starts a summary when there is none; a ring while it is written. In
                                 the compact row a document icon (or the ring alone), the title in the tooltip.
                             -->
-                            <Button x:Name="SummarizeButton" Visibility="Collapsed">
+                            <Button
+                                x:Name="SummarizeButton"
+                                Height="28"
+                                Padding="11,0"
+                                Visibility="Collapsed">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <ProgressRing
                                         x:Name="SummarizingRing"
@@ -375,8 +379,8 @@
                             -->
                             <Button
                                 x:Name="VideoToggleButton"
-                                Width="32"
-                                Height="32"
+                                Width="28"
+                                Height="28"
                                 Padding="0"
                                 Style="{StaticResource SubtleButtonStyle}"
                                 Visibility="Collapsed">
@@ -402,8 +406,8 @@
                             -->
                             <Button
                                 x:Name="ExportVideoButton"
-                                Width="32"
-                                Height="32"
+                                Width="28"
+                                Height="28"
                                 Padding="0"
                                 Style="{StaticResource SubtleButtonStyle}"
                                 AutomationProperties.Name="{local:T Text='Export video…'}"
@@ -413,8 +417,8 @@
                             </Button>
                             <Button
                                 x:Name="DeleteVideoButton"
-                                Width="32"
-                                Height="32"
+                                Width="28"
+                                Height="28"
                                 Padding="0"
                                 Style="{StaticResource SubtleButtonStyle}"
                                 Visibility="Collapsed">
@@ -422,8 +426,8 @@
                             </Button>
                             <Button
                                 x:Name="CopyButton"
-                                Width="32"
-                                Height="32"
+                                Width="28"
+                                Height="28"
                                 Padding="0"
                                 Style="{StaticResource SubtleButtonStyle}"
                                 AutomationProperties.Name="{local:T Text='Copy transcript'}"
@@ -441,6 +445,13 @@
                         Grid.Column="1"
                         HorizontalAlignment="Right"
                         Spacing="6">
+                        <views:ChipRowPanel.Resources>
+                            <!-- The chips and "+N" (made in code): as tall as the bar's buttons, 2 px less at the sides. -->
+                            <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
+                                <Setter Property="Height" Value="28" />
+                                <Setter Property="Padding" Value="9,0" />
+                            </Style>
+                        </views:ChipRowPanel.Resources>
                         <!-- The rename field of a chip: Enter saves, Esc or a click elsewhere cancels. -->
                         <FlyoutBase.AttachedFlyout>
                             <Flyout x:Name="RenameFlyout" Placement="Top">

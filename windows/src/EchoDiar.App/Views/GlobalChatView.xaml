@@ -4,9 +4,9 @@
     streamed answers and numbered sources, the History panel at the trailing edge, then a bar with a job running
     elsewhere, the index's progress, the model and language menus, "Start a fresh chat" and History in one row, and the
     question. With RAG off, an intro and the way to Settings › AI Settings › Library chat. Unframed: the sidebar's card
-    (MainWindow) draws the card under its Conversations | Chat header (macOS framed: false); the History panel and the
-    toast keep their raised cards. Theme resources (Light and Dark); the messages, sources and history rows are built
-    in code.
+    (MainWindow) draws the card around its Conversations | Global Chat header and this view, under a line (macOS
+    framed: false); the History panel and the toast keep their raised cards. Theme resources (Light and Dark); the
+    messages, sources and history rows are built in code.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.GlobalChatView"
@@ -242,11 +242,16 @@
                             Content="{local:T Text='Settings'}" />
                     </Grid>
 
-                    <!-- One row at any width: only the model menu shrinks (its name truncates; code-behind). -->
+                    <!--
+                        One row at any width: only the model menu shrinks (its name truncates; code-behind). Its menus and
+                        buttons 28 px, as the version menus, no padding above or below.
+                    -->
                     <StackPanel x:Name="MenusRow" Orientation="Horizontal" Spacing="8">
                         <DropDownButton
                             x:Name="ModelButton"
+                            Height="28"
                             MaxWidth="180"
+                            Padding="11,0"
                             ToolTipService.ToolTip="{local:T Text='Model for summaries and questions'}">
                             <!-- A Grid, not a StackPanel: the name gets the width left, so it truncates. -->
                             <Grid ColumnSpacing="6">
@@ -266,7 +271,10 @@
                                 <MenuFlyout x:Name="ModelMenu" Placement="TopEdgeAlignedLeft" />
                             </DropDownButton.Flyout>
                         </DropDownButton>
-                        <DropDownButton x:Name="LanguageButton">
+                        <DropDownButton
+                            x:Name="LanguageButton"
+                            Height="28"
+                            Padding="11,0">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
                                 <TextBlock x:Name="LanguageText" />
@@ -277,12 +285,16 @@
                         </DropDownButton>
                         <Button
                             x:Name="FreshChatButton"
+                            Height="28"
+                            Padding="11,0"
                             AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
                             ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
                             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
                         </Button>
                         <ToggleButton
                             x:Name="HistoryButton"
+                            Height="28"
+                            Padding="11,0"
                             AutomationProperties.Name="{local:T Text='History'}"
                             ToolTipService.ToolTip="{local:T Text='Earlier chats across conversations'}">
                             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
