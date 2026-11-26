@@ -523,6 +523,7 @@ public sealed class ScreenRecorder
         Capture? capture;
         lock (_gate)
         {
+            Debug.WriteLine($"EchoDiar screen: end {reason}, state {_state}, ended {_ended}");
             if (_state != State.Running || _ended) return;
             _ended = true;
             capture = Detach();
@@ -666,6 +667,7 @@ public sealed class ScreenRecorder
     {
         lock (_gate)
         {
+            Debug.WriteLine($"EchoDiar screen: item closed, generation {generation} (current {_generation})");
             if (generation != _generation) return;
         }
         End(ScreenRecorderEnd.StreamStopped, null);
@@ -679,14 +681,20 @@ public sealed class ScreenRecorder
     /// </summary>
     private void OnTick()
     {
-        if (!Monitor.TryEnter(_gate)) return; // busy writing: the next tick or frame does it
+        if (!Monitor.TryEnter(_gate))
+        {
+            Interlocked.Increment(ref _tickBusy);
+            return; // busy writing: the next tick or frame does it
+        }
         Exception? failure = null;
         var windowGone = false;
         try
         {
+            TraceTick();
             if (_state != State.Running || _ended) return;
             if (_capture is { Source: { Kind: ScreenSourceKind.Window, Handle: var window } } && !PInvoke.IsWindow((HWND)window))
             {
+                Debug.WriteLine($"EchoDiar screen: tick: the captured window {window} is gone");
                 windowGone = true;
                 return;
             }
@@ -1190,6 +1198,22 @@ public sealed class ScreenRecorder
 
     /// <summary>QPC now in 100 ns units, the clock of the engine and of <c>SystemRelativeTime</c>.</summary>
     private static long Now() => Stopwatch.GetElapsedTime(0).Ticks;
+
+    private long _tickBusy;
+    private long _tickLogged;
+
+    /// <summary>Debug builds: the recorder's state once a second, under the lock (diagnoses the window-closed check).</summary>
+    [Conditional("DEBUG")]
+    private void TraceTick()
+    {
+        var now = Now();
+        if (now - _tickLogged < TimeSpan.TicksPerSecond) return;
+        _tickLogged = now;
+        var source = _capture?.Source;
+        var alive = source is { Kind: ScreenSourceKind.Window } window ? PInvoke.IsWindow((HWND)window.Handle).ToString() : "-";
+        Debug.WriteLine($"EchoDiar screen: tick state {_state}, ended {_ended}, paused {_paused}, capture {source?.Kind}, " +
+            $"handle {source?.Handle}, window {alive}, busy {Interlocked.Exchange(ref _tickBusy, 0)}");
+    }
 
     /// <summary>The QPC time the process started (now, if its start time cannot be read).</summary>
     private static long ProcessStartTicks()
