@@ -674,14 +674,22 @@ public sealed class ScreenRecorder
     /// <summary>
     /// Every half frame interval: composes the last captured picture again while an overlay shows or has just gone (the
     /// camera moves, rings fade, without a new capture frame), and feeds a pending frame at the current file time.
+    /// A captured window that is gone ends the video (<see cref="ScreenRecorderEnd.StreamStopped"/>): its
+    /// <c>GraphicsCaptureItem.Closed</c> never came in the VM checks (the item is made on a pool thread).
     /// </summary>
     private void OnTick()
     {
         if (!Monitor.TryEnter(_gate)) return; // busy writing: the next tick or frame does it
         Exception? failure = null;
+        var windowGone = false;
         try
         {
             if (_state != State.Running || _ended) return;
+            if (_capture is { Source: { Kind: ScreenSourceKind.Window, Handle: var window } } && !PInvoke.IsWindow((HWND)window))
+            {
+                windowGone = true;
+                return;
+            }
             var now = Now();
             var time = _fileTime(now);
             if (time is not null) _lastFileTime = time;
@@ -700,10 +708,10 @@ public sealed class ScreenRecorder
         {
             Monitor.Exit(_gate);
         }
-        if (failure is null) return;
+        if (failure is null && !windowGone) return;
         try
         {
-            End(ScreenRecorderEnd.WriteFailed, failure);
+            End(failure is null ? ScreenRecorderEnd.StreamStopped : ScreenRecorderEnd.WriteFailed, failure);
         }
         catch (Exception e)
         {
