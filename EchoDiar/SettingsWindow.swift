@@ -106,8 +106,8 @@ struct SettingsView: View {
                 .onMoveCommand(perform: move)
             }
             .frame(width: 200)
-            // A raised card like the toolbar's capsules, instead of a divider beside the sections.
-            .modifier(GlassCard(cornerRadius: 20, raised: true))
+            // A panel like the library sidebar's well, instead of a divider beside the sections.
+            .modifier(GlassCard(cornerRadius: 20))
             // On top as far as the form's first section (`GlassForm`'s top margin), so the card and the form start level;
             // 4 pt like the library's panes, the toolbar's safe area already leaves room above.
             .padding(.top, 4)
