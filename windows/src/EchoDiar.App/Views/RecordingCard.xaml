@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     The recording in the library, above the conversations (macOS RecordingViews.swift RecordingCard): the source,
-    the title (double-click to rename) or "Recording…" or "Paused", the elapsed time and mini meters, then a row with
+    the title (double-click to rename) or "Recording…" or "Paused", the elapsed time, mini meters, a glyph while the
+    screen is recorded too and the size so far, then a row with
     Stop, Pause or Resume and Mute or Unmute (also in the context menu). A click opens the recording page; selected
     (that page is shown) adds the accent fill and edge. Focusable, so the window's ↑ to it moves the focus off the
     conversation card below (whose Delete would delete that hidden conversation); its focus visual (with the keyboard) hugs the card.
@@ -16,10 +17,40 @@
     UseSystemFocusVisuals="True">
 
     <UserControl.Resources>
-        <!-- The Mute button's glyph while the mic is muted, by Mute or by the system. -->
-        <Style x:Key="MutedMicIconStyle" TargetType="FontIcon">
-            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
-        </Style>
+        <ResourceDictionary>
+            <!-- The size tints' orange, as ConversationCard's (Fluent has no theme brush for it). -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="SizeLargerBrush" Color="#FF9F0A" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="SizeLargerBrush" Color="#CA5010" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="SizeLargerBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- The Mute button's glyph while the mic is muted, by Mute or by the system. -->
+            <Style x:Key="MutedMicIconStyle" TargetType="FontIcon">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+            </Style>
+            <!--
+                The size so far, tinted by its SizeLevel as the library's sizes (macOS sizeStyle): secondary, then
+                yellow, orange and red (RecordingCard.ShowLiveSize); ThemeResources, so a theme switch repaints it.
+            -->
+            <Style x:Key="LiveSizeStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Style>
+            <Style x:Key="LiveSizeLargeStyle" TargetType="TextBlock" BasedOn="{StaticResource LiveSizeStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+            </Style>
+            <Style x:Key="LiveSizeLargerStyle" TargetType="TextBlock" BasedOn="{StaticResource LiveSizeStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SizeLargerBrush}" />
+            </Style>
+            <Style x:Key="LiveSizeHugeStyle" TargetType="TextBlock" BasedOn="{StaticResource LiveSizeStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Margin="0,4">
@@ -106,30 +137,59 @@
                         VerticalAlignment="Center"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <!-- Mic over system, 44 px wide. -->
+                    <!--
+                        The mini meters, the "screen recorded" glyph and the size so far, in one panel: a collapsed one
+                        keeps no gap.
+                    -->
                     <StackPanel
-                        x:Name="MiniMeters"
                         Grid.Column="1"
-                        Width="44"
-                        VerticalAlignment="Center"
-                        AutomationProperties.AccessibilityView="Raw"
-                        Spacing="2">
-                        <Border Height="3" Background="{ThemeResource ControlStrongFillColorDefaultBrush}" CornerRadius="1.5">
-                            <Border
-                                x:Name="MicFill"
-                                Width="0"
-                                HorizontalAlignment="Left"
-                                Background="{ThemeResource AccentFillColorDefaultBrush}"
-                                CornerRadius="1.5" />
-                        </Border>
-                        <Border Height="3" Background="{ThemeResource ControlStrongFillColorDefaultBrush}" CornerRadius="1.5">
-                            <Border
-                                x:Name="SystemFill"
-                                Width="0"
-                                HorizontalAlignment="Left"
-                                Background="{ThemeResource AccentFillColorDefaultBrush}"
-                                CornerRadius="1.5" />
-                        </Border>
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <!-- Mic over system, 44 px wide. -->
+                        <StackPanel
+                            x:Name="MiniMeters"
+                            Width="44"
+                            VerticalAlignment="Center"
+                            AutomationProperties.AccessibilityView="Raw"
+                            Spacing="2">
+                            <Border Height="3" Background="{ThemeResource ControlStrongFillColorDefaultBrush}" CornerRadius="1.5">
+                                <Border
+                                    x:Name="MicFill"
+                                    Width="0"
+                                    HorizontalAlignment="Left"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    CornerRadius="1.5" />
+                            </Border>
+                            <Border Height="3" Background="{ThemeResource ControlStrongFillColorDefaultBrush}" CornerRadius="1.5">
+                                <Border
+                                    x:Name="SystemFill"
+                                    Width="0"
+                                    HorizontalAlignment="Left"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    CornerRadius="1.5" />
+                            </Border>
+                        </StackPanel>
+                        <!--
+                            A screen video is starting or running (macOS: rectangle.dashed.badge.record in Palette's red
+                            screen colour), as the toolbar's screen button while on: the video glyph in the critical red; its
+                            tooltip and name set in code.
+                        -->
+                        <FontIcon
+                            x:Name="ScreenGlyph"
+                            VerticalAlignment="Center"
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="12"
+                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                            Glyph="&#xE714;"
+                            Visibility="Collapsed" />
+                        <!-- Nothing until the first read is back. -->
+                        <TextBlock
+                            x:Name="LiveSizeText"
+                            VerticalAlignment="Center"
+                            MaxLines="1"
+                            Style="{StaticResource LiveSizeStyle}"
+                            TextWrapping="NoWrap"
+                            Visibility="Collapsed" />
                     </StackPanel>
                     <TextBlock
                         x:Name="SourceText"

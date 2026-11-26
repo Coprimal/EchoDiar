@@ -2,12 +2,14 @@ using System.Globalization;
 using EchoDiar.AI;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Screen;
 using EchoDiar.Transcribe;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using VirtualKey = Windows.System.VirtualKey;
@@ -37,7 +39,9 @@ public sealed partial class ConversationCard : UserControl
     private string? _retryTip;
     private string? _transcribeTip;
     private string? _badgeTip;
-    private string? _sizeTip;
+
+    /// <summary>The size's tint as last set (null: no size), so Update re-tints only when it changes.</summary>
+    private SizeLevel.Level? _sizeLevel;
 
     internal ConversationCard(AppViewModel model, ConversationListView list, Conversation conversation)
     {
@@ -70,6 +74,12 @@ public sealed partial class ConversationCard : UserControl
             if (!_model.IsClosing) _model.TranscribeNow(Conversation.Id);
         };
         EngineMenu.Opening += (_, _) => BuildEngineMenu();
+        var video = Loc.T("Screen recording");
+        ToolTipService.SetToolTip(VideoBadge, video);
+        AutomationProperties.SetName(VideoBadge, video);
+        // After the theme walk, once the swatches hold the new theme's brushes; and once in the tree, in its theme.
+        ActualThemeChanged += (_, _) => DispatcherQueue.TryEnqueue(ApplySizeTint);
+        Loaded += (_, _) => ApplySizeTint();
 
         Tapped += OnTapped;
         TitleText.DoubleTapped += OnTitleDoubleTapped;
@@ -89,6 +99,7 @@ public sealed partial class ConversationCard : UserControl
         Conversation = conversation;
         SelectionFill.Visibility = Shown(selected);
         SelectionStroke.Visibility = Shown(selected);
+        VideoBadgeSelection.Visibility = Shown(selected);
 
         RecordingCard.SetText(TitleText, conversation.Title);
         SetTip(TitleText, conversation.Title, ref _titleTip);
@@ -103,22 +114,24 @@ public sealed partial class ConversationCard : UserControl
     }
 
     /// <summary>
-    /// The source app's name when known, "date time · duration" (no duration while it is 0; a plain string, as macOS,
-    /// so no localization key) with the size in its tooltip when known, the status badge, and whether the audio was
-    /// removed.
+    /// The source app's name when known, "date time · duration · size" (no duration while it is 0, no size while
+    /// unknown; a plain string, as macOS, so no localization key) with the size tinted by its <see cref="SizeLevel"/>,
+    /// the status badge, and whether the audio was removed.
     /// </summary>
     private void UpdateDetails(Conversation c)
     {
         SourceAppText.Visibility = Shown(!string.IsNullOrWhiteSpace(c.SourceAppName));
         RecordingCard.SetText(SourceAppText, c.SourceAppName ?? "");
         var date = c.CreatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
-        RecordingCard.SetText(DetailText, c.Duration > 0 ? $"{date} · {ConversationText.Clock(c.Duration)}" : date);
-        // No tooltip without a size; set only when it changes (Update runs at each job percent).
-        var size = c.SizeBytes > 0 ? FileSize(c.SizeBytes) : null;
-        if (size != _sizeTip)
+        var detail = c.Duration > 0 ? $"{date} · {ConversationText.Clock(c.Duration)}" : date;
+        // Set only when they change (Update runs at each job percent).
+        SetText(DateRun, c.SizeBytes > 0 ? detail + " · " : detail);
+        SetText(SizeRun, c.SizeBytes > 0 ? FileSize(c.SizeBytes) : "");
+        SizeLevel.Level? level = c.SizeBytes > 0 ? SizeLevel.For(c.SizeBytes) : null;
+        if (level != _sizeLevel)
         {
-            _sizeTip = size;
-            ToolTipService.SetToolTip(DetailText, size);
+            _sizeLevel = level;
+            ApplySizeTint();
         }
 
         // macOS StatusBadge: red, orange or blue, here the theme's critical, caution and attention colors.
@@ -223,6 +236,8 @@ public sealed partial class ConversationCard : UserControl
             ? Activity.Transcribing
             : AIJobActivity(c.Id);
         ActivityBadge.Visibility = Shown(activity is not null);
+        // macOS: the video badge only while nothing runs (a general feature, not behind Features.ScreenRecording).
+        VideoBadge.Visibility = Shown(activity is null && c.HasVideo);
         if (activity is not { } shown) return;
         ActivityGlyph.Glyph = shown switch
         {
@@ -409,6 +424,28 @@ public sealed partial class ConversationCard : UserControl
     // Helpers
 
     private static Visibility Shown(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
+
+    private static void SetText(Run run, string text)
+    {
+        if (run.Text != text) run.Text = text;
+    }
+
+    /// <summary>
+    /// macOS sizeStyle: the details' secondary color at the normal level, else yellow, orange or red from the swatches;
+    /// again after a Light, Dark or contrast change.
+    /// </summary>
+    private void ApplySizeTint()
+    {
+        TextBlock? swatch = _sizeLevel switch
+        {
+            SizeLevel.Level.Large => SizeLargeSwatch,
+            SizeLevel.Level.Larger => SizeLargerSwatch,
+            SizeLevel.Level.Huge => SizeHugeSwatch,
+            _ => null,
+        };
+        if (swatch is null) SizeRun.ClearValue(TextElement.ForegroundProperty);
+        else SizeRun.Foreground = swatch.Foreground;
+    }
 
     private static void SetTip(DependencyObject element, string text, ref string? shown)
     {

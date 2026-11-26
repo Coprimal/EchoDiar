@@ -63,6 +63,12 @@ public sealed partial class TitleBarToolbar : UserControl
     /// <summary>The pause state Pause or Resume was last labeled for.</summary>
     private bool? _shownPaused;
 
+    /// <summary>The screen state the screen button was last labeled for.</summary>
+    private bool? _shownScreenOn;
+
+    /// <summary>The screen state and "Camera bubble" the camera button was last labeled for.</summary>
+    private (bool ScreenOn, bool Camera)? _shownCamera;
+
     /// <summary>The sidebar state the sidebar button was last labeled for.</summary>
     private bool? _shownSidebarHidden;
 
@@ -76,9 +82,35 @@ public sealed partial class TitleBarToolbar : UserControl
         BackButton.Click += (_, _) => _model?.GoBack();
         SettingsButton.Click += (_, _) => ToggleSettings();
         CalendarButton.Click += (_, _) => ToggleCalendar();
-        RecordSplitButton.Click += (_, _) => _ = _model?.StartRecordingAsync(_model.SelectedTarget);
+        RecordSplitButton.Click += (_, _) => _model?.RequestRecording();
         TargetMenu.Opening += (_, _) => OnTargetMenuOpening();
         StopButton.Click += (_, _) => _ = _model?.StopRecordingAsync();
+        ScreenButton.Click += (_, _) => _model?.ToggleScreenRecording();
+        // macOS writes the setting (also for later recordings); the model applies it to the running video.
+        CameraButton.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenCamera = !_model.Settings.ScreenCamera;
+        };
+        ScreenOptionsPanel.Visibility = Shown(Features.ScreenRecording);
+        ScreenRecordingCheckBox.Content = $"{Loc.T("Record the screen too")} {Loc.T("(Beta)")}";
+        // Click, not Checked: only the user's toggle writes the setting, never a sync from the model.
+        ScreenRecordingCheckBox.Click += (_, _) =>
+        {
+            var on = ScreenRecordingCheckBox.IsChecked == true;
+            _model?.SettingsModel.Update(s => s with { ScreenRecordingEnabled = on });
+        };
+        ScreenTranscribesCheckBox.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenTranscribes = ScreenTranscribesCheckBox.IsChecked == true;
+        };
+        ScreenCameraCheckBox.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenCamera = ScreenCameraCheckBox.IsChecked == true;
+        };
+        ScreenClicksCheckBox.Click += (_, _) =>
+        {
+            if (_model is not null) _model.SettingsModel.ScreenShowsClicks = ScreenClicksCheckBox.IsChecked == true;
+        };
         PauseButton.Click += (_, _) => _ = _model?.TogglePauseAsync();
         RevealButton.Click += (_, _) => Reveal();
         LayoutButton.Click += (_, _) => _model?.ToggleStackedPanes();
@@ -155,8 +187,16 @@ public sealed partial class TitleBarToolbar : UserControl
             case nameof(AppViewModel.IsStarting):
             case nameof(AppViewModel.TranscriptionProgress):
             case nameof(AppViewModel.TranscriptionErrors):
+            case nameof(AppViewModel.ScreenOn):
+            case nameof(AppViewModel.CanStartDuringRecording):
+            // Not a row sync: it is raised before SystemAudioOff is cleared, which raises its own.
             case nameof(AppViewModel.SelectedTarget):
                 Update();
+                break;
+            case nameof(AppViewModel.SystemAudioOff):
+            case nameof(AppViewModel.ScreenRecordingOn):
+                Update();
+                SyncScreenOptions();
                 break;
             case nameof(AppViewModel.RecordingError):
             case nameof(AppViewModel.PendingCloudRuns):
@@ -176,6 +216,8 @@ public sealed partial class TitleBarToolbar : UserControl
                 break;
             case nameof(AppViewModel.Settings):
                 UpdateLayoutButton();
+                UpdateCameraButton();
+                SyncScreenOptions();
                 break;
             case nameof(AppViewModel.RecordTargets):
                 // Apps that started playing since the options opened show up in them.
@@ -198,10 +240,12 @@ public sealed partial class TitleBarToolbar : UserControl
         // Installing the update closes the app: no recording starts meanwhile.
         var installing = _model.Updater.IsInstalling;
         RecordSplitButton.IsEnabled = !_model.IsStarting && !installing;
-        var recordTip = installing ? Loc.T("Installing the update…") : Loc.Format("Record %@", _model.SelectedTarget?.Name ?? Loc.T("All system audio"));
+        var recordTip = installing ? Loc.T("Installing the update…") : RecordTip(_model);
         if (recordTip != _recordTip) ToolTipService.SetToolTip(RecordSplitButton, _recordTip = recordTip);
         StopButton.Visibility = Shown(recording);
         StopButton.IsEnabled = !_model.IsStarting;
+        UpdateScreenButton(recording, paused);
+        UpdateCameraButton();
         PauseButton.Visibility = Shown(recording);
         // The snapshot changes at 15 Hz: a tooltip set again each time would close under the pointer.
         if (paused != _shownPaused)
@@ -228,6 +272,57 @@ public sealed partial class TitleBarToolbar : UserControl
         };
         DetailText.Text = conversation is null ? "" : ConversationText.When(conversation);
         DetailText.Visibility = Shown(onConversation);
+    }
+
+    /// <summary>
+    /// What Record records (macOS MainView Record's help, without the shortcut, as Windows' own Record tooltip): the
+    /// screen and the mic only, the screen and the target, or the target.
+    /// </summary>
+    private static string RecordTip(AppViewModel model)
+    {
+        var target = model.SelectedTarget?.Name ?? Loc.T("All system audio");
+        if (!model.ScreenRecordingOn) return Loc.Format("Record %@", target);
+        return model.SystemAudioOff ? Loc.T("Record the screen and the microphone") : Loc.Format("Record the screen and %@", target);
+    }
+
+    /// <summary>
+    /// The screen on or off while recording (macOS MainView <c>screenDisabled</c>): turning it on is off while paused
+    /// or once the video ended on an error; turning it off works while paused. Its label and icon are set again only
+    /// when the screen turns on or off, so a tooltip under the pointer stays (the snapshot changes at 15 Hz).
+    /// </summary>
+    private void UpdateScreenButton(bool recording, bool paused)
+    {
+        if (_model is null) return;
+        ScreenButton.Visibility = Shown(Features.ScreenRecording && recording);
+        var screenOn = _model.ScreenOn;
+        ScreenButton.IsEnabled = screenOn || !paused && _model.CanStartDuringRecording;
+        if (screenOn == _shownScreenOn) return;
+        _shownScreenOn = screenOn;
+        ScreenOffIcon.Visibility = Shown(!screenOn);
+        ScreenOnIcon.Visibility = Shown(screenOn);
+        var label = Loc.T(screenOn ? "Stop recording the screen" : "Record the screen");
+        AutomationProperties.SetName(ScreenButton, label);
+        ToolTipService.SetToolTip(ScreenButton, label);
+    }
+
+    /// <summary>
+    /// The camera bubble shown or hidden while recording (macOS MainView's camera button): enabled only while the screen
+    /// is recorded, red while it is and "Camera bubble" is on. Its label and icon are set again only when either changes,
+    /// so a tooltip under the pointer stays (the snapshot changes at 15 Hz).
+    /// </summary>
+    private void UpdateCameraButton()
+    {
+        if (_model is null) return;
+        CameraButton.Visibility = Shown(Features.ScreenRecording && _model.IsRecording);
+        var shown = (ScreenOn: _model.ScreenOn, Camera: _model.Settings.ScreenCamera);
+        CameraButton.IsEnabled = shown.ScreenOn;
+        if (shown == _shownCamera) return;
+        _shownCamera = shown;
+        CameraOffIcon.Visibility = Shown(!(shown.ScreenOn && shown.Camera));
+        CameraOnIcon.Visibility = Shown(shown.ScreenOn && shown.Camera);
+        var label = Loc.T(shown.Camera ? "Hide the camera bubble" : "Show the camera bubble");
+        AutomationProperties.SetName(CameraButton, label);
+        ToolTipService.SetToolTip(CameraButton, shown.ScreenOn ? label : Loc.T("Record the screen to show the camera bubble"));
     }
 
     /// <summary>The conversation page's conversation, while it exists; null on the other pages.</summary>
@@ -417,8 +512,8 @@ public sealed partial class TitleBarToolbar : UserControl
     }
 
     /// <summary>
-    /// "All system audio" first, then the apps with audio, the picked one checked. Only the targets are rebuilt, so an
-    /// open language menu stays open.
+    /// "All system audio" first, then "No system audio" (screen recording only), then the apps with audio, the picked
+    /// one checked. Only the targets are rebuilt, so an open language menu stays open.
     /// </summary>
     private void BuildTargetMenu()
     {
@@ -426,22 +521,87 @@ public sealed partial class TitleBarToolbar : UserControl
         // A refresh that found the same apps (each one assigns a new list) keeps the buttons, and the focus on them.
         var shown = string.Join("\n", _model.RecordTargets.Select(g => $"{g.Exe}\t{g.Name}\t{g.NeedsGlobalTap}")
             .Prepend(_model.SelectedTarget?.Exe ?? ""));
-        if (shown == _shownTargets) return;
-        _shownTargets = shown;
-        TargetsPanel.Children.Clear();
-        TargetsPanel.Children.Add(TargetItem(Loc.T("All system audio"), null));
-        foreach (var group in _model.RecordTargets)
+        if (shown != _shownTargets)
         {
-            TargetsPanel.Children.Add(TargetItem(group.NeedsGlobalTap ? Loc.Format("%@ (records all system audio)", group.Name) : group.Name, group));
+            _shownTargets = shown;
+            TargetsPanel.Children.Clear();
+            TargetsPanel.Children.Add(_allSystemAudioItem = TargetItem(Loc.T("All system audio"), null));
+            _noSystemAudioItem = null;
+            if (Features.ScreenRecording) TargetsPanel.Children.Add(_noSystemAudioItem = NoSystemAudioItem());
+            foreach (var group in _model.RecordTargets)
+            {
+                TargetsPanel.Children.Add(TargetItem(group.NeedsGlobalTap ? Loc.Format("%@ (records all system audio)", group.Name) : group.Name, group));
+            }
         }
+        SyncScreenOptions();
     }
 
     /// <summary>The picked app and the apps the radio buttons were last built for.</summary>
     private string? _shownTargets;
 
+    /// <summary>The "All system audio" and "No system audio" rows of the last build, kept in step with the model.</summary>
+    private RadioButton? _allSystemAudioItem;
+    private RadioButton? _noSystemAudioItem;
+
+    /// <summary>The rows are being set from the model: their checks are not picks.</summary>
+    private bool _syncingTargets;
+
+    /// <summary>
+    /// The screen options and the system audio rows that depend on them, set from the model in place (no rebuild, so
+    /// the focus stays): "Transcribe this recording", "Camera bubble", "Highlight clicks" and "No system audio" are
+    /// enabled only while "Record the screen too" is on, muted (WinUI's disabled text colour) otherwise; "All system audio" is checked again when the model
+    /// leaves "No system audio" (turning the screen option off clears it).
+    /// </summary>
+    private void SyncScreenOptions()
+    {
+        if (_model is null || !Features.ScreenRecording) return;
+        var screenOn = _model.ScreenRecordingOn;
+        ScreenRecordingCheckBox.IsChecked = _model.Settings.ScreenRecordingEnabled;
+        ScreenTranscribesCheckBox.IsChecked = _model.Settings.ScreenTranscribes;
+        ScreenTranscribesCheckBox.IsEnabled = screenOn;
+        ScreenCameraCheckBox.IsChecked = _model.Settings.ScreenCamera;
+        ScreenCameraCheckBox.IsEnabled = screenOn;
+        ScreenClicksCheckBox.IsChecked = _model.Settings.ScreenShowsClicks;
+        ScreenClicksCheckBox.IsEnabled = screenOn;
+        _syncingTargets = true;
+        try
+        {
+            if (_noSystemAudioItem is { } none)
+            {
+                none.IsEnabled = screenOn;
+                none.IsChecked = _model.SystemAudioOff;
+            }
+            if (_allSystemAudioItem is { } all && !_model.SystemAudioOff && _model.SelectedTarget is null) all.IsChecked = true;
+        }
+        finally
+        {
+            _syncingTargets = false;
+        }
+    }
+
+    /// <summary>
+    /// "No system audio" (macOS <c>noSystemAudioBinding</c>): a screen recording records the mic only; the target goes
+    /// back to all system audio. Hooked after the initial check, so a rebuild picks nothing.
+    /// </summary>
+    private RadioButton NoSystemAudioItem()
+    {
+        var item = new RadioButton
+        {
+            Content = Loc.T("No system audio"),
+            GroupName = "RecordTarget",
+            IsChecked = _model?.SystemAudioOff == true,
+            IsEnabled = _model?.ScreenRecordingOn == true,
+        };
+        item.Checked += (_, _) =>
+        {
+            if (!_syncingTargets && _model is { SystemAudioOff: false }) _model.SystemAudioOff = true;
+        };
+        return item;
+    }
+
     /// <summary>
     /// Matched by app, since process lists change. Checking one picks it and leaves the options open; hooked after the
-    /// initial check, so a rebuild picks nothing.
+    /// initial check, so a rebuild picks nothing. "All system audio" is not checked while "No system audio" is.
     /// </summary>
     private RadioButton TargetItem(string text, AudioProcessGroup? group)
     {
@@ -449,11 +609,11 @@ public sealed partial class TitleBarToolbar : UserControl
         {
             Content = text,
             GroupName = "RecordTarget",
-            IsChecked = _model?.SelectedTarget?.Exe == group?.Exe,
+            IsChecked = _model?.SystemAudioOff != true && _model?.SelectedTarget?.Exe == group?.Exe,
         };
         item.Checked += (_, _) =>
         {
-            if (_model is not null) _model.SelectedTarget = group;
+            if (!_syncingTargets && _model is not null) _model.SelectedTarget = group;
         };
         return item;
     }

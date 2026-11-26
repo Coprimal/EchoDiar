@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using EchoDiar.Core.Json;
 
@@ -96,9 +95,7 @@ public sealed record Conversation
                 _ => ConversationStatus.Unknown,
             },
             Folder = folder,
-            // macOS writes the "screen only" mark; Windows keeps it in the session's unknown keys.
-            SkipsTranscription = session.Extra?.TryGetValue("skipsTranscription", out var skips) == true
-                && skips.ValueKind == JsonValueKind.True,
+            SkipsTranscription = session.SkipsTranscription,
         };
         if (session.Title is { } title)
         {

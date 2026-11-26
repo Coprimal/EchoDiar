@@ -66,6 +66,7 @@
     "hasTranscript": true,
     "id": "6F1C2A9E-3B4D-4E5F-8A7B-1C2D3E4F5A6B",
     "sizeBytes": 1234567,
+    "skipsTranscription": false,
     "sourceAppName": "Zoom",
     "sourceBundleID": "Zoom.exe",
     "status": "transcribed",
@@ -100,6 +101,7 @@
     "probe": true,
     "sampleFormat": "int16",
     "sampleRate": 16000,
+    "skipsTranscription": false,
     "sourceApps": [
       {
         "bundleIDs": [
@@ -116,7 +118,15 @@
     "state": "stopped",
     "tapMode": "perApp",
     "title": "Xin chào, cuộc họp",
-    "version": 1
+    "version": 1,
+    "video": {
+      "fileName": "video.mp4",
+      "fps": 15,
+      "height": 720,
+      "quality": 0.75,
+      "source": "window",
+      "width": 1280
+    }
   },
   "summaries.json": {
     "summaries": [

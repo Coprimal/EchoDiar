@@ -373,6 +373,36 @@
         }
       }
     },
+    "(Beta)" : {
+      "comment" : "Windows only: Views/TitleBarToolbar.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(beta)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "(bêta)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "(Beta)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（测试版）"
+          }
+        }
+      }
+    },
     "All files of %lld conversations will be moved to the Recycle Bin at the next run (at launch or within a day):" : {
       "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
       "extractionState" : "manual",
@@ -907,6 +937,36 @@
         }
       }
     },
+    "Background blur is not available. The camera bubble shows no picture." : {
+      "comment" : "Windows only: Services/ScreenRecordingController.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El desenfoque del fondo no está disponible. La burbuja de cámara no muestra imagen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le flou de l’arrière-plan n’est pas disponible. La bulle de caméra n’affiche aucune image."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không dùng được tính năng làm mờ nền. Bong bóng camera không hiển thị hình ảnh."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景虚化不可用。摄像头气泡不显示画面。"
+          }
+        }
+      }
+    },
     "Calendar access is off. Turn on EchoDiar in Windows Settings › Privacy & security › Calendar." : {
       "comment" : "Windows only: Views/CalendarPage.xaml.",
       "extractionState" : "manual",
@@ -933,6 +993,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日历访问已关闭。请在“Windows 设置 › 隐私和安全性 › 日历”中打开 EchoDiar。"
+          }
+        }
+      }
+    },
+    "Camera access is off. Turn on EchoDiar in Windows Settings › Privacy & security › Camera." : {
+      "comment" : "Windows only: Services/ScreenRecordingController.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado. Activa EchoDiar en Configuración de Windows › Privacidad y seguridad › Cámara."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’accès à la caméra est désactivé. Activez EchoDiar dans Paramètres Windows › Confidentialité et sécurité › Caméra."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quyền truy cập camera đang tắt. Hãy bật EchoDiar trong Cài đặt Windows › Quyền riêng tư & bảo mật › Camera."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摄像头访问已关闭。请在“Windows 设置 › 隐私和安全性 › 相机”中打开 EchoDiar。"
           }
         }
       }
@@ -1567,6 +1657,66 @@
         }
       }
     },
+    "EchoDiar, recording paused — %@" : {
+      "comment" : "Windows only: Services/TrayIcon.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar, grabación en pausa — %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EchoDiar, enregistrement en pause — %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EchoDiar, đã tạm dừng ghi âm — %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar，录音已暂停 — %@"
+          }
+        }
+      }
+    },
+    "EchoDiar, recording — %@" : {
+      "comment" : "Windows only: Services/TrayIcon.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar, grabando — %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EchoDiar, enregistrement en cours — %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EchoDiar, đang ghi âm — %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EchoDiar，正在录音 — %@"
+          }
+        }
+      }
+    },
     "Every license above in one text file." : {
       "comment" : "Windows only: Views/Settings/AcknowledgementsSettingsPage.xaml.",
       "extractionState" : "manual",
@@ -1623,6 +1773,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "额外标头"
+          }
+        }
+      }
+    },
+    "Files can be several times larger." : {
+      "comment" : "Windows only: Views/Settings/RecordingSettingsPage.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos pueden ser varias veces más grandes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les fichiers peuvent être plusieurs fois plus volumineux."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tệp có thể lớn hơn nhiều lần."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件可能会大好几倍。"
           }
         }
       }
@@ -2043,6 +2223,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在载入模型…"
+          }
+        }
+      }
+    },
+    "MP4 video" : {
+      "comment" : "Windows only: Views/VideoExportDialog.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vídeo MP4"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vidéo MP4"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Video MP4"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MP4 视频"
           }
         }
       }
@@ -2827,6 +3037,66 @@
         }
       }
     },
+    "Record the screen and %@" : {
+      "comment" : "Windows only: Views/TitleBarToolbar.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar la pantalla y %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enregistrer l’écran et %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ghi màn hình và %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制屏幕和“%@”"
+          }
+        }
+      }
+    },
+    "Record the screen and the microphone" : {
+      "comment" : "Windows only: Views/TitleBarToolbar.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar la pantalla y el micrófono"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enregistrer l’écran et le microphone"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ghi màn hình và micrô"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制屏幕和麦克风"
+          }
+        }
+      }
+    },
     "Recordings are transcribed on this PC. Pick a speech recognition model to download." : {
       "comment" : "Windows only: Views/ConversationListView.xaml.cs.",
       "extractionState" : "manual",
@@ -2918,7 +3188,7 @@
       }
     },
     "Reveal in Explorer" : {
-      "comment" : "Windows only: Views/ConversationCard.xaml.cs.",
+      "comment" : "Windows only: Views/ConversationCard.xaml.cs, Views/VideoExportDialog.xaml.cs.",
       "extractionState" : "manual",
       "localizations" : {
         "es" : {
@@ -3739,6 +4009,36 @@
         }
       }
     },
+    "The screen recording is moved to the Recycle Bin. Everything else in the conversation stays." : {
+      "comment" : "Windows only: Views/TranscriptView.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La grabación de pantalla se traslada a la Papelera de reciclaje. Todo lo demás de la conversación se conserva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’enregistrement de l’écran est placé dans la Corbeille. Tout le reste de la conversation est conservé."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong cuộc hội thoại vẫn được giữ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕录制会移到回收站。对话中的其他内容都会保留。"
+          }
+        }
+      }
+    },
     "The transcription, speaker and AI models are removed from this PC (not moved to the Recycle Bin). Download them again in Settings › AI Providers › Local AI." : {
       "comment" : "Windows only: Views/Settings/StorageSettingsPage.xaml.cs.",
       "extractionState" : "manual",
@@ -4351,6 +4651,36 @@
         }
       }
     },
+    "This video uses HEVC. Install HEVC Video Extensions from the Microsoft Store to play it." : {
+      "comment" : "Windows only: Views/VideoPaneView.xaml.cs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este vídeo usa HEVC. Instala Extensiones de vídeo HEVC desde Microsoft Store para reproducirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cette vidéo utilise HEVC. Installez Extensions vidéo HEVC depuis le Microsoft Store pour la lire."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Video này dùng HEVC. Hãy cài HEVC Video Extensions từ Microsoft Store để phát video này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此视频使用 HEVC。请从 Microsoft Store 安装“HEVC 视频扩展”以播放此视频。"
+          }
+        }
+      }
+    },
     "Transcribe now" : {
       "comment" : "Windows only: Views/ConversationCard.xaml.",
       "extractionState" : "manual",
@@ -4497,6 +4827,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "节能模式关闭后即开始转写。"
+          }
+        }
+      }
+    },
+    "Tray icon while recording" : {
+      "comment" : "Windows only: Views/Settings/RecordingSettingsPage.xaml.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icono de la bandeja al grabar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Icône de la zone de notification pendant l’enregistrement"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Biểu tượng khay hệ thống khi ghi âm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音时的托盘图标"
           }
         }
       }

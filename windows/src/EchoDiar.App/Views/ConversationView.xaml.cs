@@ -2,6 +2,7 @@ using System.ComponentModel;
 using EchoDiar.AI;
 using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
+using EchoDiar.Core;
 using EchoDiar.Core.Model;
 using EchoDiar.Core.Settings;
 using Microsoft.UI.Dispatching;
@@ -30,6 +31,15 @@ public sealed partial class ConversationView : UserControl
     private const double PanelMinWidth = 280;
     private const double StackedMinHeight = 200;
 
+    /// <summary>
+    /// The video's and the transcript's minimums, the video above (macOS withVideoPane: 120 / 160) or left of the
+    /// transcript with Stack Panes (200 / 280).
+    /// </summary>
+    private const double VideoMinHeight = 120;
+    private const double VideoTranscriptMinHeight = 160;
+    private const double VideoMinWidth = 200;
+    private const double VideoTranscriptMinWidth = 280;
+
     private static readonly UISettings UISettings = new();
 
     private readonly AppViewModel _model;
@@ -37,11 +47,20 @@ public sealed partial class ConversationView : UserControl
     private readonly PlaybackController _playback;
     private readonly TranscriptViewModel _transcript;
 
-    /// <summary>What the audio file was looked up for: it is looked up again when it changes (compressed, deleted).</summary>
-    private (bool HasAudio, ConversationStatus Status)? _audioFor;
+    /// <summary>
+    /// What the audio and the video were looked up for: they are looked up again when it changes (compressed, either
+    /// one deleted, here or by auto-delete), so what remains reopens after a release.
+    /// </summary>
+    private (bool HasAudio, bool HasVideo, ConversationStatus Status)? _audioFor;
 
     /// <summary>The CAF file the player opens; null while recording or compressing, without audio, or once released.</summary>
     private string? _audioPath;
+
+    /// <summary>
+    /// Whether the last lookup found a video (macOS <c>videoClip</c>); null until it ends, and after a release until the
+    /// next one, so the pane shows from the conversation's <see cref="Conversation.HasVideo"/> meanwhile.
+    /// </summary>
+    private bool? _videoFound;
 
     /// <summary>Bumped at every lookup and when the audio is released, so an older lookup that finishes later is dropped.</summary>
     private int _loadGeneration;
@@ -63,6 +82,16 @@ public sealed partial class ConversationView : UserControl
 
     /// <summary>The panes' layout as last applied: stacked, side by side, or none yet (the XAML's, side by side).</summary>
     private bool? _stacked;
+
+    /// <summary>The transcript column's layout as last applied: the video shown, and left of the transcript; none yet.</summary>
+    private (bool Shown, bool Stacked)? _videoLayout;
+
+    /// <summary>Shows a dialog through the window's dialog queue (Export video…, Delete video…); false when another is open.</summary>
+    internal Func<ContentDialog, Task<bool>>? ShowDialog
+    {
+        get => TranscriptPane.ShowDialog;
+        set => TranscriptPane.ShowDialog = value;
+    }
 
     public ConversationView(AppViewModel model, Guid id)
     {
@@ -93,6 +122,9 @@ public sealed partial class ConversationView : UserControl
             _model.PropertyChanged += OnModelChanged;
             _model.ReleasingAudio += OnReleasingAudio;
             _transcript.PropertyChanged += OnTranscriptChanged;
+            _playback.PropertyChanged += OnPlaybackChanged;
+            // Here, not in the constructor: Unloaded's Dispose detaches it.
+            _playback.AttachVideo(VideoPane);
             _transcript.Attach();
             TranscriptPane.Attach(_model, _transcript, _playback);
             AIPanel.Attach(_model, _id, OpenCitation);
@@ -106,6 +138,7 @@ public sealed partial class ConversationView : UserControl
             _model.PropertyChanged -= OnModelChanged;
             _model.ReleasingAudio -= OnReleasingAudio;
             _transcript.PropertyChanged -= OnTranscriptChanged;
+            _playback.PropertyChanged -= OnPlaybackChanged;
             TranscriptPane.Detach();
             AIPanel.Detach();
             _transcript.Detach();
@@ -114,6 +147,8 @@ public sealed partial class ConversationView : UserControl
             _loadGeneration++; // a lookup still running must not open a player after this
             _audioFor = null;
             _audioPath = null;
+            _videoFound = null;
+            // Closes the audio and the video pane, and detaches it.
             _playback.Dispose();
         };
     }
@@ -139,6 +174,7 @@ public sealed partial class ConversationView : UserControl
             case nameof(AppViewModel.Settings):
                 _playback.SetChannels(_model.Settings.PlaybackChannels);
                 ApplyLayout();
+                ApplyVideoLayout();
                 break;
             case nameof(AppViewModel.PendingTranscriptTime):
                 OpenLibraryCitation();
@@ -188,6 +224,68 @@ public sealed partial class ConversationView : UserControl
         else Splitter.Arrange(vertical: false, TranscriptMinWidth, PanelMinWidth);
     }
 
+    /// <summary>
+    /// The video pane above the transcript, or left of it with <see cref="AppSettings.StackedPanes"/> (the column is
+    /// then wide and short), the gap between them (macOS TranscriptView <c>withVideoPane</c>,
+    /// <c>PaneSplit(vertical: !stacked)</c>); the transcript alone without a video or when "Hide video" hides it. The
+    /// column's rows or columns are made again, so the split is 50/50 again, only when that changed: another setting
+    /// keeps a dragged split. The pane only hides: its video stays open, so the transport still plays it.
+    /// </summary>
+    private void ApplyVideoLayout()
+    {
+        var layout = (Shown: ShowsVideoPane(), Stacked: _model.Settings.StackedPanes);
+        if (layout == _videoLayout) return;
+        _videoLayout = layout;
+        var rows = TranscriptColumn.RowDefinitions;
+        var columns = TranscriptColumn.ColumnDefinitions;
+        rows.Clear();
+        columns.Clear();
+        var shown = layout.Shown ? Visibility.Visible : Visibility.Collapsed;
+        VideoPane.Visibility = shown;
+        VideoSplitter.Visibility = shown;
+        var transcriptCell = 0;
+        if (layout.Shown)
+        {
+            if (layout.Stacked)
+            {
+                columns.Add(new ColumnDefinition());
+                columns.Add(new ColumnDefinition { Width = new GridLength(PaneGap) });
+                columns.Add(new ColumnDefinition());
+            }
+            else
+            {
+                rows.Add(new RowDefinition());
+                rows.Add(new RowDefinition { Height = new GridLength(PaneGap) });
+                rows.Add(new RowDefinition());
+            }
+            transcriptCell = 2;
+        }
+        foreach (var (element, cell) in new (FrameworkElement, int)[]
+                 { (VideoPane, 0), (VideoSplitter, 1), (TranscriptPane, transcriptCell), (LoadingPane, transcriptCell) })
+        {
+            Grid.SetRow(element, layout.Shown && !layout.Stacked ? cell : 0);
+            Grid.SetColumn(element, layout.Shown && layout.Stacked ? cell : 0);
+        }
+        if (!layout.Shown) return;
+        if (layout.Stacked) VideoSplitter.Arrange(vertical: false, VideoMinWidth, VideoTranscriptMinWidth);
+        else VideoSplitter.Arrange(vertical: true, VideoMinHeight, VideoTranscriptMinHeight);
+    }
+
+    /// <summary>
+    /// The video pane shows (macOS <c>showsVideoPane</c>): not with "Hide video"; until the lookup ends, from the
+    /// conversation (its placeholder in the click's frame), then from the file found.
+    /// </summary>
+    private bool ShowsVideoPane()
+    {
+        if (_model.Settings.TranscriptVideoLayout == TranscriptVideoLayout.Hidden) return false;
+        if (_videoFound is { } found) return found;
+        return _model.Conversations.FirstOrDefault(c => c.Id == _id) is { } conversation && VideoPlayable(conversation);
+    }
+
+    /// <summary>Not while the video is still being written; not tied to the audio (macOS <c>videoPlayable</c>).</summary>
+    private static bool VideoPlayable(Conversation conversation) =>
+        conversation.HasVideo && conversation.Status != ConversationStatus.Recording;
+
     /// <summary>A library chat citation of this conversation (<see cref="AppViewModel.OpenReference"/>), taken once.</summary>
     private void OpenLibraryCitation()
     {
@@ -205,13 +303,27 @@ public sealed partial class ConversationView : UserControl
         ShowPendingTime();
     }
 
-    /// <summary>Its audio is about to be deleted: closes the file now; a lookup still running must not reopen it.</summary>
+    /// <summary>
+    /// Its audio or video is about to be deleted (or the whole conversation): closes the audio and the video now, so
+    /// neither file is in use when it moves to the Recycle Bin; a lookup still running must not reopen them. The
+    /// conversation listed again without the deleted one looks them up again (<see cref="Update"/>, its key holds
+    /// <see cref="Conversation.HasAudio"/> and <see cref="Conversation.HasVideo"/>), which reopens what remains;
+    /// meanwhile the pane stays, empty. <see cref="_audioFor"/> is kept: an <see cref="Update"/> before the move would
+    /// reopen the file.
+    /// </summary>
     private void OnReleasingAudio(Guid id)
     {
         if (id != _id) return;
         _loadGeneration++;
         _audioPath = null;
+        _videoFound = null;
         _playback.Close();
+    }
+
+    /// <summary>A citation's play head waits until the player is ready: the audio opened, or without it the video.</summary>
+    private void OnPlaybackChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(PlaybackController.IsReady)) ApplyPendingSeek();
     }
 
     private void Update()
@@ -226,12 +338,13 @@ public sealed partial class ConversationView : UserControl
         if (!_editing) TitleText.Text = conversation.Title;
         DetailText.Text = ConversationText.Detail(conversation, _model);
 
-        var key = (conversation.HasAudio, conversation.Status);
+        var key = (conversation.HasAudio, conversation.HasVideo, conversation.Status);
         if (_audioFor != key)
         {
             _audioFor = key;
             _ = FindAudioAsync(conversation);
         }
+        ApplyVideoLayout();
     }
 
     /// <summary>
@@ -290,9 +403,11 @@ public sealed partial class ConversationView : UserControl
     }
 
     /// <summary>
-    /// Finds the audio off the UI thread and opens it: not while it is being recorded or compressed (macOS
-    /// TranscriptView <c>load</c>), and not once it was deleted. A file gone without the app (deleted in File Explorer)
-    /// lists the conversation again, without audio.
+    /// Finds the audio and the video off the UI thread and opens them (the video in its pane, also while "Hide video"
+    /// hides it, so the transport still plays it without audio): the audio not while it is being recorded or
+    /// compressed, the video not while it is being recorded (macOS TranscriptView <c>load</c>), and neither once it was
+    /// deleted. An audio file gone without the app (deleted in File Explorer) lists the conversation again, without
+    /// audio.
     /// </summary>
     private async Task FindAudioAsync(Conversation conversation)
     {
@@ -300,19 +415,32 @@ public sealed partial class ConversationView : UserControl
         var folder = conversation.Folder;
         var playable = conversation.HasAudio
             && conversation.Status is not (ConversationStatus.Recording or ConversationStatus.Compressing);
-        var audio = playable ? await Task.Run(() => AudioPath(folder)) : null;
+        var videoPlayable = VideoPlayable(conversation);
+        var (audio, video) = playable || videoPlayable
+            ? await Task.Run(() => (playable ? AudioPath(folder) : null, videoPlayable ? VideoPath(folder) : null))
+            : (null, null);
         if (generation != _loadGeneration || _model.IsClosing) return;
         if (playable && audio is null) _ = _model.AudioMissingAsync(conversation.Id);
         _audioPath = audio;
+        _videoFound = video is not null;
         StartupTrace.Write($"conversation {_id}: begin audio open");
         LoadPlayback();
         StartupTrace.Write($"conversation {_id}: end audio open");
+        // After the audio: without it, the video is the clock once its pane has opened it.
+        VideoPane.Load(video);
+        ApplyVideoLayout();
     }
 
     /// <summary>The player for the audio, with the shown version's segments and the channels setting; then a citation's seek.</summary>
     private void LoadPlayback()
     {
         _playback.Load(_audioPath, _transcript.ShownTranscript?.Segments ?? [], _model.Settings.PlaybackChannels);
+        ApplyPendingSeek();
+    }
+
+    /// <summary>A citation's play head, once the player is ready.</summary>
+    private void ApplyPendingSeek()
+    {
         if (_pendingSeek is not { } at || !_playback.IsReady) return;
         _pendingSeek = null;
         _playback.Seek(at);
@@ -376,6 +504,23 @@ public sealed partial class ConversationView : UserControl
             return ConversationFiles.AudioPath(folder, name) is { } path && File.Exists(path) ? path : null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The folder's video file, <see cref="ScreenRecordingController.VideoFileName"/> first (macOS
+    /// <c>VideoClip.file</c>); null when it has none.
+    /// </summary>
+    internal static string? VideoPath(string folder)
+    {
+        try
+        {
+            var files = LibraryStore.VideoFiles(folder);
+            return files.FirstOrDefault(f => Path.GetFileName(f) == ScreenRecordingController.VideoFileName) ?? files.FirstOrDefault();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return null;
         }

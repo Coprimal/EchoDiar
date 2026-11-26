@@ -59,26 +59,62 @@
                 TextWrapping="NoWrap" />
         </StackPanel>
 
-        <views:TranscriptView x:Name="TranscriptPane" Grid.Row="1" Visibility="Collapsed" />
-
         <!--
-            The transcript until its files are read (macOS DetailLoadingPane): the card it shows in, from the click's
-            frame; the ring fades in only once the reading takes 150 ms, so a fast load does not flash it.
+            The transcript's column: the conversation's video above the transcript, or left of it with Stack Panes (macOS
+            TranscriptView withVideoPane), a gap between them that drags to resize them; the transcript alone without a
+            video or when "Hide video" hides it. Its rows or columns are set in code (ConversationView.ApplyVideoLayout).
         -->
-        <Border
-            x:Name="LoadingPane"
-            Grid.Row="1"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource OverlayCornerRadius}">
-            <ProgressRing
-                x:Name="LoadingRing"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                IsActive="False"
-                Opacity="0" />
-        </Border>
+        <Grid x:Name="TranscriptColumn" Grid.Row="1">
+            <!-- Its placeholder from the click's frame, the picture once the video is open. -->
+            <views:VideoPaneView x:Name="VideoPane" Visibility="Collapsed" />
+
+            <!-- As the panes' gap below, between the video and the transcript. -->
+            <views:PaneSplitter
+                x:Name="VideoSplitter"
+                AutomationProperties.Name="{local:T Text='Resize'}"
+                Visibility="Collapsed">
+                <Grid Background="Transparent" Opacity="0.7">
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="2">
+                        <Rectangle
+                            Width="1"
+                            Height="14"
+                            Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                            RadiusX="0.5"
+                            RadiusY="0.5" />
+                        <Rectangle
+                            Width="1"
+                            Height="14"
+                            Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                            RadiusX="0.5"
+                            RadiusY="0.5" />
+                    </StackPanel>
+                </Grid>
+            </views:PaneSplitter>
+
+            <views:TranscriptView x:Name="TranscriptPane" Visibility="Collapsed" />
+
+            <!--
+                The transcript until its files are read (macOS DetailLoadingPane): the card it shows in, from the
+                click's frame; the ring fades in only once the reading takes 150 ms, so a fast load does not flash it.
+            -->
+            <Border
+                x:Name="LoadingPane"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource OverlayCornerRadius}">
+                <ProgressRing
+                    x:Name="LoadingRing"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsActive="False"
+                    Opacity="0" />
+            </Border>
+        </Grid>
 
         <!--
             The 10 px gap with its grip, two short lines in the middle; the secondary text brush, faded at rest to

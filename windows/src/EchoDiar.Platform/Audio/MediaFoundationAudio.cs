@@ -206,6 +206,58 @@ public sealed class MediaFoundationAudio : IAudioDecoder, IAudioExporter
     }
 
     /// <summary>
+    /// The sound of a video export (macOS VideoExporter <c>AudioMixer</c>): the <paramref name="sources"/> (each a CAF
+    /// or an m4a, and its channel) mixed to mono as mono AAC-LC at 48 kHz and 96 kbps: one channel as it is, two at half
+    /// gain each, which cannot clip; a shorter file is padded with silence. They must share one sample rate.
+    /// <paramref name="progress"/> gets 0..1 from the encoding thread. Returns the seconds written. Throws
+    /// <see cref="AudioEncodeException"/>, or <see cref="OperationCanceledException"/>; a partial output may be left
+    /// behind.
+    /// </summary>
+    public static double EncodeMonoAacMix(
+        IReadOnlyList<(string Path, int Channel)> sources, string destination, Action<double>? progress,
+        CancellationToken cancellationToken)
+    {
+        if (sources.Count == 0) throw new ArgumentException("No audio to mix", nameof(sources));
+        var kbps = BitratesKbps[0];
+        List<MonoReader> readers = [];
+        try
+        {
+            foreach (var (path, channel) in sources) readers.Add(OpenMono(path, channel, null));
+            if (readers.Any(r => r.SampleRate != readers[0].SampleRate))
+            {
+                throw new AudioEncodeException(AudioEncodeFailure.SourceUnreadable, "The audio files have different sample rates");
+            }
+            using var mix = new MixReader(readers, progress);
+            EnsureStarted();
+            using var outputType = AacType(1, kbps)
+                ?? throw new AudioEncodeException(
+                    AudioEncodeFailure.SettingRejected, $"No AAC encoder output for {EncodeSampleRate} Hz, 1 ch, {kbps} kbps");
+            using var encoder = new MediaFoundationEncoder(outputType);
+            var pcm = new MonoPcm16Source(mix, cancellationToken);
+            encoder.Encode(destination, pcm);
+            cancellationToken.ThrowIfCancellationRequested();
+            return (double)pcm.SourceFrames / mix.SampleRate;
+        }
+        catch (Exception e) when (e is AudioEncodeException or OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception e) when (IsSourceFailure(e))
+        {
+            throw new AudioEncodeException(AudioEncodeFailure.SourceUnreadable, e.Message, e);
+        }
+        catch (Exception e) when (e is COMException or InvalidOperationException or ArgumentException)
+        {
+            throw new AudioEncodeException(AudioEncodeFailure.Encode, e.Message, e);
+        }
+        finally
+        {
+            // MixReader does not own them: each is disposed once, here.
+            foreach (var reader in readers) reader.Dispose();
+        }
+    }
+
+    /// <summary>
     /// The RMS of <paramref name="channel"/> of <paramref name="source"/> per <paramref name="window"/>-second slot from
     /// the start (Swift <c>levels(of:channel:)</c>; the last slot may be shorter), for the quietest cut of a long upload.
     /// </summary>
@@ -349,6 +401,9 @@ public sealed class MediaFoundationAudio : IAudioDecoder, IAudioExporter
     {
         public abstract double SampleRate { get; }
 
+        /// <summary>About how many frames <see cref="Read"/> gives in all, for progress; 0 when unknown.</summary>
+        public virtual long EstimatedFrames => 0;
+
         /// <summary>Fills the start of <paramref name="output"/>; returns the frames written, 0 only at the end.</summary>
         public abstract int Read(Span<float> output);
 
@@ -368,6 +423,7 @@ public sealed class MediaFoundationAudio : IAudioDecoder, IAudioExporter
     {
         private readonly CafFile.Reader _caf;
         private readonly int _channel;
+        private readonly long _first;
         private readonly long _last;
         private long _frame;
 
@@ -380,10 +436,13 @@ public sealed class MediaFoundationAudio : IAudioDecoder, IAudioExporter
                 throw new InvalidDataException($"{Path.GetFileName(path)} has no channel {channel}");
             }
             _channel = channel;
-            (_frame, _last) = Frames(range, _caf.SampleRate, _caf.Frames);
+            (_first, _last) = Frames(range, _caf.SampleRate, _caf.Frames);
+            _frame = _first;
         }
 
         public override double SampleRate => _caf.SampleRate;
+
+        public override long EstimatedFrames => _last - _first;
 
         public override int Read(Span<float> output)
         {
@@ -430,6 +489,9 @@ public sealed class MediaFoundationAudio : IAudioDecoder, IAudioExporter
 
         public override double SampleRate => _format.SampleRate;
 
+        /// <summary>From the length Media Foundation reports, not the range.</summary>
+        public override long EstimatedFrames => (long)(_reader.TotalTime.TotalSeconds * _format.SampleRate);
+
         public override int Read(Span<float> output)
         {
             while (_frame < _last)
@@ -457,6 +519,64 @@ public sealed class MediaFoundationAudio : IAudioDecoder, IAudioExporter
         }
 
         public override void Dispose() => _reader.Dispose();
+    }
+
+    /// <summary>
+    /// Several <see cref="MonoReader"/>s of one rate as their average (gain 1 / count), as long as the longest (the
+    /// others padded with silence); reports the frames read against the longest estimate. Does not own the readers.
+    /// </summary>
+    private sealed class MixReader : MonoReader
+    {
+        private readonly IReadOnlyList<MonoReader> _inputs;
+        private readonly Action<double>? _progress;
+        private readonly float[] _buffer = new float[ChunkFrames];
+        private readonly float _gain;
+        private readonly long _total;
+        private long _read;
+        private double _reported = -1;
+
+        public MixReader(IReadOnlyList<MonoReader> inputs, Action<double>? progress)
+        {
+            _inputs = inputs;
+            _progress = progress;
+            _gain = 1f / inputs.Count;
+            _total = inputs.Max(input => input.EstimatedFrames);
+        }
+
+        public override double SampleRate => _inputs[0].SampleRate;
+
+        public override long EstimatedFrames => _total;
+
+        public override int Read(Span<float> output)
+        {
+            var count = Math.Min(output.Length, ChunkFrames);
+            output[..count].Clear();
+            var frames = 0;
+            foreach (var input in _inputs)
+            {
+                // Each input fills the whole chunk unless it ended, so the inputs stay frame-aligned.
+                var filled = 0;
+                int n;
+                while (filled < count && (n = input.Read(_buffer.AsSpan(filled, count - filled))) > 0) filled += n;
+                for (var i = 0; i < filled; i++) output[i] += _buffer[i] * _gain;
+                frames = Math.Max(frames, filled);
+            }
+            _read += frames;
+            if (_progress is not null && _total > 0)
+            {
+                var done = Math.Min(1, (double)_read / _total);
+                if (done - _reported >= 0.01 || frames == 0)
+                {
+                    _reported = done;
+                    _progress(done);
+                }
+            }
+            return frames;
+        }
+
+        public override void Dispose()
+        {
+        }
     }
 
     /// <summary>

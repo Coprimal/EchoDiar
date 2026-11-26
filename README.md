@@ -20,7 +20,7 @@
 ## Features
 
 - **Record** a meeting app (Meet, Teams, Zoom, ...) or all system audio, plus your microphone.
-- **Screen recording** (macOS): a display, a window or a region, as a small video beside the transcript.
+- **Screen recording** (macOS; Windows in Beta): a display, a window or a region, as a small video beside the transcript.
 - **Transcribe on device** (WhisperKit, Parakeet, Qwen3-ASR, Apple Speech) with speakers and live captions, or with a cloud provider of your choice.
 - **AI summaries and chat** with local or cloud models; answers cite timestamps you can click.
 - **Meeting detection and calendar triggers** that offer to record and stop when the call ends.

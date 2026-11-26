@@ -173,6 +173,8 @@ public sealed class RecordingEngine : IDisposable
     // Behind _gate.
     private State _state = State.Idle;
     private CaptureTarget _target = CaptureTarget.Global;
+    // False: no system source at all, the system channel is written as silence (see Start).
+    private bool _systemAudio = true;
     private string? _micEndpointId;
     private RecordingSession? _session;
     private string? _folder;
@@ -260,15 +262,22 @@ public sealed class RecordingEngine : IDisposable
     /// <paramref name="micEndpointId"/> null (or an input that is gone) records the default input.
     /// <paramref name="title"/> (e.g. the calendar event's) goes into the first <c>session.json</c>, trimmed; blank or
     /// null leaves the default title.
+    /// <paramref name="systemAudio"/> false records the mic only: no system source is opened (nor reopened at resume or
+    /// on an output change), the system channel is written as silence and is never reported as a silent tap.
+    /// <paramref name="skipsTranscription"/> marks the recording "screen only" in the first <c>session.json</c>.
     /// </summary>
-    public string Start(CaptureTarget target, string language, string? micEndpointId, string root, string? title = null)
+    public string Start(
+        CaptureTarget target, string language, string? micEndpointId, string root, string? title = null,
+        bool systemAudio = true, bool skipsTranscription = false)
     {
-        var folder = StartRecording(target, language, micEndpointId, root, NormalizedTitle(title));
+        var folder = StartRecording(target, language, micEndpointId, root, NormalizedTitle(title), systemAudio, skipsTranscription);
         SyncRoutes();
         return folder;
     }
 
-    private string StartRecording(CaptureTarget target, string language, string? micEndpointId, string root, string? title)
+    private string StartRecording(
+        CaptureTarget target, string language, string? micEndpointId, string root, string? title, bool systemAudio,
+        bool skipsTranscription)
     {
         lock (_gate)
         {
@@ -282,6 +291,7 @@ public sealed class RecordingEngine : IDisposable
             _micMuted = false;
             _systemMicMuted = false;
             _target = target;
+            _systemAudio = systemAudio;
             _micEndpointId = micEndpointId;
 
             var session = new RecordingSession
@@ -292,6 +302,7 @@ public sealed class RecordingEngine : IDisposable
                 GlobalTapFallback = target.GlobalTapFallback,
                 LanguageMarkers = [new() { FileTime = 0, Language = language }],
                 Title = title,
+                SkipsTranscription = skipsTranscription,
             };
             var folder = session.Folder(root);
             session.Write(folder);
@@ -315,7 +326,7 @@ public sealed class RecordingEngine : IDisposable
                 writer = new ChannelWriter(Path.Combine(folder, session.AudioFileName))
                 {
                     LiveSink = LiveSink,
-                    IsTargetPlayingOutput = OutputCheck(target),
+                    IsTargetPlayingOutput = systemAudio ? OutputCheck(target) : null,
                 };
                 writer.Start(mic.Ring, system.Ring, _clock());
             }
@@ -474,6 +485,17 @@ public sealed class RecordingEngine : IDisposable
         }
     }
 
+    /// <summary>Sets the recording's screen video in <c>session.json</c>. No-op when idle.</summary>
+    public void SetVideo(SessionVideo? video)
+    {
+        lock (_gate)
+        {
+            if (_state == State.Idle || _session is null) return;
+            _session.Video = video;
+            Save();
+        }
+    }
+
     private static string? NormalizedTitle(string? title) => string.IsNullOrWhiteSpace(title) ? null : title.Trim();
 
     /// <summary>The language of the last marker ("auto" or BCP-47), or null when idle.</summary>
@@ -497,6 +519,17 @@ public sealed class RecordingEngine : IDisposable
         ChannelWriter? writer;
         lock (_shared) (snapshot, writer) = (_snapshot, _sharedWriter);
         return writer is null ? snapshot : snapshot.Applying(writer.Stats);
+    }
+
+    /// <summary>
+    /// The writer's <see cref="ChannelWriter.FileTime"/>: seconds of the audio file (paused spans removed) at
+    /// <paramref name="systemRelativeTimeQpc100ns"/>; null when idle or paused. Lock-only.
+    /// </summary>
+    public double? FileTime(long systemRelativeTimeQpc100ns)
+    {
+        ChannelWriter? writer;
+        lock (_shared) writer = _sharedWriter;
+        return writer?.FileTime(systemRelativeTimeQpc100ns);
     }
 
     // Inside _gate
@@ -543,8 +576,9 @@ public sealed class RecordingEngine : IDisposable
     }
 
     /// <summary>Throws if the source cannot be created or started. A failure after start leaves the system channel
-    /// padding silence while the mic keeps recording, until an output change rebuilds it.</summary>
-    private Capture OpenSystem() => Open(_openSystem(_target), static _ => { });
+    /// padding silence while the mic keeps recording, until an output change rebuilds it. Without system audio, the
+    /// stand-in: no source is created.</summary>
+    private Capture OpenSystem() => _systemAudio ? Open(_openSystem(_target), static _ => { }) : StandInMic();
 
     /// <summary>
     /// The input <paramref name="endpointId"/> (null: the default), else the default input when that one is gone (as
@@ -794,7 +828,7 @@ public sealed class RecordingEngine : IDisposable
     /// </summary>
     private void RebuildSystem()
     {
-        if (_target.TapMode != TapMode.Global || _state != State.Recording || _writer is null || _session is null) return;
+        if (_target.TapMode != TapMode.Global || !_systemAudio || _state != State.Recording || _writer is null || _session is null) return;
         _system?.Source?.Dispose();
         _system = null;
         Capture system;
@@ -1005,7 +1039,7 @@ public sealed class RecordingEngine : IDisposable
         }
     }
 
-    /// <summary>An open source and the ring its capture thread writes to; a null source is the silent mic stand-in.</summary>
+    /// <summary>An open source and the ring its capture thread writes to; a null source is the silent stand-in.</summary>
     private sealed class Capture(ICaptureSource? source, RingBuffer? ring = null)
     {
         private RingBuffer? _ring = ring;

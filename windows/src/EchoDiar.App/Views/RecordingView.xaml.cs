@@ -4,6 +4,7 @@ using EchoDiar.App.Services;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core;
 using EchoDiar.Core.Audio;
+using EchoDiar.Core.Screen;
 using EchoDiar.Core.Settings;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -18,8 +19,9 @@ namespace EchoDiar.App.Views;
 
 /// <summary>
 /// The recording page (macOS RecordingViews.swift RecordingDetailView, RecordingHeader, ChannelMeters and
-/// RecordingWave), opened from the recording's card: the title, "Catch up", the calendar suggestion and the capture
-/// warnings, pinned on top, then the live transcript (or the wave and why there is none) on the left and a panel on the
+/// RecordingWave), opened from the recording's card: the title, the elapsed time with the size so far and the "screen
+/// recorded" glyph, "Catch up", the calendar suggestion, the capture warnings and the screen video's notice, pinned on
+/// top, then the live transcript (or the wave and why there is none) on the left and a panel on the
 /// right with its Catch-up | Chat tabs (<see cref="AppViewModel.RecordingTab"/>), the catch-up model and the answer
 /// language over the catch-ups (macOS CatchUpPanel) or the live chat; the gap between them drags to resize them, and
 /// with Stack Panes (<see cref="AppSettings.StackedPanes"/>) the transcript is above the panel. The meters and the wave move at 15 Hz while the
@@ -91,6 +93,9 @@ public sealed partial class RecordingView : UserControl
     /// <summary>"Catch up"'s tooltip as last set: one set again while shown closes under the pointer (the captions change it often).</summary>
     private string? _catchUpTip;
 
+    /// <summary>The live size's level as last styled (<see cref="RecordingCard.ShowLiveSize"/>).</summary>
+    private SizeLevel.Level? _sizeLevel;
+
     public RecordingView(AppViewModel model)
     {
         _model = model;
@@ -104,10 +109,13 @@ public sealed partial class RecordingView : UserControl
         LanguageHost.Content = new LanguagePicker(model, shortLabel: false);
         LiveHost.Child = new LiveTranscriptView(model);
         GlobalTapWarning.Message = Loc.T("This app's audio cannot be isolated, so all system audio is being recorded.");
+        var screenRecorded = Loc.T("The screen is recorded too");
+        ToolTipService.SetToolTip(ScreenGlyph, screenRecorded);
+        AutomationProperties.SetName(ScreenGlyph, screenRecorded);
         AutomationProperties.SetName(MicMeter, Loc.T("Mic level"));
         AutomationProperties.SetName(SystemMeter, Loc.T("System audio level"));
         // Again whenever the row or one of its columns changes width (the clock, the state, "Catch up", the language).
-        foreach (var element in new FrameworkElement[] { StatusRow, ElapsedText, StateText, ChannelMeters, CatchUpButtonHost, LanguageHost })
+        foreach (var element in new FrameworkElement[] { StatusRow, ElapsedPanel, StateText, ChannelMeters, CatchUpButtonHost, LanguageHost })
         {
             element.SizeChanged += (_, _) => UpdateMetersLayout();
         }
@@ -153,6 +161,8 @@ public sealed partial class RecordingView : UserControl
             UpdateCatchUpButton();
             UpdateContent();
             UpdatePanelMenus();
+            UpdateScreen();
+            UpdateLiveSize();
         };
         Unloaded += (_, _) =>
         {
@@ -201,7 +211,45 @@ public sealed partial class RecordingView : UserControl
             case nameof(AppViewModel.CalendarSuggestion):
                 UpdateSuggestion();
                 break;
+            case nameof(AppViewModel.ScreenOn):
+            case nameof(AppViewModel.Notice):
+                UpdateScreen();
+                break;
+            case nameof(AppViewModel.LiveRecordingBytes):
+                UpdateLiveSize();
+                break;
+            case nameof(AppViewModel.RecordingSkipsTranscription):
+                UpdateReason();
+                UpdateCatchUpButton();
+                break;
         }
+    }
+
+    /// <summary>
+    /// The "screen recorded" glyph while a screen video is starting or running, and the yellow warning with the screen
+    /// video's notice (macOS <c>RecordingHeader</c>: why it ended before the recording or could not be turned on, low
+    /// disk, camera access, blur), 8 px under the global tap warning when both show.
+    /// </summary>
+    private void UpdateScreen()
+    {
+        ScreenGlyph.Visibility = Shown(Features.ScreenRecording && _model.ScreenOn);
+        var notice = Features.ScreenRecording ? _model.Notice : null;
+        if (notice is not null && NoticeBar.Message != notice) NoticeBar.Message = notice;
+        NoticeBar.IsOpen = notice is not null;
+        UpdateNoticeMargin();
+    }
+
+    private void UpdateNoticeMargin()
+    {
+        var margin = GlobalTapWarning.IsOpen ? new Thickness(0, 8, 0, 0) : new Thickness(0);
+        if (NoticeBar.Margin != margin) NoticeBar.Margin = margin;
+    }
+
+    /// <summary>The size so far after the clock, as " (43 MB)"; nothing until the first read is back.</summary>
+    private void UpdateLiveSize()
+    {
+        RecordingCard.ShowLiveSize(LiveSizeText, _model.LiveRecordingBytes, Resources, ref _sizeLevel);
+        LiveSizePanel.Visibility = LiveSizeText.Visibility;
     }
 
     /// <summary>
@@ -235,6 +283,7 @@ public sealed partial class RecordingView : UserControl
         ChannelMeters.Visibility = paused ? Visibility.Collapsed : Visibility.Visible;
 
         GlobalTapWarning.IsOpen = recording && snapshot.GlobalTapFallback;
+        UpdateNoticeMargin();
         SilentTapBanner.IsOpen = recording && snapshot.SilentTapSuspected;
         var silentTap = Loc.Format(
             "EchoDiar hears nothing from %@. Pick another source or check that the app is playing.",
@@ -385,7 +434,12 @@ public sealed partial class RecordingView : UserControl
 
     private static Visibility Shown(bool shown) => shown ? Visibility.Visible : Visibility.Collapsed;
 
-    private void UpdateReason() => RecordingCard.SetText(ReasonText, NoCaptionsReason(_model));
+    /// <summary>Why there is no live transcript; no Settings link for a "screen only" recording (macOS <c>transcript</c>).</summary>
+    private void UpdateReason()
+    {
+        RecordingCard.SetText(ReasonText, NoCaptionsReason(_model));
+        OpenSettingsLink.Visibility = Shown(!_model.RecordingSkipsTranscription);
+    }
 
     /// <summary>
     /// The providers changed: which one "Catch up" runs on (and the panel's model), the saved cards' provider names, and
@@ -549,11 +603,12 @@ public sealed partial class RecordingView : UserControl
 
     /// <summary>
     /// Why the recording has no live transcript, with the cloud live options when the default engine is a cloud one
-    /// (macOS <c>noCaptionsReason(model:)</c>): the live source is off, or
+    /// (macOS <c>noCaptionsReason(model:)</c>): the recording is marked "screen only", the live source is off, or
     /// <see cref="AppViewModel.CurrentCloudLiveBlock"/> says what is in the way; also why "Catch up" is off.
     /// </summary>
     internal static string NoCaptionsReason(AppViewModel model)
     {
+        if (model.RecordingSkipsTranscription) return Loc.T("Transcription is off for this recording.");
         var settings = model.Settings;
         if (!settings.AutoTranscribe || !settings.TranscribeWhileRecording || model.DefaultCloudConfig is not { } config)
             return NoCaptionsReason(settings);
@@ -589,6 +644,7 @@ public sealed partial class RecordingView : UserControl
     private void OpenReasonSettings()
     {
         var settings = _model.Settings;
+        if (_model.RecordingSkipsTranscription) return;
         if (!settings.AutoTranscribe) _model.OpenSettings(SettingsSearch.Recording, RecordingSettingsPage.AfterRecordingTab);
         else if (!settings.TranscribeWhileRecording) _model.OpenSettings(SettingsSearch.Transcription);
         else _model.OpenLocalAI(ProvidersSettingsPage.TranscriptionGroup);

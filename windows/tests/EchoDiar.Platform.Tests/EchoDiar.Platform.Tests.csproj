@@ -12,6 +12,9 @@
     <PackageReference Include="xunit.v3.mtp-off" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- sherpa-onnx's native onnxruntime.dll (runtimes/<rid>/native), which Platform's ONNX Runtime managed API loads,
+         as the App gets it through Transcribe. -->
+    <PackageReference Include="org.k2fsa.sherpa.onnx" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Export Video (macOS VideoExportSheet.swift): the audio to put in (Both, Microphone, System audio or No audio, the ones
+    the conversation does not have disabled), then a save dialog, the progress with Cancel, and the file with Reveal in
+    Explorer at the end; or why it failed. One dialog through all of it: the buttons and texts are set in code.
+-->
+<ContentDialog
+    x:Class="EchoDiar.App.Views.VideoExportDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:EchoDiar.App"
+    Style="{StaticResource DefaultContentDialogStyle}">
+
+    <StackPanel Width="340" Spacing="12">
+        <!-- Disabled until the conversation's audio has been looked up. -->
+        <RadioButtons x:Name="AudioChoices" Header="{local:T Text='Audio:'}" IsEnabled="False">
+            <RadioButton x:Name="BothChoice" Content="{local:T Text='Both'}" />
+            <RadioButton x:Name="MicChoice" Content="{local:T Text='Microphone'}" />
+            <RadioButton x:Name="SystemChoice" Content="{local:T Text='System audio'}" />
+            <RadioButton x:Name="NoneChoice" Content="{local:T Text='No audio'}" />
+        </RadioButtons>
+
+        <StackPanel x:Name="ProgressPanel" Spacing="8" Visibility="Collapsed">
+            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{local:T Text='Exporting…'}" />
+            <ProgressBar x:Name="ExportProgress" Maximum="1" />
+        </StackPanel>
+
+        <StackPanel
+            x:Name="DonePanel"
+            Orientation="Horizontal"
+            Spacing="8"
+            Visibility="Collapsed">
+            <FontIcon
+                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                FontSize="16"
+                Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                Glyph="&#xEC61;" />
+            <TextBlock
+                x:Name="DoneText"
+                MaxWidth="310"
+                VerticalAlignment="Center"
+                TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+
+        <TextBlock
+            x:Name="FailureText"
+            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+            TextWrapping="Wrap"
+            Visibility="Collapsed" />
+    </StackPanel>
+</ContentDialog>

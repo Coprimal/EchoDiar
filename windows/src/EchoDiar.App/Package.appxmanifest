@@ -115,5 +115,7 @@
     <!-- Phi Silica (Windows AI) on Copilot+ PCs. -->
     <systemai:Capability Name="systemAIModels" />
     <DeviceCapability Name="microphone" />
+    <!-- The screen recording's camera bubble (Platform CameraSource), opened shared read-only. -->
+    <DeviceCapability Name="webcam" />
   </Capabilities>
 </Package>

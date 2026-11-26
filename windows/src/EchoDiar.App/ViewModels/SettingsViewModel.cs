@@ -165,6 +165,66 @@ public sealed partial class SettingsViewModel : ObservableObject
         set => Update(s => s with { SpeakerCountHint = value });
     }
 
+    // Recording
+
+    /// <summary>"Tray icon while recording" (macOS "Menu bar while recording"): the setting only; task T8.3 shows it.</summary>
+    public MenuBarRecordingInfo MenuBarRecordingInfo
+    {
+        get => Settings.MenuBarRecordingInfo;
+        set => Update(s => s with { MenuBarRecordingInfo = value });
+    }
+
+    // Screen
+
+    /// <summary>"Frame rate", one of <see cref="AppSettings.ScreenFPSOptions"/>.</summary>
+    public int ScreenFPS
+    {
+        get => Settings.ScreenFPS;
+        set => Update(s => s with { ScreenFPS = value });
+    }
+
+    /// <summary>"Quality": the encoder quality, in <see cref="AppSettings.ScreenQualityRange"/>.</summary>
+    public double ScreenQuality
+    {
+        get => Settings.ScreenQuality;
+        set => Update(s => s with { ScreenQuality = value });
+    }
+
+    /// <summary>"Transcribe screen recordings".</summary>
+    public bool ScreenTranscribes
+    {
+        get => Settings.ScreenTranscribes;
+        set => Update(s => s with { ScreenTranscribes = value });
+    }
+
+    /// <summary>"Show the cursor".</summary>
+    public bool ScreenShowsCursor
+    {
+        get => Settings.ScreenShowsCursor;
+        set => Update(s => s with { ScreenShowsCursor = value });
+    }
+
+    /// <summary>"Highlight clicks".</summary>
+    public bool ScreenShowsClicks
+    {
+        get => Settings.ScreenShowsClicks;
+        set => Update(s => s with { ScreenShowsClicks = value });
+    }
+
+    /// <summary>"Camera bubble".</summary>
+    public bool ScreenCamera
+    {
+        get => Settings.ScreenCamera;
+        set => Update(s => s with { ScreenCamera = value });
+    }
+
+    /// <summary>"Blur background" of the camera bubble.</summary>
+    public bool ScreenCameraBlur
+    {
+        get => Settings.ScreenCameraBlur;
+        set => Update(s => s with { ScreenCameraBlur = value });
+    }
+
     // Storage
 
     /// <summary>"Compression bitrate": the total AAC bitrate of the m4a, in kbps.</summary>

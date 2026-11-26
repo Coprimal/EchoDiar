@@ -502,6 +502,10 @@
     <value>Back (Esc)</value>
     <comment>Back (Esc)</comment>
   </data>
+  <data name="BackgroundBlurIsNotAvailableTheCameraBubbleShowsNoPicture" xml:space="preserve">
+    <value>Background blur is not available. The camera bubble shows no picture.</value>
+    <comment>Background blur is not available. The camera bubble shows no picture.</comment>
+  </data>
   <data name="Balanced" xml:space="preserve">
     <value>Balanced</value>
     <comment>Balanced</comment>
@@ -521,6 +525,10 @@
   <data name="BeforeYouRecord" xml:space="preserve">
     <value>Before you record</value>
     <comment>Before you record</comment>
+  </data>
+  <data name="Beta" xml:space="preserve">
+    <value>(Beta)</value>
+    <comment>(Beta)</comment>
   </data>
   <data name="BilledBy" xml:space="preserve">
     <value>billed by {0}</value>
@@ -585,6 +593,10 @@
   <data name="Camera" xml:space="preserve">
     <value>Camera</value>
     <comment>Camera</comment>
+  </data>
+  <data name="CameraAccessIsOffTurnOnEchoDiarInWindowsSettingsPrivacySecur" xml:space="preserve">
+    <value>Camera access is off. Turn on EchoDiar in Windows Settings › Privacy &amp; security › Camera.</value>
+    <comment>Camera access is off. Turn on EchoDiar in Windows Settings › Privacy &amp; security › Camera.</comment>
   </data>
   <data name="CameraBubble" xml:space="preserve">
     <value>Camera bubble</value>
@@ -1362,6 +1374,14 @@
     <value>EchoDiar, recording paused</value>
     <comment>EchoDiar, recording paused</comment>
   </data>
+  <data name="EchoDiarRecordingPaused_2" xml:space="preserve">
+    <value>EchoDiar, recording paused — {0}</value>
+    <comment>EchoDiar, recording paused — %@</comment>
+  </data>
+  <data name="EchoDiarRecording_2" xml:space="preserve">
+    <value>EchoDiar, recording — {0}</value>
+    <comment>EchoDiar, recording — %@</comment>
+  </data>
   <data name="EchoDiarRecordsTheOtherPeopleOnTheCallFromYourMacSAudioTheTe" xml:space="preserve">
     <value>EchoDiar records the other people on the call from your Mac's audio. The test plays a short sound and listens for it. macOS asks for System Audio Recording permission the first time.</value>
     <comment>EchoDiar records the other people on the call from your Mac's audio. The test plays a short sound and listens for it. macOS asks for System Audio Recording permission the first time.</comment>
@@ -1513,6 +1533,10 @@
   <data name="FileSize" xml:space="preserve">
     <value>File size</value>
     <comment>File size</comment>
+  </data>
+  <data name="FilesCanBeSeveralTimesLarger" xml:space="preserve">
+    <value>Files can be several times larger.</value>
+    <comment>Files can be several times larger.</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>Files can be several times larger. In a meeting-like test, a window recording took about {0} MB per minute at 60 fps, against {1} MB per minute at 15 fps.</value>
@@ -2129,6 +2153,10 @@
   <data name="MBMin" xml:space="preserve">
     <value>{0} (~{1} MB/min)</value>
     <comment>%@ (~%@ MB/min)</comment>
+  </data>
+  <data name="MP4Video" xml:space="preserve">
+    <value>MP4 video</value>
+    <comment>MP4 video</comment>
   </data>
   <data name="MacOSAppliesThePermissionOnceEchoDiarIsQuitAndOpenedAgain" xml:space="preserve">
     <value>macOS applies the permission once EchoDiar is quit and opened again.</value>
@@ -3070,9 +3098,17 @@
     <value>Record the screen</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAnd" xml:space="preserve">
+    <value>Record the screen and {0}</value>
+    <comment>Record the screen and %@</comment>
+  </data>
   <data name="RecordTheScreenAndR" xml:space="preserve">
     <value>Record the screen and {0} (⌘R)</value>
     <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophone" xml:space="preserve">
+    <value>Record the screen and the microphone</value>
+    <comment>Record the screen and the microphone</comment>
   </data>
   <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
     <value>Record the screen and the microphone (⌘R)</value>
@@ -4162,6 +4198,10 @@
     <value>The screen is recorded too</value>
     <comment>The screen is recorded too</comment>
   </data>
+  <data name="TheScreenRecordingIsMovedToTheRecycleBinEverythingElseInTheC" xml:space="preserve">
+    <value>The screen recording is moved to the Recycle Bin. Everything else in the conversation stays.</value>
+    <comment>The screen recording is moved to the Recycle Bin. Everything else in the conversation stays.</comment>
+  </data>
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>The screen recording is moved to the Trash. Everything else in the conversation stays.</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
@@ -4386,6 +4426,10 @@
     <value>This realtime model labels no speakers, so the diarizer runs on the recording after Stop; a cloud diarizer asks for its own consent.</value>
     <comment>This realtime model labels no speakers, so the diarizer runs on the recording after Stop; a cloud diarizer asks for its own consent.</comment>
   </data>
+  <data name="ThisVideoUsesHEVCInstallHEVCVideoExtensionsFromTheMicrosoftS" xml:space="preserve">
+    <value>This video uses HEVC. Install HEVC Video Extensions from the Microsoft Store to play it.</value>
+    <comment>This video uses HEVC. Install HEVC Video Extensions from the Microsoft Store to play it.</comment>
+  </data>
   <data name="Title" xml:space="preserve">
     <value>Title</value>
     <comment>Title</comment>
@@ -4529,6 +4573,10 @@
   <data name="TranscriptsSummariesAndChatsStayPlaybackAndReTranscribingAre" xml:space="preserve">
     <value>Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.</value>
     <comment>Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.</comment>
+  </data>
+  <data name="TrayIconWhileRecording" xml:space="preserve">
+    <value>Tray icon while recording</value>
+    <comment>Tray icon while recording</comment>
   </data>
   <data name="TryAgainLater" xml:space="preserve">
     <value>Try again later.</value>

@@ -10,6 +10,7 @@ using EchoDiar.Core.Model;
 using EchoDiar.Core.Models;
 using EchoDiar.Core.Settings;
 using EchoDiar.Platform.Audio;
+using EchoDiar.Platform.Screen;
 using EchoDiar.Platform.SystemServices;
 using EchoDiar.Transcribe;
 using Microsoft.UI.Dispatching;
@@ -90,6 +91,25 @@ public sealed partial class AppViewModel : ObservableObject
     /// <summary>The running recording's folder, for the steps after it ends.</summary>
     private string? _activeFolder;
 
+    /// <summary>The current recording's screen video.</summary>
+    private readonly ScreenRecordingController _screen;
+
+    /// <summary>
+    /// The current recording is marked "screen only" (<see cref="RecordingSession.SkipsTranscription"/>): no live
+    /// transcript, no automatic transcription. Set before the engine creates the session, cleared at its end (macOS
+    /// <c>currentRecordingSkipsTranscription</c>).
+    /// </summary>
+    private bool _recordingSkipsTranscription;
+
+    private bool _systemAudioOff;
+
+    /// <summary>
+    /// The file time the screen video ends at, read just before a stop from EchoDiar stopped the audio; taken by the
+    /// end snapshot. Guarded by <see cref="_videoStopGate"/>.
+    /// </summary>
+    private double? _videoStopTime;
+    private readonly object _videoStopGate = new();
+
     private Route _route = Route.List;
 
     /// <summary>The library page the Calendar page was opened from.</summary>
@@ -128,6 +148,13 @@ public sealed partial class AppViewModel : ObservableObject
         Updater = new Updater(dispatcher);
         Updater.PropertyChanged += OnUpdaterChanged;
         EndPromptNotifier = new EndPromptNotifier(() => Settings.EndPromptNotification);
+        _screen = new ScreenRecordingController(services.Engine, services.Paths.Probes, Post);
+        _screen.Changed += () =>
+        {
+            OnPropertyChanged(nameof(ScreenOn));
+            OnPropertyChanged(nameof(CanStartDuringRecording));
+            OnPropertyChanged(nameof(Notice));
+        };
     }
 
     // State
@@ -185,6 +212,12 @@ public sealed partial class AppViewModel : ObservableObject
             var old = _settings;
             if (!SetProperty(ref _settings, value)) return;
             OnPropertyChanged(nameof(RecordingLanguage));
+            // "No system audio" counts only with "Record the screen too" on (macOS updateSettings).
+            if (!value.ScreenRecordingEnabled) SystemAudioOff = false;
+            if (value.ScreenRecordingEnabled != old.ScreenRecordingEnabled) OnPropertyChanged(nameof(ScreenRecordingOn));
+            // The camera bubble follows its option during a video too (macOS setOverlays), wherever it was changed.
+            if (value.ScreenCamera != old.ScreenCamera) _screen.SetCameraOption(value.ScreenCamera);
+            if (value.ScreenCameraBlur != old.ScreenCameraBlur) _screen.SetCameraBlur(value.ScreenCameraBlur);
             SyncMeetingDetection();
             OnCalendarSettingsChanged(old.Calendar, value.Calendar);
             if (value.LibraryPageSize != old.LibraryPageSize) ResetLibraryPage();
@@ -442,6 +475,9 @@ public sealed partial class AppViewModel : ObservableObject
         var settingsWrite = _settingsWrite;
         // Live transcribers stop now, in parallel with the recording's stop; waited for after it, apart.
         var transcribers = DisposeRecordingTranscribers();
+        // The screen picker and outline close; the video is finished here, since the end snapshot no longer runs, and
+        // a video that ended (early, or with a recording stopped just before the quit) is waited for while it finishes.
+        var (video, videoEnded) = _screen.Shutdown();
         var waited = Stopwatch.StartNew();
         var start = _startTask;
         var stop = Task.Run(() =>
@@ -455,7 +491,16 @@ public sealed partial class AppViewModel : ObservableObject
                 // A failed start left nothing running.
             }
             titleWrite.Wait(); // Never faults: each write catches its own error.
-            _services.Engine.Stop();
+            var videoStop = StopEngine(video);
+            try
+            {
+                video?.StopAsync(videoStop).Wait();
+            }
+            catch (AggregateException e)
+            {
+                Debug.WriteLine($"EchoDiar: could not finish the screen video on quit: {e}");
+            }
+            videoEnded?.Wait(); // Never faults; at once when already finished.
         });
         var handle = ((IAsyncResult)Task.WhenAll(stop, settingsWrite)).AsyncWaitHandle.SafeWaitHandle;
         if (WaitForSingleObject(handle, ShutdownWaitMilliseconds) != WaitObject0)
@@ -623,8 +668,8 @@ public sealed partial class AppViewModel : ObservableObject
         conversation.Status is not (ConversationStatus.Recording or ConversationStatus.Compressing) && !IsTranscribing(conversation.Id);
 
     /// <summary>
-    /// Raised on the UI thread before a conversation's audio or folder is deleted: its open player must close the
-    /// file first, or the move to the Recycle Bin finds it in use.
+    /// Raised on the UI thread before a conversation's audio, video or folder is deleted: its open player and video pane
+    /// must close the files first, or the move to the Recycle Bin finds them in use.
     /// </summary>
     public event Action<Guid>? ReleasingAudio;
 
@@ -669,6 +714,24 @@ public sealed partial class AppViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Moves the conversation's video to the Recycle Bin; its audio, transcript, summary and chat stay (macOS
+    /// <c>deleteVideo</c>). Its open page lets go of the files first and, listed again without the video, reopens the
+    /// audio without the pane. The caller asks first.
+    /// </summary>
+    public async Task DeleteVideoAsync(Guid id)
+    {
+        ReleasingAudio?.Invoke(id);
+        try
+        {
+            await _services.Library.DeleteVideoAsync(id);
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"EchoDiar: could not delete the video of conversation {id}: {e}");
+        }
+    }
+
     // Recording
 
     /// <summary>
@@ -678,10 +741,19 @@ public sealed partial class AppViewModel : ObservableObject
     /// start from EchoDiar's own windows, shortcuts or tray brings the main window forward on it; without
     /// <paramref name="bringForward"/> (the pill's Record and Join, automatic starts) it is only selected in a shown window,
     /// so the meeting app keeps the focus (macOS <c>startRecording</c>).
+    /// <paramref name="screen"/> is also recorded once the engine runs (a video that cannot start leaves the sound as it
+    /// is); <paramref name="systemAudio"/> false records the mic only; <paramref name="skipsTranscription"/> marks the
+    /// recording "screen only", never transcribed automatically. Only a pick from the screen picker of
+    /// <see cref="RequestRecording"/> passes them; every other start records the system audio and transcribes.
     /// </summary>
-    public async Task StartRecordingAsync(AudioProcessGroup? app, CalendarEvent? calendarEvent = null, bool bringForward = true)
+    public async Task StartRecordingAsync(
+        AudioProcessGroup? app, CalendarEvent? calendarEvent = null, bool bringForward = true, ScreenSource? screen = null,
+        bool systemAudio = true, bool skipsTranscription = false)
     {
         if (IsRecording || IsStarting || _closing) return;
+        // A picker opened by Record picks nothing now (a calendar or meeting start while it is open).
+        _screen.CancelPicker();
+        lock (_videoStopGate) _videoStopTime = null;
         _recordingEvent = null;
         if (Updater.IsInstalling)
         {
@@ -692,6 +764,7 @@ public sealed partial class AppViewModel : ObservableObject
         }
         IsStarting = true;
         RecordingError = null;
+        RecordingSkipsTranscription = skipsTranscription;
         // Before the page shows, so the recording page and card show it from their first frame.
         var eventTitle = TrimmedTitle(calendarEvent?.Title);
         RecordingTitle = eventTitle;
@@ -716,14 +789,22 @@ public sealed partial class AppViewModel : ObservableObject
             var language = RecordingLanguage;
             var micEndpointId = Settings.MicDeviceUID;
             // Before the engine starts, with the engine's first marker language, so the prior's engine is the one the
-            // Stop job resolves to.
-            await AttachRecordingTranscriberAsync(language);
+            // Stop job resolves to. A "screen only" recording has no live transcript (macOS startRecordingTranscriber).
+            if (skipsTranscription)
+            {
+                _services.Engine.LiveSink = null;
+                RecordingCaptions = null;
+            }
+            else
+            {
+                await AttachRecordingTranscriberAsync(language);
+            }
             var target = CaptureTarget.Global;
             _startTask = Task.Run<string?>(() =>
             {
                 if (_closing) return null;
                 target = Resolved(app);
-                var folder = _services.Engine.Start(target, language, micEndpointId, root, eventTitle);
+                var folder = _services.Engine.Start(target, language, micEndpointId, root, eventTitle, systemAudio, skipsTranscription);
                 if (!_closing) return folder;
                 // The window closed while the devices opened: nothing else would stop this recording.
                 _services.Engine.Stop();
@@ -733,7 +814,9 @@ public sealed partial class AppViewModel : ObservableObject
             // The window may have closed while the devices opened: Shutdown stopped the timer for good.
             if (_closing) return;
             _activeFolder = folder;
+            SyncLiveSize();
             if (_activeFolder is null) return;
+            if (screen is { } source) _screen.Start(source, _activeFolder, Settings, skipsTranscription);
             _ = LoadLiveChatAsync(_activeFolder);
             _pollTimer.Start();
             BeginEndWatch(target);
@@ -745,6 +828,7 @@ public sealed partial class AppViewModel : ObservableObject
         {
             Debug.WriteLine($"EchoDiar: could not start recording: {e}");
             CancelRecordingTranscriber();
+            RecordingSkipsTranscription = false;
             RecordingSourceName = null;
             RecordingSourceRootPid = null;
             AutoStartedAppName = null;
@@ -761,11 +845,95 @@ public sealed partial class AppViewModel : ObservableObject
         }
     }
 
-    /// <summary>Stops the recording, else records the picked target (macOS <c>toggleRecording</c>).</summary>
-    public void ToggleRecording()
+    /// <summary>Ctrl+R and the hot key: <see cref="RequestRecording"/>.</summary>
+    public void ToggleRecording() => RequestRecording();
+
+    /// <summary>
+    /// The effective "Record the screen too" (macOS <c>settings.screenRecordingEnabled</c>): the stored option, unless
+    /// the build's flag turned screen recording off. Record opens the screen picker, and the picked recording reads
+    /// <see cref="SystemAudioOff"/> and "Transcribe this recording", only on it.
+    /// </summary>
+    public bool ScreenRecordingOn => Features.ScreenRecording && Settings.ScreenRecordingEnabled;
+
+    /// <summary>
+    /// "No system audio" in the Record menu, offered with "Record the screen too" on (turning it off clears this): a
+    /// screen recording then records the mic only. Choosing it sets the target back to all system audio; picking a
+    /// target clears it. Memory only, as <see cref="SelectedTarget"/> (macOS <c>systemAudioOff</c>).
+    /// </summary>
+    public bool SystemAudioOff
+    {
+        get => _systemAudioOff;
+        set
+        {
+            if (value) SelectedTarget = null;
+            SetProperty(ref _systemAudioOff, value);
+        }
+    }
+
+    /// <summary>A screen video is starting or running in the current recording, paused included (macOS <c>isOn</c>).</summary>
+    public bool ScreenOn => _screen.IsOn;
+
+    /// <summary>
+    /// The screen can be turned on in the current recording: it is off and the video has not ended on an error. The
+    /// screen buttons also stay off while paused; turning the screen off works while paused.
+    /// </summary>
+    public bool CanStartDuringRecording => _screen.CanStartDuringRecording;
+
+    /// <summary>Why the screen video ended before the recording or could not be turned on; null = nothing to say.</summary>
+    public string? Notice => _screen.Notice;
+
+    /// <summary>
+    /// Record, Ctrl+R, the hot key, Start in the tray and the welcome pane (macOS <c>toggleRecording</c>): stops a
+    /// running recording; nothing while one starts; with <see cref="ScreenRecordingOn"/> opens the screen picker, whose
+    /// pick starts the recording; else records <see cref="SelectedTarget"/>.
+    /// </summary>
+    public void RequestRecording()
     {
         if (IsRecording) _ = StopRecordingAsync();
+        else if (IsStarting) return;
+        else if (ScreenRecordingOn) _ = PickScreenAsync(duringRecording: false);
         else _ = StartRecordingAsync(SelectedTarget);
+    }
+
+    /// <summary>
+    /// The screen toggle of the toolbar, the pill and the tray, any number of times in a recording (macOS
+    /// <c>toggleScreenRecording</c>). On: opens the screen picker; the pick turns the screen on. Not while paused, nor
+    /// once the video ended on an error. Off: the screen is off from the audio file's current time.
+    /// </summary>
+    public void ToggleScreenRecording()
+    {
+        if (_activeFolder is null) return;
+        if (_screen.IsOn) _screen.ScreenOff();
+        else if (_screen.CanStartDuringRecording && _services.Engine.CurrentSnapshot().State == RecordingEngine.State.Recording)
+        {
+            _ = PickScreenAsync(duringRecording: true);
+        }
+    }
+
+    /// <summary>
+    /// Opens the screen picker; the pick is checked against the state it arrives in (macOS <c>startPickedScreen</c>). For
+    /// a new recording: <see cref="SelectedTarget"/> (all system audio and the mic only with <see cref="SystemAudioOff"/>)
+    /// with the screen, marked "screen only" when "Transcribe this recording" is off; dropped when a recording runs or
+    /// starts meanwhile. During a recording: the screen turned on, unless it ended, paused or the screen came on
+    /// meanwhile. Esc starts nothing.
+    /// </summary>
+    private async Task PickScreenAsync(bool duringRecording)
+    {
+        if (await _screen.PickAsync(duringRecording) is not { } source || _closing) return;
+        if (!duringRecording)
+        {
+            if (IsRecording || IsStarting) return;
+            var systemAudioOff = SystemAudioOff;
+            await StartRecordingAsync(systemAudioOff ? null : SelectedTarget, screen: source, systemAudio: !systemAudioOff,
+                skipsTranscription: !Settings.ScreenTranscribes);
+            return;
+        }
+        if (_activeFolder is not { } folder || _services.Engine.CurrentSnapshot().State != RecordingEngine.State.Recording
+            || !_screen.CanStartDuringRecording)
+        {
+            return;
+        }
+        _screen.StartDuringRecording(source, folder, Settings, _recordingSkipsTranscription);
     }
 
     /// <summary>Pauses (both devices closed) or resumes the recording.</summary>
@@ -774,6 +942,8 @@ public sealed partial class AppViewModel : ObservableObject
         var state = RecordingSnapshot.State;
         if (state == RecordingEngine.State.Idle) return;
         var transcriber = _recordingTranscriber;
+        // The video pauses before the sound and resumes after it, so it never runs past the audio file's clock.
+        if (state == RecordingEngine.State.Recording) _screen.Pause();
         try
         {
             await Task.Run(() =>
@@ -789,6 +959,7 @@ public sealed partial class AppViewModel : ObservableObject
                     _services.Engine.Resume();
                 }
             });
+            if (state == RecordingEngine.State.Paused) _screen.Resume();
         }
         catch (Exception e)
         {
@@ -802,11 +973,30 @@ public sealed partial class AppViewModel : ObservableObject
     {
         FlushRecordingTitle();
         var titleWrite = _titleWrite;
+        var video = _screen.Recorder;
         return Task.Run(async () =>
         {
             await titleWrite;
-            _services.Engine.Stop();
+            StopEngine(video);
         });
+    }
+
+    /// <summary>
+    /// Stops the audio (off the UI thread). The screen <paramref name="video"/>, if any, is paused first and its end read
+    /// from the engine just before the audio stops, so no frame is written past it; the end snapshot finishes the video
+    /// at that time. Returns it (null without a video, or when the engine was already idle).
+    /// </summary>
+    private double? StopEngine(ScreenRecorder? video)
+    {
+        double? time = null;
+        if (video is not null)
+        {
+            video.Pause();
+            time = _services.Engine.FileTime(Stopwatch.GetElapsedTime(0).Ticks);
+        }
+        lock (_videoStopGate) _videoStopTime = time;
+        _services.Engine.Stop();
+        return time;
     }
 
     /// <summary>
@@ -933,16 +1123,28 @@ public sealed partial class AppViewModel : ObservableObject
         if (StopMessage(reason) is { } message) RecordingError = message;
         var folder = _activeFolder;
         _activeFolder = null;
+        SyncLiveSize();
+        // Taken at once (a next recording starts its own video); it ends at the time read before a stop from EchoDiar
+        // stopped the audio, else (the engine stopped on its own) at the audio file's length.
+        double? stopTime;
+        lock (_videoStopGate)
+        {
+            stopTime = _videoStopTime;
+            _videoStopTime = null;
+        }
+        var video = _screen.Finish(stopTime ?? snapshot.Elapsed);
+        RecordingSkipsTranscription = false;
         var transcriber = TakeRecordingTranscriber();
-        if (folder is not null) _ = FinishRecordingAsync(folder, transcriber);
+        if (folder is not null) _ = FinishRecordingAsync(folder, transcriber, video);
         else if (transcriber is not null) CancelRecordingTranscriber(transcriber);
     }
 
     /// <summary>
-    /// Lists the recording (its title, if any, comes from <c>session.json</c>), opens it when the recording page is
-    /// showing, then compresses and transcribes it with what the live transcriber transcribed, which drains meanwhile.
+    /// Lists the recording (its title, if any, comes from <c>session.json</c>) once its screen <paramref name="video"/>
+    /// is finished, opens it when the recording page is showing, then compresses and transcribes it with what the live
+    /// transcriber transcribed, which drains meanwhile.
     /// </summary>
-    private async Task FinishRecordingAsync(string folder, RecordingTranscriber? transcriber)
+    private async Task FinishRecordingAsync(string folder, RecordingTranscriber? transcriber, Task? video)
     {
         // The recording page's tab at Stop, before a new recording can reset it: the same tab, the recording's
         // catch-ups in Catch-up (Summary when it has none, see AIPanelView); a chat going on during the recording
@@ -952,6 +1154,9 @@ public sealed partial class AppViewModel : ObservableObject
         if (_closing) return;
         try
         {
+            // Nothing reads the video before its file is finished (never faults).
+            if (video is not null) await video;
+            if (_closing) return;
             var list = await _services.Library.RefreshAsync();
             var session = await Task.Run(() => ReadSession(folder));
             if (_closing) return;

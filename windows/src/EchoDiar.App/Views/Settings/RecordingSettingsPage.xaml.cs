@@ -15,9 +15,10 @@ namespace EchoDiar.App.Views;
 
 /// <summary>
 /// Settings › Recording (macOS RecordingSettingsView.swift), the Microphone, Meetings, Auto-stop and After recording
-/// inner tabs; the title bar picks the tab (<see cref="AppViewModel.SubTabOf"/>). Every setting shows
-/// <see cref="SettingsViewModel"/> and changes it; the change is saved after its delay. The microphones are listed
-/// again each time the page or its Microphone tab shows (macOS follows device changes live).
+/// inner tabs, and Screen with <see cref="Features.ScreenRecording"/>; the title bar picks the tab
+/// (<see cref="AppViewModel.SubTabOf"/>). Every setting shows <see cref="SettingsViewModel"/> and changes it; the change
+/// is saved after its delay. The microphones are listed again each time the page or its Microphone tab shows (macOS
+/// follows device changes live).
 /// </summary>
 public sealed partial class RecordingSettingsPage : UserControl
 {
@@ -25,6 +26,7 @@ public sealed partial class RecordingSettingsPage : UserControl
     public const string MeetingsTab = "meetings";
     public const string AutoStopTab = "autoStop";
     public const string AfterRecordingTab = "afterRecording";
+    public const string ScreenTab = "screen";
 
     /// <summary>macOS <c>SettingsTab.recording.subTabs</c>.</summary>
     public static IReadOnlyList<SettingsSubTab> SubTabs { get; } =
@@ -33,6 +35,7 @@ public sealed partial class RecordingSettingsPage : UserControl
         new(MeetingsTab, "Meetings"),
         new(AutoStopTab, "Auto-stop"),
         new(AfterRecordingTab, "After recording"),
+        .. Features.ScreenRecording ? [new SettingsSubTab(ScreenTab, "Screen")] : Array.Empty<SettingsSubTab>(),
     ];
 
     /// <summary>The searchable rows (macOS SettingsSearch.swift, Recording), each the Tag of its element.</summary>
@@ -40,6 +43,8 @@ public sealed partial class RecordingSettingsPage : UserControl
     [
         new("Microphone", ["input device", "mic", "audio input"], MicrophoneTab),
         new("When the microphone disconnects", ["unplug", "headphones", "route change"], MicrophoneTab),
+        new("Tray icon while recording",
+            ["tray", "notification area", "status item", "elapsed time", "timer", "file size", "icon"], MicrophoneTab),
         new("Detect meetings", ["auto record", "meeting apps", .. MeetingApps.Known.Select(a => a.Name)], MeetingsTab),
         new("Attach the indicator to the meeting window", ["floating indicator", "pill", "anchor"], MeetingsTab),
         new("Stop when the app is quiet for", ["auto-stop", "inactive", "idle"], AutoStopTab),
@@ -51,6 +56,19 @@ public sealed partial class RecordingSettingsPage : UserControl
         new("Tell speakers apart", ["diarization", "speakers", "who spoke"], AfterRecordingTab),
         new("Number of other speakers", ["speaker count", "diarization", "people"], AfterRecordingTab),
         new(DeferTitle, ["battery", "battery saver", "energy saver", "power", "defer"], AfterRecordingTab),
+        .. Features.ScreenRecording
+            ?
+            [
+                new SettingsEntry("Frame rate", ["fps", "frames per second", "60 fps", "video", "screen recording"], ScreenTab),
+                new SettingsEntry("Quality",
+                    ["video quality", "file size", "MB", "smaller", "balanced", "sharper", "screen recording"], ScreenTab),
+                new SettingsEntry("Transcribe screen recordings", ["screen only", "video", "no transcript"], ScreenTab),
+                new SettingsEntry("Show the cursor", ["pointer", "mouse", "video", "screen recording"], ScreenTab),
+                new SettingsEntry("Highlight clicks", ["mouse clicks", "pointer", "video", "screen recording"], ScreenTab),
+                new SettingsEntry("Camera bubble", ["webcam", "camera", "face", "overlay", "video"], ScreenTab),
+                new SettingsEntry("Blur background", ["blur", "background", "portrait", "camera"], ScreenTab),
+            ]
+            : Array.Empty<SettingsEntry>(),
     ];
 
     /// <summary>
@@ -67,6 +85,13 @@ public sealed partial class RecordingSettingsPage : UserControl
     /// <summary>The route combo's items, in order (macOS: Ask to stop, Keep recording, Stop recording).</summary>
     private static readonly RouteChangeBehavior[] RouteBehaviors = [RouteChangeBehavior.Ask, RouteChangeBehavior.Continue, RouteChangeBehavior.Stop];
 
+    /// <summary>The tray combo's items, in order (macOS: Icon only, Elapsed time, File size).</summary>
+    private static readonly MenuBarRecordingInfo[] TrayInfos =
+        [MenuBarRecordingInfo.IconOnly, MenuBarRecordingInfo.ElapsedTime, MenuBarRecordingInfo.FileSize];
+
+    /// <summary>The quality combo's presets, in order (macOS <c>ScreenQuality.presets</c>: Smaller, Balanced, Sharper).</summary>
+    private static readonly double[] QualityPresets = [0.60, 0.75, 0.85];
+
     private readonly AppViewModel _model;
     private readonly SettingsViewModel _settings;
     private readonly ModelsViewModel _models;
@@ -82,6 +107,12 @@ public sealed partial class RecordingSettingsPage : UserControl
 
     /// <summary>A listing is under way.</summary>
     private bool _listing;
+
+    /// <summary>The 60 fps confirmation is up.</summary>
+    private bool _confirming60FPS;
+
+    /// <summary>Shows the 60 fps confirmation in the toolbar's dialog queue; false when another dialog is open.</summary>
+    internal Func<ContentDialog, Task<bool>>? ShowDialog { get; set; }
 
     /// <summary>One row per meeting app: its app, its combo and the behaviors of the combo's items.</summary>
     private readonly List<(MeetingApp App, ComboBox Combo, MeetingBehavior[] Behaviors)> _appRows = [];
@@ -100,6 +131,7 @@ public sealed partial class RecordingSettingsPage : UserControl
         SpeakerCountCombo.Items.Add(Loc.T("Auto"));
         var (min, max) = AppSettings.SpeakerCountHintRange;
         for (var count = min; count <= max; count++) SpeakerCountCombo.Items.Add(count.ToString(CultureInfo.CurrentCulture));
+        foreach (var fps in AppSettings.ScreenFPSOptions) FrameRateCombo.Items.Add(Loc.Format("%lld fps", fps));
         AddAppRows();
         SetUpNumber(SourceInactiveBox, SourceInactiveCard, MeetingEndMonitorConfiguration.SourceInactiveRange, "s",
             (s, v) => s with { EndMonitor = s.EndMonitor with { SourceInactiveSeconds = v } });
@@ -122,6 +154,11 @@ public sealed partial class RecordingSettingsPage : UserControl
             var index = RouteCombo.SelectedIndex;
             if (!_syncing && index >= 0) _settings.Update(s => s with { RouteChangeBehavior = RouteBehaviors[index] });
         };
+        TrayInfoCombo.SelectionChanged += (_, _) =>
+        {
+            var index = TrayInfoCombo.SelectedIndex;
+            if (!_syncing && index >= 0) _settings.MenuBarRecordingInfo = TrayInfos[index];
+        };
         AttachToggle.Toggled += (_, _) => Set(() => _settings.Update(s => s with { AttachPillToWindow = AttachToggle.IsOn }));
         DetectToggle.Toggled += (_, _) => Set(() => _settings.Update(s => s with { MeetingDetection = DetectToggle.IsOn }));
         EndPromptNotificationToggle.Toggled += (_, _) =>
@@ -137,6 +174,21 @@ public sealed partial class RecordingSettingsPage : UserControl
             if (!_syncing && index >= 0) _settings.SpeakerCountHint = index == 0 ? null : min + index - 1;
         };
         DeferToggle.Toggled += (_, _) => Set(() => _settings.DeferTranscriptionWhenConstrained = DeferToggle.IsOn);
+        FrameRateCombo.SelectionChanged += (_, _) =>
+        {
+            var index = FrameRateCombo.SelectedIndex;
+            if (!_syncing && index >= 0) _ = SetFrameRateAsync(AppSettings.ScreenFPSOptions[index]);
+        };
+        QualityCombo.SelectionChanged += (_, _) =>
+        {
+            var index = QualityCombo.SelectedIndex;
+            if (!_syncing && index >= 0) _settings.ScreenQuality = QualityPresets[index];
+        };
+        ScreenTranscribesToggle.Toggled += (_, _) => Set(() => _settings.ScreenTranscribes = ScreenTranscribesToggle.IsOn);
+        ShowCursorToggle.Toggled += (_, _) => Set(() => _settings.ScreenShowsCursor = ShowCursorToggle.IsOn);
+        ShowClicksToggle.Toggled += (_, _) => Set(() => _settings.ScreenShowsClicks = ShowClicksToggle.IsOn);
+        CameraToggle.Toggled += (_, _) => Set(() => _settings.ScreenCamera = CameraToggle.IsOn);
+        CameraBlurToggle.Toggled += (_, _) => Set(() => _settings.ScreenCameraBlur = CameraBlurToggle.IsOn);
 
         Loaded += (_, _) =>
         {
@@ -196,6 +248,7 @@ public sealed partial class RecordingSettingsPage : UserControl
         MeetingsPanel.Visibility = tab == MeetingsTab ? Visibility.Visible : Visibility.Collapsed;
         AutoStopPanel.Visibility = tab == AutoStopTab ? Visibility.Visible : Visibility.Collapsed;
         AfterRecordingPanel.Visibility = tab == AfterRecordingTab ? Visibility.Visible : Visibility.Collapsed;
+        ScreenPanel.Visibility = tab == ScreenTab && Features.ScreenRecording ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Every setting control shows the current settings.</summary>
@@ -214,6 +267,7 @@ public sealed partial class RecordingSettingsPage : UserControl
                 RouteChangeBehavior.Stop => "Recording stops at once.",
                 _ => "Recording continues with the default input until then.",
             });
+            TrayInfoCombo.SelectedIndex = Array.IndexOf(TrayInfos, settings.MenuBarRecordingInfo);
 
             AttachToggle.IsOn = settings.AttachPillToWindow;
             DetectToggle.IsOn = settings.MeetingDetection;
@@ -244,6 +298,15 @@ public sealed partial class RecordingSettingsPage : UserControl
                 ? "A hint for telling the system audio's speakers apart."
                 : "Needs the speaker model: download it in Settings › AI Providers › Local AI.");
             DeferToggle.IsOn = settings.DeferTranscriptionWhenConstrained;
+
+            FrameRateCombo.SelectedIndex = AppSettings.ScreenFPSOptions.ToList().IndexOf(settings.ScreenFPS);
+            QualityCombo.SelectedIndex = NearestQualityPreset(settings.ScreenQuality);
+            ScreenTranscribesToggle.IsOn = settings.ScreenTranscribes;
+            ShowCursorToggle.IsOn = settings.ScreenShowsCursor;
+            ShowClicksToggle.IsOn = settings.ScreenShowsClicks;
+            CameraToggle.IsOn = settings.ScreenCamera;
+            CameraBlurToggle.IsOn = settings.ScreenCameraBlur;
+            CameraBlurCard.IsEnabled = settings.ScreenCamera;
         }
         finally
         {
@@ -372,6 +435,62 @@ public sealed partial class RecordingSettingsPage : UserControl
     }
 
     private static int Clamped(int value, (int Min, int Max) range) => Math.Clamp(value, range.Min, range.Max);
+
+    // Screen
+
+    /// <summary>
+    /// Picking 60 fps from another rate asks first (much larger files), and the stored rate stays until "Use 60 fps";
+    /// Cancel, or another dialog open, shows the stored rate again. The other rates apply at once (macOS <c>frameRate</c>).
+    /// </summary>
+    private async Task SetFrameRateAsync(int fps)
+    {
+        if (fps != 60 || _settings.ScreenFPS == 60)
+        {
+            _settings.ScreenFPS = fps;
+            return;
+        }
+        if (_confirming60FPS || XamlRoot is not { } root || ShowDialog is not { } show)
+        {
+            Refresh();
+            return;
+        }
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root,
+            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+            Title = Loc.T("Record at 60 frames per second?"),
+            Content = new TextBlock { TextWrapping = TextWrapping.Wrap, Text = Loc.T("Files can be several times larger.") },
+            PrimaryButtonText = Loc.T("Use 60 fps"),
+            CloseButtonText = Loc.T("Cancel"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        // The queue throws the result away: "Use 60 fps" is read from its click.
+        var confirmed = false;
+        dialog.PrimaryButtonClick += (_, _) => confirmed = true;
+        _confirming60FPS = true;
+        try
+        {
+            await show(dialog);
+        }
+        finally
+        {
+            _confirming60FPS = false;
+        }
+        if (_model.IsClosing) return;
+        if (confirmed) _settings.ScreenFPS = 60;
+        else Refresh();
+    }
+
+    /// <summary>The index of the preset nearest <paramref name="quality"/>, the first on a tie (macOS <c>ScreenQuality.nearest</c>).</summary>
+    private static int NearestQualityPreset(double quality)
+    {
+        var nearest = 0;
+        for (var i = 1; i < QualityPresets.Length; i++)
+        {
+            if (Math.Abs(QualityPresets[i] - quality) < Math.Abs(QualityPresets[nearest] - quality)) nearest = i;
+        }
+        return nearest;
+    }
 
     /// <summary>The note and its Windows Settings button while notifications are off for EchoDiar (macOS: denied).</summary>
     private void RefreshNotificationsOff() =>

@@ -4,6 +4,7 @@ using EchoDiar.App.ViewModels;
 using EchoDiar.App.Views;
 using EchoDiar.Core.Audio;
 using EchoDiar.Core.Model;
+using EchoDiar.Core.Settings;
 using EchoDiar.Platform.SystemServices;
 using EchoDiar.Transcribe;
 using Microsoft.UI.Dispatching;
@@ -19,7 +20,8 @@ internal enum IndicatorState { Idle, Recording, Paused, Processing }
 /// The notification area icon and its menu (macOS StatusItemController.swift), on the Platform <see cref="NotifyIcon"/>.
 /// The menu is rebuilt each time it opens; a left click opens the main window (the Windows convention; macOS opens the
 /// menu). The icon follows the recording: the logo, with a red dot while recording, an orange pause badge while paused or
-/// an accent level badge while processing at its bottom-right (macOS), and the tooltip names the state. The window's
+/// an accent level badge while processing at its bottom-right (macOS), and the tooltip names the state, with the elapsed
+/// time or the size while recording per "Tray icon while recording" (a tray icon cannot show text beside it). The window's
 /// session end (sign-out, shutdown) goes to <c>sessionEnding</c>, synchronously. UI thread only; menu picks run after
 /// the menu closed, posted to the dispatcher.
 /// </summary>
@@ -80,13 +82,17 @@ internal sealed class TrayIcon : IDisposable
     private void OnModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(AppViewModel.RecordingSnapshot) or nameof(AppViewModel.Conversations)
-            or nameof(AppViewModel.TranscriptionProgress))
+            or nameof(AppViewModel.TranscriptionProgress) or nameof(AppViewModel.LiveRecordingBytes)
+            or nameof(AppViewModel.Settings))
         {
             Update();
         }
     }
 
-    /// <summary>The icon and tooltip for the state; the snapshot changes at 15 Hz while recording, the icon only on a new state.</summary>
+    /// <summary>
+    /// The icon and tooltip for the state; the snapshot changes at 15 Hz while recording, the icon only on a new state and
+    /// the tooltip only when its text does (each second for the elapsed time, every 2 s at most for the size).
+    /// </summary>
     private void Update()
     {
         var state = State;
@@ -100,6 +106,8 @@ internal sealed class TrayIcon : IDisposable
 
     private void Show(IndicatorState state)
     {
+        // NotifyIcon drops an unchanged tooltip and cuts it to the 127 characters szTip holds.
+        _icon.SetTooltip(Tooltip(state));
         if (state == _shown) return;
         _shown = state;
         switch (state)
@@ -119,14 +127,31 @@ internal sealed class TrayIcon : IDisposable
                 _icon.SetGlyph(NotifyIconGlyph.Logo);
                 break;
         }
-        _icon.SetTooltip(state switch
-        {
-            IndicatorState.Recording => Loc.T("EchoDiar, recording"),
-            IndicatorState.Paused => Loc.T("EchoDiar, recording paused"),
-            IndicatorState.Processing => Loc.T("EchoDiar, processing"),
-            _ => Loc.T("EchoDiar"),
-        });
     }
+
+    /// <summary>
+    /// The state's name; while recording or paused followed by the elapsed time or the size so far (until its first read
+    /// is back: the name alone), as the menu bar shows them after the icon on macOS (no size tint here).
+    /// </summary>
+    private string Tooltip(IndicatorState state)
+    {
+        if (state is not (IndicatorState.Recording or IndicatorState.Paused))
+        {
+            return Loc.T(state == IndicatorState.Processing ? "EchoDiar, processing" : "EchoDiar");
+        }
+        var paused = state == IndicatorState.Paused;
+        return RecordingInfo() is { } info
+            ? Loc.Format(paused ? "EchoDiar, recording paused — %@" : "EchoDiar, recording — %@", info)
+            : Loc.T(paused ? "EchoDiar, recording paused" : "EchoDiar, recording");
+    }
+
+    /// <summary>The elapsed time or the size so far per "Tray icon while recording"; null for the icon alone or before the first size.</summary>
+    private string? RecordingInfo() => _model.Settings.MenuBarRecordingInfo switch
+    {
+        MenuBarRecordingInfo.ElapsedTime => ConversationText.Clock(_model.RecordingSnapshot.Elapsed),
+        MenuBarRecordingInfo.FileSize when _model.LiveRecordingBytes is { } bytes => ConversationCard.FileSize(bytes),
+        _ => null,
+    };
 
     /// <summary>The menu as it opens (macOS menuNeedsUpdate); the values are read now.</summary>
     private IReadOnlyList<NotifyIconMenuItem> BuildMenu()
@@ -140,7 +165,7 @@ internal sealed class TrayIcon : IDisposable
         else
         {
             // Off while the update installs: it closes the app.
-            items.Add(Item(Loc.T("Start recording"), () => _ = _model.StartRecordingAsync(_model.SelectedTarget),
+            items.Add(Item(Loc.T("Start recording"), _model.RequestRecording,
                 enabled: !_model.IsStarting && !_model.Updater.IsInstalling));
         }
         if (_model.DetectedMeetingName is { } app)
@@ -192,17 +217,29 @@ internal sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Stop, Language and the silent-tap item (macOS
-    /// addRecordingItems).
+    /// Elapsed time, Pause/Resume, Mute/Unmute Microphone, Record/Stop Recording Screen, Stop, Language and the
+    /// silent-tap item (macOS addRecordingItems).
     /// </summary>
     private void AddRecordingItems(List<NotifyIconMenuItem> items, RecordingEngine.Snapshot snapshot)
     {
         var paused = snapshot.State == RecordingEngine.State.Paused;
-        items.Add(new NotifyIconMenuItem($"{Loc.T(paused ? "Paused" : "Recording")} {ConversationText.Clock(snapshot.Elapsed)}", Enabled: false));
+        // "Recording — 0:18" or "Recording — 12.3 MB" per "Tray icon while recording" (macOS "Recording — %@", always
+        // the elapsed time there); the icon alone, or no size yet: "Recording 0:18".
+        var status = RecordingInfo() is { } info
+            ? Loc.Format(paused ? "Paused — %@" : "Recording — %@", info)
+            : $"{Loc.T(paused ? "Paused" : "Recording")} {ConversationText.Clock(snapshot.Elapsed)}";
+        items.Add(new NotifyIconMenuItem(status, Enabled: false));
         items.Add(Item(Loc.T(paused ? "Resume" : "Pause"), () => _ = _model.TogglePauseAsync()));
         // While the system mutes the mic, only the system can unmute it (macOS addRecordingItems).
         items.Add(Item(Loc.T(snapshot.SystemMicMuted ? "Microphone muted in system settings"
             : snapshot.MicMuted ? "Unmute Microphone" : "Mute Microphone"), _model.ToggleMicMute, enabled: !snapshot.SystemMicMuted));
+        if (Features.ScreenRecording)
+        {
+            // Turning the screen on is not offered while paused, nor once the video ended on an error (macOS screenItem).
+            var screenOn = _model.ScreenOn;
+            items.Add(Item(Loc.T(screenOn ? "Stop Recording Screen" : "Record Screen"), _model.ToggleScreenRecording,
+                enabled: screenOn || !paused && _model.CanStartDuringRecording));
+        }
         items.Add(Item(Loc.T("Stop recording"), () => _ = _model.StopRecordingAsync()));
         items.Add(LanguageItem());
         if (snapshot.SilentTapSuspected)

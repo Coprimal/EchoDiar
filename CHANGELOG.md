@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Screen recording, in Beta (Windows). Turn on "Record the screen too (Beta)" in the menu next to Record (off by default), and Record (Ctrl+R) first asks what to record, right on the screen: Entire screen, Window or Portion of the screen; Esc cancels. Windows draws its yellow border around what is captured, and an outline marks a portion. During a recording, the screen button in the toolbar, the floating indicator and the tray menu turn the screen on and off, with a black "Screen recording off" picture in the video where it was off. "No system audio" and "Transcribe this recording" work as on macOS. Key presses are not available on Windows.
+- A camera bubble and click highlights for screen recordings (Windows): a round camera picture you can drag, drawn into the video and hidden from other apps' screen captures and shares, with "Blur background" (on by default) done on the PC by a bundled model, so nothing leaves the device. "Highlight clicks" marks mouse clicks.
+- Settings > Recording > Screen: frame rate (15, 20, 30 or 60 fps; 60 asks first), quality (Smaller, Balanced or Sharper), cursor, clicks, camera bubble, blur and "Transcribe screen recordings"; and Settings > Recording > Microphone > "Tray icon while recording": the icon only, the elapsed time or the file size (the default), as the tray icon's tooltip and the first line of its menu (Windows).
+- The Transcript tab plays the video beside the transcript in sync with the sound, with Show video and Hide video, "Export video…" (both, the microphone, the system audio or no sound) and "Delete video…". Videos are HEVC when the PC can record and play it, otherwise H.264 (Windows).
+- Cards show a video badge and a size tint, and a running recording shows its live size and a "screen recorded" mark; the recording says why when the video stops early (window closed, low disk space, write error) or when camera access is off or blur is not available (Windows).
+
 ## [1.7.1] - 2026-11-25
 
 ### Added

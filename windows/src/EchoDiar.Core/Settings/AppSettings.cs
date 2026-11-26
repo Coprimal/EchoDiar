@@ -26,6 +26,9 @@ public sealed record AppSettings : IJsonOnDeserializing, IJsonOnDeserialized
     /// <summary>Idle times offered in Settings; a hand-edited value is clamped to <see cref="ModelIdleMinutesRange"/>.</summary>
     public static readonly IReadOnlyList<int> ModelIdleMinutesOptions = [1, 2, 5, 10];
     public static readonly (int Min, int Max) ModelIdleMinutesRange = (1, 60);
+    /// <summary>Screen recording frame rates offered in Settings; a hand-edited other value reads as 15.</summary>
+    public static readonly IReadOnlyList<int> ScreenFPSOptions = [15, 20, 30, 60];
+    public static readonly (double Min, double Max) ScreenQualityRange = (0.4, 0.95);
 
     [JsonPropertyName("version")] public int Version { get; set; } = 1;
     [JsonPropertyName("launchAtLogin")] public bool LaunchAtLogin { get; set; }
@@ -152,6 +155,45 @@ public sealed record AppSettings : IJsonOnDeserializing, IJsonOnDeserialized
     [JsonPropertyName("libraryPageSize")] public int LibraryPageSize { get; set; } = 100;
     /// <summary>The conversation's and the recording's two panes are stacked (the transcript on top) instead of side by side.</summary>
     [JsonPropertyName("stackedPanes")] public bool StackedPanes { get; set; }
+    /// <summary>Screen recording frame rate, one of <see cref="ScreenFPSOptions"/>; any other value reads as 15.</summary>
+    [JsonPropertyName("screenFPS"), JsonConverter(typeof(ScreenFPSConverter))] public int ScreenFPS { get; set; } = 15;
+    /// <summary>Screen recording encoder quality, in <see cref="ScreenQualityRange"/>.</summary>
+    [JsonPropertyName("screenQuality"), JsonConverter(typeof(ScreenQualityConverter))]
+    public double ScreenQuality { get; set; } = 0.75;
+    /// <summary>Draw the pointer in screen recordings.</summary>
+    [JsonPropertyName("screenShowsCursor"), JsonConverter(typeof(LenientTrueConverter))]
+    public bool ScreenShowsCursor { get; set; } = true;
+    /// <summary>Highlight clicks in screen recordings.</summary>
+    [JsonPropertyName("screenShowsClicks"), JsonConverter(typeof(LenientFalseConverter))]
+    public bool ScreenShowsClicks { get; set; }
+    /// <summary>Transcribe screen recordings; false = "screen only": the next screen recording gets the "no transcript" mark.</summary>
+    [JsonPropertyName("screenTranscribes"), JsonConverter(typeof(LenientTrueConverter))]
+    public bool ScreenTranscribes { get; set; } = true;
+    /// <summary>The monitor (and area) last picked for a screen recording; null = none picked yet.</summary>
+    [JsonPropertyName("screenSource"), JsonConverter(typeof(ScreenSourceConverter))]
+    public RememberedScreenSource? ScreenSource { get; set; }
+    /// <summary>Where the transcript shows a conversation's video.</summary>
+    [JsonPropertyName("transcriptVideoLayout"), JsonConverter(typeof(LenientTranscriptVideoLayoutConverter))]
+    public TranscriptVideoLayout TranscriptVideoLayout { get; set; } = TranscriptVideoLayout.Stacked;
+    /// <summary>Show the camera bubble in screen recordings.</summary>
+    [JsonPropertyName("screenCamera"), JsonConverter(typeof(LenientFalseConverter))] public bool ScreenCamera { get; set; }
+    /// <summary>Show modifier shortcuts in a floating HUD during display/area screen recordings.</summary>
+    [JsonPropertyName("screenKeyStrokes"), JsonConverter(typeof(LenientFalseConverter))]
+    public bool ScreenKeyStrokes { get; set; }
+    /// <summary>Show every key in the keystroke HUD, including plain typing; off by default for privacy.</summary>
+    [JsonPropertyName("screenAllKeys"), JsonConverter(typeof(LenientFalseConverter))] public bool ScreenAllKeys { get; set; }
+    /// <summary>"Record the screen too": Record opens the screen source chooser first.</summary>
+    [JsonPropertyName("screenRecordingEnabled"), JsonConverter(typeof(LenientFalseConverter))]
+    public bool ScreenRecordingEnabled { get; set; }
+    /// <summary>Blur the background behind the person in the camera bubble (processed in memory, never stored).</summary>
+    [JsonPropertyName("screenCameraBlur"), JsonConverter(typeof(LenientTrueConverter))]
+    public bool ScreenCameraBlur { get; set; } = true;
+    /// <summary>
+    /// What the tray item shows while a recording runs. Stored as <c>menuBarRecordingDetail</c>, as on macOS (development
+    /// builds there wrote a stale <c>menuBarRecordingInfo</c>).
+    /// </summary>
+    [JsonPropertyName("menuBarRecordingDetail"), JsonConverter(typeof(LenientMenuBarRecordingInfoConverter))]
+    public MenuBarRecordingInfo MenuBarRecordingInfo { get; set; } = MenuBarRecordingInfo.FileSize;
 
     /// <summary>Keys not modeled here, written back as read.</summary>
     [JsonExtensionData] public Dictionary<string, JsonElement> Extra { get; set; } = [];
@@ -238,6 +280,8 @@ public sealed record AppSettings : IJsonOnDeserializing, IJsonOnDeserialized
         ModelIdleMinutes = Clamp(ModelIdleMinutes, ModelIdleMinutesRange);
         AutoDeleteAfterDays = Clamp(AutoDeleteAfterDays, AutoDeleteDaysRange);
         if (SpeakerCountHint is { } hint) SpeakerCountHint = Clamp(hint, SpeakerCountHintRange);
+        if (!ScreenFPSOptions.Contains(ScreenFPS)) ScreenFPS = 15;
+        ScreenQuality = Math.Clamp(ScreenQuality, ScreenQualityRange.Min, ScreenQualityRange.Max);
         // A shortcut the recorder refuses (a hand-edited or synced file) would take keys away from every app.
         if (!GlobalHotKeyWindows.IsAllowedGlobal) GlobalHotKeyWindows = WindowsHotKey.DefaultRecord;
         if (!GlobalPauseHotKeyWindows.IsAllowedGlobal) GlobalPauseHotKeyWindows = WindowsHotKey.DefaultPause;
@@ -412,6 +456,95 @@ public sealed class AnswerLengthConverter() : TolerantEnumConverter<AnswerLength
 public enum PillSize { Small, Medium, Large }
 
 public sealed class PillSizeConverter() : TolerantEnumConverter<PillSize>(PillSize.Medium);
+
+/// <summary>
+/// Where the transcript shows a conversation's video. An unknown value reads as <see cref="Stacked"/>, and so does the
+/// former macOS <c>sideBySide</c> (the video left of the transcript).
+/// </summary>
+[JsonConverter(typeof(TranscriptVideoLayoutConverter))]
+public enum TranscriptVideoLayout
+{
+    /// <summary>The video above the transcript.</summary>
+    Stacked,
+    /// <summary>No video.</summary>
+    Hidden,
+}
+
+public sealed class TranscriptVideoLayoutConverter() : TolerantEnumConverter<TranscriptVideoLayout>(TranscriptVideoLayout.Stacked);
+
+/// <summary>What the tray item shows while a recording runs. An unknown value reads as <see cref="FileSize"/>.</summary>
+[JsonConverter(typeof(MenuBarRecordingInfoConverter))]
+public enum MenuBarRecordingInfo
+{
+    IconOnly,
+    /// <summary>The recording's elapsed time.</summary>
+    ElapsedTime,
+    /// <summary>The size of the recording's files on disk so far.</summary>
+    FileSize,
+}
+
+public sealed class MenuBarRecordingInfoConverter() : TolerantEnumConverter<MenuBarRecordingInfo>(MenuBarRecordingInfo.FileSize);
+
+/// <summary>
+/// The monitor (and optional area) last picked for a screen recording, under the macOS key <c>screenSource</c> with a
+/// Windows shape (settings are per machine). A macOS value (<c>displayID</c>, area in points) reads as no source.
+/// </summary>
+public sealed record RememberedScreenSource
+{
+    /// <summary>The monitor's GDI device name (<c>\\.\DISPLAY1</c>).</summary>
+    [JsonPropertyName("monitor")] public required string Monitor { get; set; }
+    /// <summary>The recorded area; null = the whole monitor.</summary>
+    [JsonPropertyName("area")] public ScreenSourceArea? Area { get; set; }
+}
+
+/// <summary>An area in monitor pixels, from the monitor's top-left corner.</summary>
+public sealed record ScreenSourceArea
+{
+    [JsonPropertyName("x")] public required int X { get; set; }
+    [JsonPropertyName("y")] public required int Y { get; set; }
+    [JsonPropertyName("width")] public required int Width { get; set; }
+    [JsonPropertyName("height")] public required int Height { get; set; }
+}
+
+/// <summary>
+/// Swift's <c>(try? decodeIfPresent(T.self)) ?? fallback</c> for one key: null or a value of the wrong type or shape
+/// reads as <paramref name="fallback"/> instead of failing the whole file. Subclass it per fallback (attributes need a
+/// parameterless converter).
+/// </summary>
+public class LenientConverter<T>(T fallback) : JsonConverter<T>
+{
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var element = JsonElement.ParseValue(ref reader);
+        try
+        {
+            return element.Deserialize<T>(options) ?? fallback;
+        }
+        catch (JsonException)
+        {
+            return fallback;
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) =>
+        JsonSerializer.Serialize(writer, value, options);
+}
+
+public sealed class LenientTrueConverter() : LenientConverter<bool>(true);
+
+public sealed class LenientFalseConverter() : LenientConverter<bool>(false);
+
+public sealed class ScreenFPSConverter() : LenientConverter<int>(15);
+
+public sealed class ScreenQualityConverter() : LenientConverter<double>(0.75);
+
+public sealed class ScreenSourceConverter() : LenientConverter<RememberedScreenSource?>(null);
+
+public sealed class LenientTranscriptVideoLayoutConverter()
+    : LenientConverter<TranscriptVideoLayout>(TranscriptVideoLayout.Stacked);
+
+public sealed class LenientMenuBarRecordingInfoConverter()
+    : LenientConverter<MenuBarRecordingInfo>(MenuBarRecordingInfo.FileSize);
 
 /// <summary>A synthesized Swift <c>String</c> enum: camelCase raw values; an unknown value or a number throws.</summary>
 public sealed class StrictCamelCaseEnumConverter<T>() : JsonStringEnumConverter<T>(JsonNamingPolicy.CamelCase, allowIntegerValues: false)

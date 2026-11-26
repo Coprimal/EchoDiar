@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
-    title, the state, the elapsed time, the mic and system meters, "Catch up" and the language, the calendar suggestion
-    and the capture warnings, pinned on top; under them the live transcript (or the wave and why there is none) on the
+    title, the state, the elapsed time with the size so far and the "screen recorded" glyph, the mic and system meters,
+    "Catch up" and the language, the calendar suggestion, the capture warnings and the screen video's notice, pinned on
+    top; under them the live transcript (or the wave and why there is none) on the
     left and, on the right, the catch-ups or the live chat under their tabs, the catch-up model and the answer language;
     the gap between them drags to resize them (PaneSplitter), and with Stack Panes the transcript is above the panel.
 -->
@@ -14,23 +15,53 @@
     xmlns:views="using:EchoDiar.App.Views">
 
     <UserControl.Resources>
-        <!--
-            RecordingWave: the system accent while recording, the disabled text colour while paused; ThemeResources, so
-            a theme switch repaints the bars even while they stand still.
-        -->
-        <Style x:Key="WaveBarStyle" TargetType="Rectangle">
-            <Setter Property="Fill" Value="{ThemeResource AccentFillColorDefaultBrush}" />
-        </Style>
-        <Style x:Key="PausedWaveBarStyle" TargetType="Rectangle">
-            <Setter Property="Fill" Value="{ThemeResource TextFillColorDisabledBrush}" />
-        </Style>
-        <!-- A card: the right panel. -->
-        <Style x:Key="PaneStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{StaticResource OverlayCornerRadius}" />
-        </Style>
+        <ResourceDictionary>
+            <!-- The size tints' orange, as ConversationCard's (Fluent has no theme brush for it). -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="SizeLargerBrush" Color="#FF9F0A" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="SizeLargerBrush" Color="#CA5010" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="SizeLargerBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!--
+                RecordingWave: the system accent while recording, the disabled text colour while paused; ThemeResources, so
+                a theme switch repaints the bars even while they stand still.
+            -->
+            <Style x:Key="WaveBarStyle" TargetType="Rectangle">
+                <Setter Property="Fill" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+            </Style>
+            <Style x:Key="PausedWaveBarStyle" TargetType="Rectangle">
+                <Setter Property="Fill" Value="{ThemeResource TextFillColorDisabledBrush}" />
+            </Style>
+            <!--
+                The size so far, tinted by its SizeLevel as the library's sizes (macOS sizeStyle): secondary, then yellow,
+                orange and red (RecordingCard.ShowLiveSize).
+            -->
+            <Style x:Key="LiveSizeStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Style>
+            <Style x:Key="LiveSizeLargeStyle" TargetType="TextBlock" BasedOn="{StaticResource LiveSizeStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+            </Style>
+            <Style x:Key="LiveSizeLargerStyle" TargetType="TextBlock" BasedOn="{StaticResource LiveSizeStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SizeLargerBrush}" />
+            </Style>
+            <Style x:Key="LiveSizeHugeStyle" TargetType="TextBlock" BasedOn="{StaticResource LiveSizeStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            </Style>
+            <!-- A card: the right panel. -->
+            <Style x:Key="PaneStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource OverlayCornerRadius}" />
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Padding="12" RowSpacing="8">
@@ -79,11 +110,50 @@
                             Glyph="&#xE769;"
                             Visibility="Collapsed" />
                     </Grid>
-                    <TextBlock
-                        x:Name="ElapsedText"
+                    <!--
+                        The clock with the size right after it, as " (43 MB)" (the brackets secondary, nothing until the
+                        first read is back), then the "screen recorded" glyph while a screen video is starting or running
+                        (as the card's; its tooltip and name set in code).
+                    -->
+                    <StackPanel
+                        x:Name="ElapsedPanel"
                         Grid.Column="1"
                         VerticalAlignment="Center"
-                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                x:Name="ElapsedText"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <StackPanel
+                                x:Name="LiveSizePanel"
+                                Orientation="Horizontal"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource LiveSizeStyle}"
+                                    Text=" (" />
+                                <TextBlock
+                                    x:Name="LiveSizeText"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource LiveSizeStyle}"
+                                    TextWrapping="NoWrap" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource LiveSizeStyle}"
+                                    Text=")" />
+                            </StackPanel>
+                        </StackPanel>
+                        <FontIcon
+                            x:Name="ScreenGlyph"
+                            VerticalAlignment="Center"
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="14"
+                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                            Glyph="&#xE714;"
+                            Visibility="Collapsed" />
+                    </StackPanel>
                     <TextBlock
                         x:Name="StateText"
                         Grid.Column="2"
@@ -201,13 +271,23 @@
             </InfoBar.Content>
         </InfoBar>
 
-        <!-- The picked app could not be isolated: every process except EchoDiar is recorded. -->
-        <InfoBar
-            x:Name="GlobalTapWarning"
-            Grid.Row="2"
-            IsClosable="False"
-            IsOpen="False"
-            Severity="Warning" />
+        <!--
+            The picked app could not be isolated: every process except EchoDiar is recorded. Under it, why the screen
+            video ended before the recording or could not be turned on (macOS: the screen recording's notice), 8 px
+            under the first when both show (RecordingView.UpdateNoticeMargin); in one row, so no empty row adds a gap.
+        -->
+        <StackPanel Grid.Row="2">
+            <InfoBar
+                x:Name="GlobalTapWarning"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning" />
+            <InfoBar
+                x:Name="NoticeBar"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning" />
+        </StackPanel>
 
         <!-- SilentTapBanner: the app plays but the capture hears only silence. -->
         <InfoBar

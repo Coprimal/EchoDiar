@@ -41,7 +41,7 @@ public sealed partial class WelcomeView : UserControl
             StartingHint.Opacity = 1;
         };
         // The toolbar's Record, which opens the recording page: this pane stays while the recording starts (MainWindow).
-        RecordButton.Click += (_, _) => _ = _model.StartRecordingAsync(_model.SelectedTarget);
+        RecordButton.Click += (_, _) => _model.RequestRecording();
         Loaded += (_, _) =>
         {
             _model.PropertyChanged += OnModelChanged;

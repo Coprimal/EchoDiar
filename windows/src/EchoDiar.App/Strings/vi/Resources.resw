@@ -478,6 +478,10 @@
     <value>Quay lại (Esc)</value>
     <comment>Back (Esc)</comment>
   </data>
+  <data name="BackgroundBlurIsNotAvailableTheCameraBubbleShowsNoPicture" xml:space="preserve">
+    <value>Không dùng được tính năng làm mờ nền. Bong bóng camera không hiển thị hình ảnh.</value>
+    <comment>Background blur is not available. The camera bubble shows no picture.</comment>
+  </data>
   <data name="Balanced" xml:space="preserve">
     <value>Cân bằng</value>
     <comment>Balanced</comment>
@@ -497,6 +501,10 @@
   <data name="BeforeYouRecord" xml:space="preserve">
     <value>Trước khi ghi âm</value>
     <comment>Before you record</comment>
+  </data>
+  <data name="Beta" xml:space="preserve">
+    <value>(Beta)</value>
+    <comment>(Beta)</comment>
   </data>
   <data name="BilledBy" xml:space="preserve">
     <value>do {0} tính phí</value>
@@ -561,6 +569,10 @@
   <data name="Camera" xml:space="preserve">
     <value>Camera</value>
     <comment>Camera</comment>
+  </data>
+  <data name="CameraAccessIsOffTurnOnEchoDiarInWindowsSettingsPrivacySecur" xml:space="preserve">
+    <value>Quyền truy cập camera đang tắt. Hãy bật EchoDiar trong Cài đặt Windows › Quyền riêng tư &amp; bảo mật › Camera.</value>
+    <comment>Camera access is off. Turn on EchoDiar in Windows Settings › Privacy &amp; security › Camera.</comment>
   </data>
   <data name="CameraBubble" xml:space="preserve">
     <value>Bong bóng camera</value>
@@ -1310,6 +1322,14 @@
     <value>EchoDiar, đã tạm dừng ghi âm</value>
     <comment>EchoDiar, recording paused</comment>
   </data>
+  <data name="EchoDiarRecordingPaused_2" xml:space="preserve">
+    <value>EchoDiar, đã tạm dừng ghi âm — {0}</value>
+    <comment>EchoDiar, recording paused — %@</comment>
+  </data>
+  <data name="EchoDiarRecording_2" xml:space="preserve">
+    <value>EchoDiar, đang ghi âm — {0}</value>
+    <comment>EchoDiar, recording — %@</comment>
+  </data>
   <data name="EchoDiarRecordsTheOtherPeopleOnTheCallFromYourMacSAudioTheTe" xml:space="preserve">
     <value>EchoDiar ghi lại những người khác trong cuộc gọi từ âm thanh của máy Mac. Bài kiểm tra phát một âm thanh ngắn và lắng nghe âm thanh đó. macOS sẽ hỏi quyền Ghi âm thanh hệ thống trong lần đầu tiên.</value>
     <comment>EchoDiar records the other people on the call from your Mac's audio. The test plays a short sound and listens for it. macOS asks for System Audio Recording permission the first time.</comment>
@@ -1461,6 +1481,10 @@
   <data name="FileSize" xml:space="preserve">
     <value>Dung lượng tệp</value>
     <comment>File size</comment>
+  </data>
+  <data name="FilesCanBeSeveralTimesLarger" xml:space="preserve">
+    <value>Tệp có thể lớn hơn nhiều lần.</value>
+    <comment>Files can be several times larger.</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>Tệp có thể lớn hơn nhiều lần. Trong một thử nghiệm giống cuộc họp, bản ghi một cửa sổ chiếm khoảng {0} MB mỗi phút ở 60 fps, so với {1} MB mỗi phút ở 15 fps.</value>
@@ -2029,6 +2053,10 @@
   <data name="MBMin" xml:space="preserve">
     <value>{0} (~{1} MB/min)</value>
     <comment>%@ (~%@ MB/min)</comment>
+  </data>
+  <data name="MP4Video" xml:space="preserve">
+    <value>Video MP4</value>
+    <comment>MP4 video</comment>
   </data>
   <data name="MacOSAppliesThePermissionOnceEchoDiarIsQuitAndOpenedAgain" xml:space="preserve">
     <value>macOS áp dụng quyền này sau khi bạn thoát và mở lại EchoDiar.</value>
@@ -2966,9 +2994,17 @@
     <value>Ghi màn hình</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAnd" xml:space="preserve">
+    <value>Ghi màn hình và {0}</value>
+    <comment>Record the screen and %@</comment>
+  </data>
   <data name="RecordTheScreenAndR" xml:space="preserve">
     <value>Ghi màn hình và {0} (⌘R)</value>
     <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophone" xml:space="preserve">
+    <value>Ghi màn hình và micrô</value>
+    <comment>Record the screen and the microphone</comment>
   </data>
   <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
     <value>Ghi màn hình và micrô (⌘R)</value>
@@ -4010,6 +4046,10 @@
     <value>Màn hình cũng đang được ghi</value>
     <comment>The screen is recorded too</comment>
   </data>
+  <data name="TheScreenRecordingIsMovedToTheRecycleBinEverythingElseInTheC" xml:space="preserve">
+    <value>Bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong cuộc hội thoại vẫn được giữ.</value>
+    <comment>The screen recording is moved to the Recycle Bin. Everything else in the conversation stays.</comment>
+  </data>
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>Bản ghi màn hình được chuyển vào Thùng rác. Mọi thứ khác trong cuộc hội thoại vẫn được giữ.</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
@@ -4210,6 +4250,10 @@
     <value>Mô hình thời gian thực này không gắn nhãn người nói, nên công cụ phân biệt người nói chạy trên bản ghi âm sau khi bấm Dừng; công cụ phân biệt người nói trên đám mây sẽ hỏi sự đồng ý riêng.</value>
     <comment>This realtime model labels no speakers, so the diarizer runs on the recording after Stop; a cloud diarizer asks for its own consent.</comment>
   </data>
+  <data name="ThisVideoUsesHEVCInstallHEVCVideoExtensionsFromTheMicrosoftS" xml:space="preserve">
+    <value>Video này dùng HEVC. Hãy cài HEVC Video Extensions từ Microsoft Store để phát video này.</value>
+    <comment>This video uses HEVC. Install HEVC Video Extensions from the Microsoft Store to play it.</comment>
+  </data>
   <data name="Title" xml:space="preserve">
     <value>Tiêu đề</value>
     <comment>Title</comment>
@@ -4349,6 +4393,10 @@
   <data name="TranscriptsSummariesAndChatsStayPlaybackAndReTranscribingAre" xml:space="preserve">
     <value>Bản chép lời, bản tóm tắt và cuộc trò chuyện vẫn được giữ; không thể phát lại và chép lời lại nữa.</value>
     <comment>Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.</comment>
+  </data>
+  <data name="TrayIconWhileRecording" xml:space="preserve">
+    <value>Biểu tượng khay hệ thống khi ghi âm</value>
+    <comment>Tray icon while recording</comment>
   </data>
   <data name="TryAgainLater" xml:space="preserve">
     <value>Hãy thử lại sau.</value>

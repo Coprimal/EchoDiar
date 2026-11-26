@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     The floating pill (macOS FloatingPillView.swift): the logo, the recording dot, "Recording <App>" after an automatic
-    start, the elapsed time, a level meter and a muted mic's glyph; Pause or Resume, Mute or Unmute, Stop and the
-    language menu while the pointer is over it.
+    start, the elapsed time, a level meter and a muted mic's glyph; Pause or Resume, Mute or Unmute, the screen on or
+    off, Stop and the language menu while the pointer is over it.
     A meeting or calendar prompt takes the indicator's place. The capsule sizes to its content inside a Canvas, so its size is
     the window's, which the controller sets; the window's region clips it to the capsule. Its buttons never take the
     focus: focus would activate the window, which would then take the foreground (and Alt+F4) from the meeting app.
@@ -95,6 +95,30 @@
                         VerticalAlignment="Center"
                         Style="{StaticResource SubtleButtonStyle}">
                         <FontIcon x:Name="MuteIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE720;" />
+                    </Button>
+                    <!--
+                        The screen on or off (macOS screenToggle), as the toolbar's: shown only with
+                        Features.ScreenRecording (code-behind). Off: the button's own colour, dimmed while disabled; on
+                        (never disabled): red.
+                    -->
+                    <Button
+                        x:Name="ScreenButton"
+                        AllowFocusOnInteraction="False"
+                        IsTabStop="False"
+                        MinWidth="0"
+                        MinHeight="0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="Collapsed">
+                        <Grid>
+                            <FontIcon x:Name="ScreenOffIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE714;" />
+                            <FontIcon
+                                x:Name="ScreenOnIcon"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Glyph="&#xE714;"
+                                Visibility="Collapsed" />
+                        </Grid>
                     </Button>
                     <Button
                         x:Name="StopButton"

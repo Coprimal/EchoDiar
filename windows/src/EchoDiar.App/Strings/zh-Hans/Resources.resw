@@ -478,6 +478,10 @@
     <value>返回（Esc）</value>
     <comment>Back (Esc)</comment>
   </data>
+  <data name="BackgroundBlurIsNotAvailableTheCameraBubbleShowsNoPicture" xml:space="preserve">
+    <value>背景虚化不可用。摄像头气泡不显示画面。</value>
+    <comment>Background blur is not available. The camera bubble shows no picture.</comment>
+  </data>
   <data name="Balanced" xml:space="preserve">
     <value>均衡</value>
     <comment>Balanced</comment>
@@ -497,6 +501,10 @@
   <data name="BeforeYouRecord" xml:space="preserve">
     <value>录音之前</value>
     <comment>Before you record</comment>
+  </data>
+  <data name="Beta" xml:space="preserve">
+    <value>（测试版）</value>
+    <comment>(Beta)</comment>
   </data>
   <data name="BilledBy" xml:space="preserve">
     <value>由 {0} 计费</value>
@@ -561,6 +569,10 @@
   <data name="Camera" xml:space="preserve">
     <value>摄像头</value>
     <comment>Camera</comment>
+  </data>
+  <data name="CameraAccessIsOffTurnOnEchoDiarInWindowsSettingsPrivacySecur" xml:space="preserve">
+    <value>摄像头访问已关闭。请在“Windows 设置 › 隐私和安全性 › 相机”中打开 EchoDiar。</value>
+    <comment>Camera access is off. Turn on EchoDiar in Windows Settings › Privacy &amp; security › Camera.</comment>
   </data>
   <data name="CameraBubble" xml:space="preserve">
     <value>摄像头气泡</value>
@@ -1310,6 +1322,14 @@
     <value>EchoDiar，录音已暂停</value>
     <comment>EchoDiar, recording paused</comment>
   </data>
+  <data name="EchoDiarRecordingPaused_2" xml:space="preserve">
+    <value>EchoDiar，录音已暂停 — {0}</value>
+    <comment>EchoDiar, recording paused — %@</comment>
+  </data>
+  <data name="EchoDiarRecording_2" xml:space="preserve">
+    <value>EchoDiar，正在录音 — {0}</value>
+    <comment>EchoDiar, recording — %@</comment>
+  </data>
   <data name="EchoDiarRecordsTheOtherPeopleOnTheCallFromYourMacSAudioTheTe" xml:space="preserve">
     <value>EchoDiar 会从你的 Mac 的音频中录制通话中的其他人。测试会播放一段简短的声音并监听它。首次使用时，macOS 会请求“系统录音”权限。</value>
     <comment>EchoDiar records the other people on the call from your Mac's audio. The test plays a short sound and listens for it. macOS asks for System Audio Recording permission the first time.</comment>
@@ -1461,6 +1481,10 @@
   <data name="FileSize" xml:space="preserve">
     <value>文件大小</value>
     <comment>File size</comment>
+  </data>
+  <data name="FilesCanBeSeveralTimesLarger" xml:space="preserve">
+    <value>文件可能会大好几倍。</value>
+    <comment>Files can be several times larger.</comment>
   </data>
   <data name="FilesCanBeSeveralTimesLargerInAMeetingLikeTestAWindowRecordi" xml:space="preserve">
     <value>文件可能会大好几倍。在一次类似会议的测试中，录制一个窗口在 60 fps 时每分钟约占 {0} MB，而在 15 fps 时每分钟约占 {1} MB。</value>
@@ -2029,6 +2053,10 @@
   <data name="MBMin" xml:space="preserve">
     <value>{0}（~{1} MB/min）</value>
     <comment>%@ (~%@ MB/min)</comment>
+  </data>
+  <data name="MP4Video" xml:space="preserve">
+    <value>MP4 视频</value>
+    <comment>MP4 video</comment>
   </data>
   <data name="MacOSAppliesThePermissionOnceEchoDiarIsQuitAndOpenedAgain" xml:space="preserve">
     <value>退出并重新打开 EchoDiar 后，macOS 才会应用该权限。</value>
@@ -2966,9 +2994,17 @@
     <value>录制屏幕</value>
     <comment>Record the screen</comment>
   </data>
+  <data name="RecordTheScreenAnd" xml:space="preserve">
+    <value>录制屏幕和“{0}”</value>
+    <comment>Record the screen and %@</comment>
+  </data>
   <data name="RecordTheScreenAndR" xml:space="preserve">
     <value>录制屏幕和“{0}”（⌘R）</value>
     <comment>Record the screen and %@ (⌘R)</comment>
+  </data>
+  <data name="RecordTheScreenAndTheMicrophone" xml:space="preserve">
+    <value>录制屏幕和麦克风</value>
+    <comment>Record the screen and the microphone</comment>
   </data>
   <data name="RecordTheScreenAndTheMicrophoneR" xml:space="preserve">
     <value>录制屏幕和麦克风（⌘R）</value>
@@ -4010,6 +4046,10 @@
     <value>屏幕也在录制</value>
     <comment>The screen is recorded too</comment>
   </data>
+  <data name="TheScreenRecordingIsMovedToTheRecycleBinEverythingElseInTheC" xml:space="preserve">
+    <value>屏幕录制会移到回收站。对话中的其他内容都会保留。</value>
+    <comment>The screen recording is moved to the Recycle Bin. Everything else in the conversation stays.</comment>
+  </data>
   <data name="TheScreenRecordingIsMovedToTheTrashEverythingElseInTheConver" xml:space="preserve">
     <value>屏幕录制会移到废纸篓。对话中的其他内容都会保留。</value>
     <comment>The screen recording is moved to the Trash. Everything else in the conversation stays.</comment>
@@ -4210,6 +4250,10 @@
     <value>此实时流模型不会标注说话人，因此停止后会对录音运行说话人分离；云端说话人分离服务会单独征求你的同意。</value>
     <comment>This realtime model labels no speakers, so the diarizer runs on the recording after Stop; a cloud diarizer asks for its own consent.</comment>
   </data>
+  <data name="ThisVideoUsesHEVCInstallHEVCVideoExtensionsFromTheMicrosoftS" xml:space="preserve">
+    <value>此视频使用 HEVC。请从 Microsoft Store 安装“HEVC 视频扩展”以播放此视频。</value>
+    <comment>This video uses HEVC. Install HEVC Video Extensions from the Microsoft Store to play it.</comment>
+  </data>
   <data name="Title" xml:space="preserve">
     <value>标题</value>
     <comment>Title</comment>
@@ -4349,6 +4393,10 @@
   <data name="TranscriptsSummariesAndChatsStayPlaybackAndReTranscribingAre" xml:space="preserve">
     <value>转写文本、摘要和聊天会保留；将无法再播放和重新转写。</value>
     <comment>Transcripts, summaries and chats stay; playback and re-transcribing are no longer possible.</comment>
+  </data>
+  <data name="TrayIconWhileRecording" xml:space="preserve">
+    <value>录音时的托盘图标</value>
+    <comment>Tray icon while recording</comment>
   </data>
   <data name="TryAgainLater" xml:space="preserve">
     <value>请稍后再试。</value>

@@ -152,6 +152,8 @@ struct CrossPlatformFixturesTests {
         #expect(session.state == .stopped)
         #expect(session.tapMode == .perApp)
         #expect(session.title == Self.vietnamese)
+        #expect(session.video == .init(
+            fileName: "video.mp4", source: .window, fps: 15, quality: 0.75, width: 1280, height: 720))
         Self.expectDate(session.startedAt, Self.at)
         let pause = try #require(session.pauses.first)
         Self.expectDate(pause.start, Self.at.addingTimeInterval(-30))

@@ -110,6 +110,7 @@ public sealed class SettingsTests : IDisposable
     [InlineData("""{"pillSize":"huge"}""", "pillSize", "\"medium\"")]
     [InlineData("""{"catchUpLength":"tiny"}""", "catchUpLength", "\"concise\"")]
     [InlineData("""{"chatLength":"full"}""", "chatLength", "\"full\"")]
+    [InlineData("""{"transcriptVideoLayout":"sideBySide"}""", "transcriptVideoLayout", "\"stacked\"")]
     [InlineData("""{"perAppBehavior":null}""", "perAppBehavior", "{}")]
     [InlineData("""{"globalHotKeyWindows":{"virtualKey":65,"modifiers":4}}""", "globalHotKeyWindows",
         """{"virtualKey":82,"modifiers":3}""")]
@@ -133,6 +134,46 @@ public sealed class SettingsTests : IDisposable
 
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), JsonNode.Parse(Json(settings))![key]),
             $"{key}: {JsonNode.Parse(Json(settings))![key]?.ToJsonString()}");
+    }
+
+    [Fact]
+    public void ScreenSettingsReadAndWriteUnderTheMacOSNames()
+    {
+        const string screen = """
+            {"screenFPS":30,"screenQuality":0.9,"screenShowsCursor":false,"screenShowsClicks":true,
+             "screenTranscribes":false,"transcriptVideoLayout":"hidden","screenCamera":true,"screenKeyStrokes":true,
+             "screenAllKeys":true,"screenRecordingEnabled":true,"screenCameraBlur":false,
+             "menuBarRecordingDetail":"elapsedTime",
+             "screenSource":{"monitor":"\\\\.\\DISPLAY2","area":{"x":10,"y":20,"width":640,"height":360}}}
+            """;
+        File.WriteAllText(_store.FilePath, screen);
+
+        var loaded = _store.Load();
+        Assert.Empty(loaded.Extra);
+        Assert.Equal(30, loaded.ScreenFPS);
+        Assert.Equal(0.9, loaded.ScreenQuality);
+        Assert.False(loaded.ScreenShowsCursor);
+        Assert.True(loaded.ScreenShowsClicks);
+        Assert.False(loaded.ScreenTranscribes);
+        Assert.Equal(TranscriptVideoLayout.Hidden, loaded.TranscriptVideoLayout);
+        Assert.True(loaded.ScreenCamera);
+        Assert.True(loaded.ScreenKeyStrokes);
+        Assert.True(loaded.ScreenAllKeys);
+        Assert.True(loaded.ScreenRecordingEnabled);
+        Assert.False(loaded.ScreenCameraBlur);
+        Assert.Equal(MenuBarRecordingInfo.ElapsedTime, loaded.MenuBarRecordingInfo);
+        Assert.Equal(new RememberedScreenSource
+        {
+            Monitor = @"\\.\DISPLAY2", Area = new() { X = 10, Y = 20, Width = 640, Height = 360 },
+        }, loaded.ScreenSource);
+
+        _store.Save(loaded);
+        var written = JsonNode.Parse(File.ReadAllBytes(_store.FilePath))!.AsObject();
+        foreach (var (key, value) in JsonNode.Parse(screen)!.AsObject())
+        {
+            Assert.True(JsonNode.DeepEquals(value, written[key]), key);
+        }
+        Assert.False(written.ContainsKey("menuBarRecordingInfo"));
     }
 
     [Fact]
@@ -452,7 +493,10 @@ public sealed class SettingsTests : IDisposable
           "globalPauseHotKeyWindows": {"virtualKey": 80, "modifiers": 3}, "globalPauseHotKeyEnabled": true,
           "autoExcludedProviderIDs": [], "providerAvailabilityMigrated": false, "aiSettingsMigrated": false,
           "cloudLiveSource": "off", "realtimeAsFinal": false, "libraryPageSize": 100,
-          "stackedPanes": false
+          "stackedPanes": false, "screenFPS": 15, "screenQuality": 0.75, "screenShowsCursor": true,
+          "screenShowsClicks": false, "screenTranscribes": true, "transcriptVideoLayout": "stacked",
+          "screenCamera": false, "screenKeyStrokes": false, "screenAllKeys": false, "screenRecordingEnabled": false,
+          "screenCameraBlur": true, "menuBarRecordingDetail": "fileSize"
         }
         """;
 }

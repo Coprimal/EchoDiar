@@ -12,6 +12,13 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
   </PropertyGroup>
 
+  <!-- Rollback flag for Windows screen recording (Features.ScreenRecording): -p:EchoDiarScreenRecording=false hides
+       the capture entry points; recorded videos keep playing. -->
+  <PropertyGroup>
+    <EchoDiarScreenRecording Condition="'$(EchoDiarScreenRecording)' == ''">true</EchoDiarScreenRecording>
+    <DefineConstants Condition="'$(EchoDiarScreenRecording)' == 'true'">$(DefineConstants);SCREEN_RECORDING</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Content Include="Assets\**\*.png" />
     <Content Include="Assets\EchoDiar.ico" />

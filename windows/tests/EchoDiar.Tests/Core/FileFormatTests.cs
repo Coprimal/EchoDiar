@@ -70,6 +70,18 @@ public sealed class FileFormatTests : IDisposable
         Assert.Equal("unknown", JsonNode.Parse(SwiftJson.Serialize(session))!["state"]!.GetValue<string>());
     }
 
+    // As macOS (`try?`): a partial video block reads as no video instead of failing the session (and its audio).
+    [Fact]
+    public void PartialVideoReadsAsNoVideoAndUnknownSourceAsUnknown()
+    {
+        RecordingSession Session(string video) => SwiftJson.Deserialize<RecordingSession>(Encoding.UTF8.GetBytes(
+            $$"""{"id":"{{ConversationId}}","pid":1,"startedAt":0,"video":{{video}}}"""));
+
+        Assert.Null(Session("""{"fileName":"video.mp4"}""").Video);
+        Assert.Equal(VideoSource.Unknown, Session(
+            """{"fileName":"video.mp4","source":"hologram","fps":15,"quality":0.75,"width":1280,"height":720}""").Video?.Source);
+    }
+
     [Fact]
     public void AppleDatesAreNumbersAndIsoDatesHaveNoFraction()
     {
@@ -280,7 +292,7 @@ public sealed class FileFormatTests : IDisposable
 
         Assert.Equal(Fixtures().Keys.Order(StringComparer.Ordinal), macos.Select(p => p.Key).Order(StringComparer.Ordinal));
         Assert.Contains(ChatLog.Decode(Encoding.UTF8.GetBytes(macos[ChatLog.FileName]!.ToJsonString())).Messages, m => m.Live == true);
-        // Keys Windows does not model (the screen recording, "screen only") and one neither app knows yet survive.
+        // The screen recording and "screen only" keys (typed since Phase 2) and one neither app knows yet survive.
         Assert.NotNull(macos[RecordingSession.FileName]!["video"]);
         Assert.True(macos[RecordingSession.FileName]!["skipsTranscription"]!.GetValue<bool>());
         Assert.True(macos[Conversation.FileName]!["skipsTranscription"]!.GetValue<bool>());
@@ -420,6 +432,7 @@ public sealed class FileFormatTests : IDisposable
         Pauses = [new RecordingSession.PauseInterval { FileTime = 12.5, Start = At.AddSeconds(-30), End = At }],
         LanguageMarkers = [new RecordingSession.LanguageMarker { FileTime = 0, Language = "vi" }],
         EndReason = "user", AudioFileName = "audio.caf", Probe = true, Title = Vietnamese,
+        Video = new SessionVideo { FileName = "video.mp4", Source = VideoSource.Window, Fps = 15, Quality = 0.75, Width = 1280, Height = 720 },
     };
 
     private static ChatLog FullChat() => new()

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using EchoDiar.App.ViewModels;
 using EchoDiar.Core.Audio;
+using EchoDiar.Core.Screen;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -15,8 +16,9 @@ namespace EchoDiar.App.Views;
 
 /// <summary>
 /// The recording's card at the top of the library (macOS RecordingViews.swift RecordingCard), while recording: its
-/// title (renamed in place on double-click), Stop, Pause or Resume, Mute or Unmute and the language in its row. The
-/// mini meters move at 15 Hz while the window is shown.
+/// title (renamed in place on double-click), the elapsed time, the "screen recorded" glyph and the size so far, then
+/// Stop, Pause or Resume, Mute or Unmute and the language in its row. The mini meters move at 15 Hz while the window is
+/// shown.
 /// </summary>
 public sealed partial class RecordingCard : UserControl
 {
@@ -33,6 +35,9 @@ public sealed partial class RecordingCard : UserControl
     private (bool Muted, bool SystemMuted)? _shownMuted;
     private bool _editing;
 
+    /// <summary>The size's level as last styled (null: none yet), so it is styled only when it changes.</summary>
+    private SizeLevel.Level? _sizeLevel;
+
     /// <summary>The title's tooltip as last set: one set again while shown closes under the pointer (Update runs at 15 Hz).</summary>
     private string? _titleTip;
 
@@ -48,6 +53,9 @@ public sealed partial class RecordingCard : UserControl
         MuteButton.Click += (_, _) => _model.ToggleMicMute();
         MuteItem.Click += (_, _) => _model.ToggleMicMute();
         ButtonRow.Children.Add(new LanguagePicker(model, shortLabel: true));
+        var screenRecorded = Loc.T("The screen is recorded too");
+        ToolTipService.SetToolTip(ScreenGlyph, screenRecorded);
+        AutomationProperties.SetName(ScreenGlyph, screenRecorded);
         Tapped += OnTapped;
         StateText.DoubleTapped += OnTitleDoubleTapped;
         TitleBox.KeyDown += OnTitleBoxKeyDown;
@@ -57,6 +65,8 @@ public sealed partial class RecordingCard : UserControl
         {
             _model.PropertyChanged += OnModelChanged;
             Update();
+            UpdateScreen();
+            UpdateLiveSize();
         };
         Unloaded += (_, _) =>
         {
@@ -88,7 +98,42 @@ public sealed partial class RecordingCard : UserControl
             case nameof(AppViewModel.RecordingTitle):
                 Update();
                 break;
+            case nameof(AppViewModel.ScreenOn):
+                UpdateScreen();
+                break;
+            case nameof(AppViewModel.LiveRecordingBytes):
+                UpdateLiveSize();
+                break;
         }
+    }
+
+    /// <summary>The "screen recorded" glyph while a screen video is starting or running, paused included.</summary>
+    private void UpdateScreen() =>
+        ScreenGlyph.Visibility = Features.ScreenRecording && _model.ScreenOn ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>The size so far (macOS <c>LiveSizeText</c>), nothing until the first read is back.</summary>
+    private void UpdateLiveSize() => ShowLiveSize(LiveSizeText, _model.LiveRecordingBytes, Resources, ref _sizeLevel);
+
+    /// <summary>
+    /// <paramref name="bytes"/> as the library shows sizes, in the style of its <see cref="SizeLevel"/> from
+    /// <paramref name="resources"/> (LiveSizeStyle, then LiveSizeLargeStyle, LiveSizeLargerStyle, LiveSizeHugeStyle: macOS
+    /// <c>sizeStyle</c>), set only when the level changes; collapsed while null. Also the recording page's.
+    /// </summary>
+    internal static void ShowLiveSize(TextBlock text, long? bytes, ResourceDictionary resources, ref SizeLevel.Level? shown)
+    {
+        text.Visibility = bytes is null ? Visibility.Collapsed : Visibility.Visible;
+        if (bytes is not { } size) return;
+        SetText(text, ConversationCard.FileSize(size));
+        var level = SizeLevel.For(size);
+        if (level == shown) return;
+        shown = level;
+        text.Style = (Style)resources[level switch
+        {
+            SizeLevel.Level.Large => "LiveSizeLargeStyle",
+            SizeLevel.Level.Larger => "LiveSizeLargerStyle",
+            SizeLevel.Level.Huge => "LiveSizeHugeStyle",
+            _ => "LiveSizeStyle",
+        }];
     }
 
     private void Update()

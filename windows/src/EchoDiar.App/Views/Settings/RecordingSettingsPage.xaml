@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Settings › Recording (macOS RecordingSettingsView.swift), one panel per inner tab picked in the title bar:
-    - Microphone: the recording microphone, and what losing it does.
+    - Microphone: the recording microphone, what losing it does, and what the tray icon shows while recording.
     - Meetings: attaching the floating indicator to the meeting window, meeting detection and each app's behavior
       (rows made in code).
     - Auto-stop: the end monitor's thresholds, each clamped to its range, and the end prompt's notification.
     - After recording: transcribe automatically, tell speakers apart and the number of other speakers (also in
       Transcription › Speakers, as on macOS), and waiting while energy saver is on.
+    - Screen (only with Features.ScreenRecording): frame rate, quality, transcribing screen recordings, the cursor and
+      clicks, the camera bubble and its blur (no key presses and no permissions, unlike macOS).
     The floating indicator's other options stay in General, as on macOS. Each searchable element's Tag is its search
     entry's title (SearchEntries), so a search result can bring it into view.
 -->
@@ -54,6 +56,21 @@
                         <ComboBoxItem Content="{local:T Text='Ask to stop'}" />
                         <ComboBoxItem Content="{local:T Text='Keep recording'}" />
                         <ComboBoxItem Content="{local:T Text='Stop recording'}" />
+                    </ComboBox>
+                </controls:SettingsCard>
+
+                <!-- macOS "Menu bar while recording"; not behind the screen recording flag. -->
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Header="{local:T Text='Tray icon while recording'}"
+                    Tag="Tray icon while recording">
+                    <ComboBox
+                        x:Name="TrayInfoCombo"
+                        MinWidth="200"
+                        AutomationProperties.Name="{local:T Text='Tray icon while recording'}">
+                        <ComboBoxItem Content="{local:T Text='Icon only'}" />
+                        <ComboBoxItem Content="{local:T Text='Elapsed time'}" />
+                        <ComboBoxItem Content="{local:T Text='File size'}" />
                     </ComboBox>
                 </controls:SettingsCard>
             </StackPanel>
@@ -197,6 +214,66 @@
                 <!-- Texts set in code (Windows-only keys). -->
                 <controls:SettingsCard x:Name="DeferCard">
                     <ToggleSwitch x:Name="DeferToggle" />
+                </controls:SettingsCard>
+            </StackPanel>
+
+            <!-- Screen (only with Features.ScreenRecording); the frame rate items are set in code. -->
+            <StackPanel
+                x:Name="ScreenPanel"
+                Spacing="4"
+                Visibility="Collapsed">
+                <controls:SettingsCard Header="{local:T Text='Frame rate'}" Tag="Frame rate">
+                    <ComboBox
+                        x:Name="FrameRateCombo"
+                        MinWidth="120"
+                        AutomationProperties.Name="{local:T Text='Frame rate'}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard Header="{local:T Text='Quality'}" Tag="Quality">
+                    <ComboBox
+                        x:Name="QualityCombo"
+                        MinWidth="160"
+                        AutomationProperties.Name="{local:T Text='Quality'}">
+                        <ComboBoxItem Content="{local:T Text='Smaller'}" />
+                        <ComboBoxItem Content="{local:T Text='Balanced'}" />
+                        <ComboBoxItem Content="{local:T Text='Sharper'}" />
+                    </ComboBox>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Description="{local:T Text='Off: screen and sound only. No transcript, summary or chat until you transcribe it later.'}"
+                    Header="{local:T Text='Transcribe screen recordings'}"
+                    Tag="Transcribe screen recordings">
+                    <ToggleSwitch x:Name="ScreenTranscribesToggle" AutomationProperties.Name="{local:T Text='Transcribe screen recordings'}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Header="{local:T Text='Show the cursor'}"
+                    Tag="Show the cursor">
+                    <ToggleSwitch x:Name="ShowCursorToggle" AutomationProperties.Name="{local:T Text='Show the cursor'}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard Header="{local:T Text='Highlight clicks'}" Tag="Highlight clicks">
+                    <ToggleSwitch x:Name="ShowClicksToggle" AutomationProperties.Name="{local:T Text='Highlight clicks'}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Description="{local:T Text='Shows your camera in a round bubble on screen.'}"
+                    Header="{local:T Text='Camera bubble'}"
+                    Tag="Camera bubble">
+                    <ToggleSwitch x:Name="CameraToggle" AutomationProperties.Name="{local:T Text='Camera bubble'}" />
+                </controls:SettingsCard>
+
+                <!-- Disabled (and dimmed) while Camera bubble is off, as macOS. -->
+                <controls:SettingsCard
+                    x:Name="CameraBlurCard"
+                    Description="{local:T Text='Blurs everything behind you in the camera bubble.'}"
+                    Header="{local:T Text='Blur background'}"
+                    Tag="Blur background">
+                    <ToggleSwitch x:Name="CameraBlurToggle" AutomationProperties.Name="{local:T Text='Blur background'}" />
                 </controls:SettingsCard>
             </StackPanel>
         </Grid>
