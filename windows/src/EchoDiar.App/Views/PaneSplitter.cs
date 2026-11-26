@@ -1,9 +1,12 @@
+using EchoDiar.Core.Layout;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
+using System.Diagnostics;
 using Windows.UI.ViewManagement;
 using VirtualKey = Windows.System.VirtualKey;
 
@@ -19,7 +22,13 @@ namespace EchoDiar.App.Views;
 /// theme) is the grip, two short lines in the middle, turned across the gap: dimmed at rest, full while the pointer is
 /// over the gap, it drags or has the keyboard focus. <see cref="Lined"/> shows a line across the whole gap instead
 /// (macOS <c>PaneSplit(lined: true)</c>, between the video and the transcript in one card): the divider colour,
-/// brighter on the same triggers. Not saved: 50/50 again for each conversation.
+/// brighter on the same triggers. Not saved: 50/50 again for each conversation. <see cref="SetCollapsed"/> folds the
+/// second pane into a rail of a given number of pixels, the first taking the rest, and puts the split back as it was once expanded
+/// (macOS <c>PaneSplit.collapsedSecond</c>); with a <see cref="CollapseRequested"/> handler, dragging the gap on until
+/// less than half the second pane's minimum would be left asks to collapse it, and dragging the rail out as far asks to
+/// expand it, the same drag then resizing as usual (macOS <c>PaneSplit.setCollapsed</c>). A collapse or expand from the
+/// host's button or rail slides the second pane over <see cref="SlideDuration"/> (<see cref="SetCollapsed"/>'s
+/// <c>animate</c>).
 /// </summary>
 public sealed partial class PaneSplitter : UserControl
 {
@@ -29,13 +38,31 @@ public sealed partial class PaneSplitter : UserControl
     /// <summary>The grip's opacity at rest: its secondary text brush then reads as the strong stroke colour.</summary>
     private const double RestOpacity = 0.7;
 
+    /// <summary>
+    /// How long a collapse or expand slides (macOS <c>Motion.standard</c>, a 0.25 s snappy spring there), eased out.
+    /// </summary>
+    private static readonly TimeSpan SlideDuration = TimeSpan.FromMilliseconds(180);
+
     private static readonly UISettings UISettings = new();
 
     /// <summary>The pointer is over the gap.</summary>
     private bool _hovered;
 
-    /// <summary>Where a drag started (the pointer's x, or y, in the parent grid) and the first pane's length then.</summary>
-    private (double Position, double Length)? _drag;
+    /// <summary>
+    /// Where a drag started (the pointer's x, or y, in the parent grid), the first pane's length then, and the split's
+    /// fraction then (the remembered one when it started collapsed): a drag that collapses the second pane leaves the
+    /// split as it was before it (macOS <c>PaneSplit.dragStartFraction</c>).
+    /// </summary>
+    private (double Position, double Length, double? Fraction)? _drag;
+
+    /// <summary>The second pane is a rail (<see cref="SetCollapsed"/>).</summary>
+    private bool _collapsed;
+
+    /// <summary>The first pane's share of both when the second one collapsed, put back when it expands; null before.</summary>
+    private double? _collapsedFraction;
+
+    /// <summary>What this drag last asked of <see cref="CollapseRequested"/>, so it asks once until the host answers.</summary>
+    private bool? _requested;
 
     private bool _vertical;
 
@@ -52,6 +79,12 @@ public sealed partial class PaneSplitter : UserControl
 
     /// <summary>The content the view set (the grip), kept while <see cref="Lined"/> replaces it.</summary>
     private UIElement? _grip;
+
+    /// <summary>
+    /// The slide going on (<see cref="SetCollapsed"/>'s <c>animate</c>): its clock and the second pane's pixel length
+    /// from and to; the rail's thickness for the end state. Null otherwise.
+    /// </summary>
+    private (Stopwatch Clock, double From, double To, double Thickness)? _slide;
 
     public PaneSplitter()
     {
@@ -73,6 +106,7 @@ public sealed partial class PaneSplitter : UserControl
         };
         Unloaded += (_, _) =>
         {
+            FinishSlide();
             if (_followedGrid is not null) _followedGrid.SizeChanged -= OnGridSizeChanged;
             _followedGrid = null;
         };
@@ -117,6 +151,40 @@ public sealed partial class PaneSplitter : UserControl
     }
 
     /// <summary>
+    /// The user's drag, or the arrow key that grows the second pane, asks to collapse it (true) or expand it (false); the
+    /// host decides and calls <see cref="SetCollapsed"/> back, so its state stays the one that counts (macOS
+    /// <c>PaneSplit.setCollapsed</c>). Without a handler the gap never collapses anything (the video's split).
+    /// </summary>
+    public event Action<bool>? CollapseRequested;
+
+    /// <summary>
+    /// The second pane <paramref name="thickness"/> pixels long (a rail) and the first the rest, or the split back as it
+    /// was (macOS <c>PaneSplit.collapsedSecond</c>). Collapsing remembers the split (as at the drag's start while one goes
+    /// on); expanding puts it back within the minimums, half and half when none was remembered. Again with the same
+    /// state, it only writes the rail again (after the view made the definitions again); the split stays remembered.
+    /// With <paramref name="animate"/> (the host's button or rail, never a drag, a load or a new layout), a change slides
+    /// the second pane from its length now to the rail's or the restored one (<see cref="Slide"/>, macOS
+    /// <c>Motion.standard</c>), unless animations are off or the grid has no size yet. A slide going on stops: this
+    /// call's state wins, from where the slide was.
+    /// </summary>
+    public void SetCollapsed(bool collapsed, double thickness, bool animate = false)
+    {
+        _requested = null;
+        var sliding = StopSlide();
+        if (collapsed == _collapsed && !collapsed && !sliding) return;
+        var panes = Panes();
+        // Mid-slide the lengths are the slide's, not a split to remember: the remembered one stays.
+        if (collapsed && !_collapsed)
+            _collapsedFraction = _drag is { } drag ? drag.Fraction : sliding ? _collapsedFraction : FractionOf(panes) ?? _collapsedFraction;
+        var changed = collapsed != _collapsed;
+        _collapsed = collapsed;
+        if (panes is not { } current) return;
+        if (animate && changed && UISettings.AnimationsEnabled && Slide(current, thickness)) return;
+        if (collapsed) Collapse(current, thickness);
+        else Expand(current);
+    }
+
+    /// <summary>
     /// Once the view has put the gap and the panes in the parent grid's columns, or rows when
     /// <paramref name="vertical"/> (the up-down resize pointer, ↑/↓ and the grip's lines across then): the panes'
     /// minimums along that axis.
@@ -137,11 +205,13 @@ public sealed partial class PaneSplitter : UserControl
 
     /// <summary>
     /// The split kept within the minimums as the grid resizes, or half and half while it has no room for both. Sets
-    /// the stars only when they change; the grid's size does not depend on them, so the layout never loops.
+    /// the stars only when they change; the grid's size does not depend on them, so the layout never loops. Not while
+    /// collapsed: the rail keeps its pixels, nor while a slide goes on.
     /// </summary>
     private void Clamp()
     {
-        if (Panes() is not { } panes) return;
+        // While expanding, the slide's end is already within the minimums.
+        if (_collapsed || _slide is not null || Panes() is not { } panes) return;
         var length = Clamped(panes.First.Length, panes.First.Length + panes.Second.Length);
         if (length is { } clamped && Math.Abs(clamped - panes.First.Length) > 0.5) Resize(clamped);
     }
@@ -157,34 +227,62 @@ public sealed partial class PaneSplitter : UserControl
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
+        // A press mid-slide drags from where the slide ends.
+        if (FinishSlide()) ParentGrid?.UpdateLayout();
         if (ParentGrid is not { } grid || Panes() is not { } panes
             || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || !CapturePointer(e.Pointer)) return;
         e.Handled = true;
-        _drag = (Along(e, grid), panes.First.Length);
+        _drag = (Along(e, grid), panes.First.Length, _collapsed ? _collapsedFraction : FractionOf(panes));
         UpdateGrip();
     }
 
-    /// <summary>Relative to the parent grid: the gap itself moves while it drags.</summary>
+    /// <summary>
+    /// Relative to the parent grid: the gap itself moves while it drags. With a <see cref="CollapseRequested"/> handler,
+    /// past half the second pane's minimum it asks once to collapse it and resizes nothing while it is (or is asked to
+    /// be) collapsed; back within it, it asks to expand it and resizes from the pointer again in the same drag (macOS
+    /// <c>PaneSplit.resizeGap</c>). The total is both panes' lengths now, the rail's pixels while collapsed.
+    /// </summary>
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (_drag is not { } drag || ParentGrid is not { } grid) return;
         e.Handled = true;
-        Resize(drag.Length + Along(e, grid) - drag.Position);
+        var length = drag.Length + Along(e, grid) - drag.Position;
+        if (CollapseRequested is { } request && Panes() is { } panes)
+        {
+            var collapse = PaneCollapse.ShouldCollapse(panes.First.Length + panes.Second.Length, length, _minimums?.Second ?? 0);
+            if (collapse != _collapsed && collapse != _requested)
+            {
+                _requested = collapse;
+                request(collapse);
+            }
+            if (collapse) return;
+        }
+        Resize(length);
     }
 
     private void EndDrag(PointerRoutedEventArgs e)
     {
         if (_drag is null) return;
         _drag = null;
+        _requested = null;
         ReleasePointerCapture(e.Pointer);
         UpdateGrip();
     }
 
+    /// <summary>
+    /// ←/→ (↑/↓) move the gap by <see cref="KeyStep"/>; while collapsed, the one that grows the second pane (← or ↑)
+    /// asks to expand it instead, and the other does nothing.
+    /// </summary>
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
         var (back, forward) = _vertical ? (VirtualKey.Up, VirtualKey.Down) : (VirtualKey.Left, VirtualKey.Right);
         if ((e.Key != back && e.Key != forward) || Panes() is not { } panes) return;
         e.Handled = true;
+        if (_collapsed)
+        {
+            if (e.Key == back) CollapseRequested?.Invoke(false);
+            return;
+        }
         Resize(panes.First.Length + (e.Key == back ? -KeyStep : KeyStep));
     }
 
@@ -229,16 +327,101 @@ public sealed partial class PaneSplitter : UserControl
 
     /// <summary>
     /// The first pane <paramref name="length"/> long, within both minimums (<see cref="Clamped"/>), the second one the
-    /// rest; as stars of their lengths.
+    /// rest; as stars of their lengths. Not while collapsed; mid-slide, it only ends the slide (its lengths are not a split).
     /// </summary>
     private void Resize(double length)
     {
-        if (Panes() is not { } panes) return;
+        if (_collapsed || FinishSlide() || Panes() is not { } panes) return;
         var (first, second) = panes;
         var total = first.Length + second.Length;
         if (Clamped(length, total) is not { } clamped) return;
         first.SetLength(new GridLength(clamped, GridUnitType.Star));
         second.SetLength(new GridLength(Math.Max(total - clamped, 0), GridUnitType.Star));
+    }
+
+    /// <summary>The first pane's share of both panes' lengths; null before the layout.</summary>
+    private static double? FractionOf((Pane First, Pane Second)? panes) =>
+        panes is { } both && both.First.Length + both.Second.Length is > 0 and var total ? both.First.Length / total : null;
+
+    /// <summary>The second pane <paramref name="thickness"/> pixels long, the first the rest.</summary>
+    private static void Collapse((Pane First, Pane Second) panes, double thickness)
+    {
+        panes.First.SetLength(new GridLength(1, GridUnitType.Star));
+        panes.Second.SetLength(new GridLength(thickness));
+    }
+
+    /// <summary>
+    /// The remembered split back as stars, within the minimums (<see cref="PaneCollapse.Restore"/>); before the layout,
+    /// the fraction itself as stars, kept within the minimums by <see cref="Clamp"/> once the grid has a size.
+    /// </summary>
+    private void Expand((Pane First, Pane Second) panes)
+    {
+        var total = panes.First.Length + panes.Second.Length;
+        var first = total > 0 ? Restored(total) : _collapsedFraction ?? 0.5;
+        var second = Math.Max((total > 0 ? total : 1) - first, 0);
+        panes.First.SetLength(new GridLength(first, GridUnitType.Star));
+        panes.Second.SetLength(new GridLength(second, GridUnitType.Star));
+    }
+
+    /// <summary>The first pane's length out of <paramref name="total"/> once expanded (<see cref="PaneCollapse.Restore"/>).</summary>
+    private double Restored(double total)
+    {
+        var (firstMinimum, secondMinimum) = _minimums ?? (0, 0);
+        return PaneCollapse.Restore(_collapsedFraction ?? 0.5, total, firstMinimum, secondMinimum);
+    }
+
+    /// <summary>
+    /// The second pane sliding from its length now to the rail's <paramref name="thickness"/> (collapsed) or the length the
+    /// restored split gives it, in pixels with the first pane the rest, eased out over <see cref="SlideDuration"/> (macOS
+    /// <c>Motion.standard</c>), each frame; then <see cref="Collapse"/> or <see cref="Expand"/> as without a slide. False,
+    /// with nothing done, before the layout.
+    /// </summary>
+    private bool Slide((Pane First, Pane Second) panes, double thickness)
+    {
+        var total = panes.First.Length + panes.Second.Length;
+        if (total <= 0) return false;
+        var to = _collapsed ? thickness : Math.Max(total - Restored(total), 0);
+        _slide = (Stopwatch.StartNew(), panes.Second.Length, to, thickness);
+        panes.First.SetLength(new GridLength(1, GridUnitType.Star));
+        panes.Second.SetLength(new GridLength(panes.Second.Length));
+        CompositionTarget.Rendering += OnSlideFrame;
+        return true;
+    }
+
+    /// <summary>One frame of the slide: the definitions read again, as the view may have made them again.</summary>
+    private void OnSlideFrame(object? sender, object e)
+    {
+        if (_slide is not { } slide) return;
+        var progress = slide.Clock.Elapsed / SlideDuration;
+        if (progress >= 1 || Panes() is not { } panes)
+        {
+            FinishSlide();
+            return;
+        }
+        var eased = 1 - Math.Pow(1 - progress, 3);
+        panes.First.SetLength(new GridLength(1, GridUnitType.Star));
+        panes.Second.SetLength(new GridLength(slide.From + (slide.To - slide.From) * eased));
+    }
+
+    /// <summary>The slide stopped where it is; false when none went on.</summary>
+    private bool StopSlide()
+    {
+        if (_slide is null) return false;
+        _slide = null;
+        CompositionTarget.Rendering -= OnSlideFrame;
+        return true;
+    }
+
+    /// <summary>The slide stopped and its end state written (the rail, or the split back as stars); false when none went on.</summary>
+    private bool FinishSlide()
+    {
+        if (_slide is not { } slide || !StopSlide()) return false;
+        if (Panes() is { } panes)
+        {
+            if (_collapsed) Collapse(panes, slide.Thickness);
+            else Expand(panes);
+        }
+        return true;
     }
 
     /// <summary>

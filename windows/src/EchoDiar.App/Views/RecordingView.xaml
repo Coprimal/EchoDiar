@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   
-With icons only a tab is shorter: the track keeps 32 px (MinHeight) and centres them, so the
-header and its line stay level with the sidebar's. The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
+    The recording page (macOS RecordingViews.swift RecordingDetailView and RecordingHeader): the header with the
     title, the state, the elapsed time with the size so far and the "screen recorded" glyph, the mic and system meters,
     "Catch up" and the language, the calendar suggestion, the capture warnings and the screen video's notice, pinned on
     top; under them the live transcript (or the wave and why there is none) on the
@@ -378,12 +376,14 @@ header and its line stay level with the sidebar's. The recording page (macOS Rec
             <!--
                 One card, as the conversation's AI panel (AIPanelView): a header 10 px inside it (the Catch-up | Chat
                 tabs, then the catch-up model, which also answers the chat, the answer language and, on the Catch-up tab,
-                Search), a line, then only the catch-ups or the chat. The header is one row, never wrapped: narrower, the
-                language shows only its globe, then the model only its chip, then the tabs only their icons, the names in
-                the tooltips; the same step on both tabs (RecordingView.FitHeader).
+                Search, then the collapse button), a line, then only the catch-ups or the chat. The header is one row, never
+                wrapped: narrower, the language shows only its globe, then the model only its chip, then the tabs only
+                their icons, the names in the tooltips, then the menus and buttons narrow; the same step on both tabs
+                (RecordingView.FitHeader). Collapsed (AppViewModel.RecordingPanelCollapsed, as each recording starts), the
+                rail of tab buttons in its place (macOS CollapsedPanel); the card only hides, so the chat stays.
             -->
             <Grid x:Name="SidePanel" Grid.Column="2">
-                <Border Style="{StaticResource PaneStyle}">
+                <Border x:Name="PanelCard" Style="{StaticResource PaneStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -415,6 +415,8 @@ header and its line stay level with the sidebar's. The recording page (macOS Rec
                                             it, then the 3 px selection pill, instead of 10 and 7. A tab is then 26 px
                                             (a 19 px name), the track 32 px with its padding and border, Fluent's
                                             control height; the name stays centred.
+                                            With icons only a tab is shorter: the track keeps 32 px (MinHeight)
+                                            and centres them, so the header stays as tall as the AI panel's.
                                         -->
                                         <Style TargetType="SelectorBarItem">
                                             <Setter Property="Padding" Value="12,3,12,1" />
@@ -433,6 +435,7 @@ header and its line stay level with the sidebar's. The recording page (macOS Rec
                                 Grid.Column="1"
                                 HorizontalAlignment="Right">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
@@ -491,6 +494,16 @@ header and its line stay level with the sidebar's. The recording page (macOS Rec
                                     ToolTipService.ToolTip="{local:T Text='Search catch-ups'}">
                                     <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
                                 </ToggleButton>
+                                <!-- The last one, as the AI panel's: folds the panel toward the trailing edge, down when stacked (set in code). -->
+                                <Button
+                                    x:Name="CollapseButton"
+                                    Grid.Column="3"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{local:T Text='Collapse panel'}"
+                                    ToolTipService.ToolTip="{local:T Text='Collapse panel'}">
+                                    <FontIcon x:Name="CollapseIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE76C;" />
+                                </Button>
                             </Grid>
                         </Grid>
 
@@ -548,6 +561,7 @@ header and its line stay level with the sidebar's. The recording page (macOS Rec
                         </Grid>
                     </Grid>
                 </Border>
+                <views:CollapsedPanel x:Name="CollapsedRail" Visibility="Collapsed" />
             </Grid>
         </Grid>
     </Grid>

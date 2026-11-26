@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings > Recording > Screen: frame rate (15, 20, 30 or 60 fps; 60 asks first), quality (Smaller, Balanced or Sharper), cursor, clicks, camera bubble, blur and "Transcribe screen recordings"; and Settings > Recording > Microphone > "Tray icon while recording": the icon only, the elapsed time or the file size (the default), as the tray icon's tooltip and the first line of its menu (Windows).
 - The Transcript tab plays the video beside the transcript in sync with the sound, with Show video and Hide video, "Export video…" (both, the microphone, the system audio or no sound) and "Delete video…". Videos are HEVC when the PC can record and play it, otherwise H.264 (Windows).
 - Cards show a video badge and a size tint, and a running recording shows its live size and a "screen recorded" mark; the recording says why when the video stops early (window closed, low disk space, write error) or when camera access is off or blur is not available (Windows).
+- The AI panel and the recording's Catch-up | Chat panel collapse beside the transcript (under it with Stack Panes) to a narrow rail, by their header's last button or by dragging the divider toward them; the rail's buttons open a tab, and Chat, Summarize and Catch up open the panel again (macOS and Windows).
+
+### Changed
+
+- Panel headers sit inside the cards, and the video, transcript and controls share one card. Header menus and buttons are as tall as the tabs track, and the panel header and bar controls are smaller (Windows).
 
 ## [1.7.1] - 2026-11-25
 

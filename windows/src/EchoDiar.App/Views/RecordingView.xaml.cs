@@ -53,6 +53,10 @@ public sealed partial class RecordingView : UserControl
     private const string CatchUpTabGlyph = "\uE8FD";
     private const string ChatTabGlyph = "\uE8BD";
 
+    /// <summary>The collapse button's chevron, as the AI panel's: right beside the transcript, down under it.</summary>
+    private const string CollapseGlyph = "\uE76C";
+    private const string CollapseStackedGlyph = "\uE70D";
+
     private static readonly UISettings UISettings = new();
 
     private readonly AppViewModel _model;
@@ -86,6 +90,9 @@ public sealed partial class RecordingView : UserControl
 
     /// <summary>The panes' layout as last applied: stacked, side by side, or none yet (the XAML's, side by side).</summary>
     private bool? _stacked;
+
+    /// <summary>The collapsed state is changing from the gap (<see cref="OnCollapseRequested"/>): no slide.</summary>
+    private bool _dragCollapse;
 
     /// <summary>What <see cref="FitHeader"/> last fitted: the header's width and the two names.</summary>
     private (double Width, string Model, string Language)? _headerFitted;
@@ -124,11 +131,13 @@ public sealed partial class RecordingView : UserControl
         TitleBox.TextChanged += (_, _) => _model.SetRecordingTitle(TitleBox.Text);
         AcceptSuggestionButton.Click += (_, _) => _model.AcceptCalendarSuggestion();
         DismissSuggestionButton.Click += (_, _) => _model.DismissCalendarSuggestion();
-        // Sets CatchUpRun at once, so its card shows in this update; in the Catch-up tab, which it selects.
+        // Sets CatchUpRun at once, so its card shows in this update; in the Catch-up tab, which it selects, the panel
+        // expanded if collapsed.
         CatchUpButton.Click += (_, _) =>
         {
             _model.StartCatchUp();
             _model.RecordingTab = RecordingTab.CatchUp;
+            _model.RecordingPanelCollapsed = false;
         };
         PanelTabsBar.SelectionChanged += (_, _) => OnPanelTabSelected();
         PanelHeader.SizeChanged += (_, _) => FitHeader();
@@ -139,6 +148,12 @@ public sealed partial class RecordingView : UserControl
                 if (child is FrameworkElement element) element.Height = PanelTabsTrack.ActualHeight;
         };
         CatchUpSearchButton.Click += (_, _) => SetCatchUpSearch(CatchUpSearchButton.IsChecked == true);
+        CollapseButton.Click += (_, _) => _model.RecordingPanelCollapsed = true;
+        List<(object Tab, string Glyph, string Title)> railTabs =
+            [(RecordingTab.CatchUp, CatchUpTabGlyph, Loc.T("Catch-up")), (RecordingTab.Chat, ChatTabGlyph, Loc.T("Chat"))];
+        CollapsedRail.SetTabs(railTabs);
+        CollapsedRail.TabInvoked += OnRailTabInvoked;
+        CollapsedRail.ExpandInvoked += OnRailExpandInvoked;
         CatchUpSearchBox.TextChanged += (_, _) =>
         {
             _catchUpSearchOpenStates.Clear();
@@ -157,7 +172,9 @@ public sealed partial class RecordingView : UserControl
             _model.PropertyChanged += OnModelChanged;
             _model.CatchUpTextChanged += OnCatchUpTextChanged;
             _model.ProvidersModel.Changed += OnProvidersChanged;
+            Splitter.CollapseRequested += OnCollapseRequested;
             ApplyLayout();
+            ApplyCollapsed();
             Update();
             UpdateTitle();
             UpdateSuggestion();
@@ -175,6 +192,7 @@ public sealed partial class RecordingView : UserControl
             _model.PropertyChanged -= OnModelChanged;
             _model.CatchUpTextChanged -= OnCatchUpTextChanged;
             _model.ProvidersModel.Changed -= OnProvidersChanged;
+            Splitter.CollapseRequested -= OnCollapseRequested;
             _ticker.Run(false);
             _shownState = null;
         };
@@ -190,6 +208,7 @@ public sealed partial class RecordingView : UserControl
                 break;
             case nameof(AppViewModel.Settings):
                 ApplyLayout();
+                ApplyCollapsed();
                 UpdateReason();
                 UpdateCatchUpButton();
                 UpdatePanelMenus();
@@ -201,6 +220,9 @@ public sealed partial class RecordingView : UserControl
                 break;
             case nameof(AppViewModel.RecordingTab):
                 UpdateContent();
+                break;
+            case nameof(AppViewModel.RecordingPanelCollapsed):
+                ApplyCollapsed(animate: !_dragCollapse);
                 break;
             case nameof(AppViewModel.RecordingCaptions):
                 UpdateLive();
@@ -346,6 +368,56 @@ public sealed partial class RecordingView : UserControl
     }
 
     /// <summary>
+    /// The panel open, or folded to its rail (<see cref="AppViewModel.RecordingPanelCollapsed"/>, macOS
+    /// <c>PaneSplit.collapsedSecond</c>): the rail or the card (only hidden, so the chat stays), a row along the bottom
+    /// when stacked, the collapse button's chevron toward where the panel folds, and the gap making the panel's column
+    /// (row) the rail's thickness or putting the split back. At every load, every change, and after
+    /// <see cref="ApplyLayout"/>, whose new definitions have no rail yet. Slides with <paramref name="animate"/> (a change
+    /// from the button or the rail, macOS <c>Motion.standard</c>); at once on a load, a new layout or a drag.
+    /// </summary>
+    private void ApplyCollapsed(bool animate = false)
+    {
+        var collapsed = _model.RecordingPanelCollapsed;
+        var stacked = _model.Settings.StackedPanes;
+        PanelCard.Visibility = Shown(!collapsed);
+        CollapsedRail.Visibility = Shown(collapsed);
+        CollapsedRail.Vertical = stacked;
+        CollapseIcon.Glyph = stacked ? CollapseStackedGlyph : CollapseGlyph;
+        Splitter.SetCollapsed(collapsed, CollapsedPanel.Thickness, animate);
+    }
+
+    /// <summary>
+    /// The gap dragged past half the panel's minimum, or back: the model's state, whose change calls
+    /// <see cref="ApplyCollapsed"/> at once, without a slide, as the gap needs to go on resizing in the same drag.
+    /// </summary>
+    private void OnCollapseRequested(bool collapsed)
+    {
+        _dragCollapse = true;
+        try
+        {
+            _model.RecordingPanelCollapsed = collapsed;
+        }
+        finally
+        {
+            _dragCollapse = false;
+        }
+    }
+
+    /// <summary>
+    /// A tab of the rail: the panel opens on it (macOS <c>CollapsedPanel</c>'s <c>open</c>); expanded first, so a chat
+    /// made for the Chat tab is shown when it puts the cursor in its question.
+    /// </summary>
+    private void OnRailTabInvoked(object tab)
+    {
+        if (tab is not RecordingTab picked) return;
+        _model.RecordingPanelCollapsed = false;
+        _model.RecordingTab = picked;
+    }
+
+    /// <summary>The rail's chevron: the panel opens on its first tab, Catch-up.</summary>
+    private void OnRailExpandInvoked() => OnRailTabInvoked(RecordingTab.CatchUp);
+
+    /// <summary>
     /// The right panel's catch-up model (<see cref="AIPurpose.CatchUp"/>) and answer language labels (macOS
     /// <c>AIModelMenu</c> and <c>AILanguageMenu</c>), as the conversation's AI panel shows them.
     /// </summary>
@@ -365,9 +437,10 @@ public sealed partial class RecordingView : UserControl
     /// <summary>
     /// The right panel's header on one row, never wrapped (macOS <c>sidePanel</c>'s ViewThatFits): with both names when
     /// everything fits, else the language as its globe only, then the model as its chip only too, then the tabs as
-    /// their icons too, the names in the tooltips. Chosen as if the Catch-up tab's Search showed, so a switch of tabs
-    /// never changes the step. Decided from the natural widths, outside the layout pass (the header's SizeChanged or a
-    /// name that changed). Too narrow even then, the menus are clipped at the trailing edge.
+    /// their icons too, the names in the tooltips, then with narrower menus and buttons (<see cref="ApplyHeaderStep"/>).
+    /// Chosen as if the Catch-up tab's Search showed, so a switch of tabs never changes the step. Decided from the
+    /// natural widths, outside the layout pass (the header's SizeChanged or a name that changed). Too narrow even then,
+    /// the menus are clipped at the trailing edge.
     /// </summary>
     private void FitHeader()
     {
@@ -377,15 +450,35 @@ public sealed partial class RecordingView : UserControl
         if (_headerFitted == key) return;
         _headerFitted = key;
         CatchUpSearchButton.Visibility = Visibility.Visible;
-        AIMenus.FitRow(width, PanelHeader, PanelTabsTrack, PanelHeaderMenus, 4, step =>
-        {
-            ShowHeaderLabels(model: step < 2, language: step < 1);
-            AIMenus.ShowTabLabel(CatchUpPanelTab, Loc.T("Catch-up"), CatchUpTabGlyph, label: step < 3);
-            AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
-        });
+        AIMenus.FitRow(width, PanelHeader, PanelTabsTrack, PanelHeaderMenus, 5, ApplyHeaderStep);
         CatchUpSearchButton.Visibility = Shown(_model.RecordingTab != RecordingTab.Chat);
         // Measured at their natural width above: the next layout pass measures them with the header's width again.
         PanelHeader.InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// One of <see cref="FitHeader"/>'s steps: 0 everything named, 1 the globe alone, 2 the chip alone too, 3 the tabs'
+    /// icons too, 4 also 4 px less side padding in the tabs, the menus and the buttons and 6 px between the row's items
+    /// instead of 8, as the AI panel's (<c>AIPanelView.ApplyHeaderStep</c>), so the collapse button fits the panel's
+    /// minimum width too.
+    /// </summary>
+    private void ApplyHeaderStep(int step)
+    {
+        ShowHeaderLabels(model: step < 2, language: step < 1);
+        AIMenus.ShowTabLabel(CatchUpPanelTab, Loc.T("Catch-up"), CatchUpTabGlyph, label: step < 3);
+        AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
+        var compact = step >= 4;
+        foreach (var control in new Control[] { CatchUpPanelTab, ChatPanelTab, PanelModelButton, PanelLanguageButton, CatchUpSearchButton, CollapseButton })
+        {
+            AIMenus.CompactPadding(control, compact);
+        }
+        var spacing = compact ? 6 : 8;
+        PanelHeader.ColumnSpacing = spacing;
+        // The menus' margins space them (a collapsed one keeps none).
+        foreach (var control in new FrameworkElement[] { PanelLanguageButton, CatchUpSearchButton, CollapseButton })
+        {
+            control.Margin = new Thickness(spacing, 0, 0, 0);
+        }
     }
 
     /// <summary>The model's and the language's names beside their icons, or only in their tooltips.</summary>

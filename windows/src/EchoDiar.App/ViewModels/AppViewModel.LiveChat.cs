@@ -55,6 +55,7 @@ public sealed class LiveChatRun(Guid jobId, string question)
 public sealed partial class AppViewModel
 {
     private RecordingTab _recordingTab = RecordingTab.CatchUp;
+    private bool _recordingPanelCollapsed = true;
     private LiveChatRun? _liveChatRun;
     private IReadOnlyList<ChatLog.Message> _liveChatMessages = [];
 
@@ -66,6 +67,16 @@ public sealed partial class AppViewModel
     {
         get => _recordingTab;
         set => SetProperty(ref _recordingTab, value);
+    }
+
+    /// <summary>
+    /// The recording page's Catch-up | Chat panel is collapsed to a rail; collapsed at each start, as there is nothing in
+    /// it yet (macOS <c>recordingPanelCollapsed</c>). In memory only.
+    /// </summary>
+    public bool RecordingPanelCollapsed
+    {
+        get => _recordingPanelCollapsed;
+        set => SetProperty(ref _recordingPanelCollapsed, value);
     }
 
     /// <summary>
@@ -149,13 +160,17 @@ public sealed partial class AppViewModel
         _services.AI.Stop(run.JobId);
     }
 
-    /// <summary>A recording starts: its page shows none of the previous recording's live chat, on the Catch-up tab.</summary>
+    /// <summary>
+    /// A recording starts: its page shows none of the previous recording's live chat, on the Catch-up tab, its panel
+    /// collapsed.
+    /// </summary>
     private void ResetRecordingPage()
     {
         LiveChatRun?.FlushTimer?.Stop();
         LiveChatRun = null;
         LiveChatMessages = [];
         RecordingTab = RecordingTab.CatchUp;
+        RecordingPanelCollapsed = true;
     }
 
     /// <summary>The recording's <c>chat.json</c> into <see cref="LiveChatMessages"/>, read off the UI thread, while <paramref name="folder"/> is still the recording's.</summary>

@@ -86,6 +86,9 @@ public sealed partial class ConversationView : UserControl
     /// <summary>The panes' layout as last applied: stacked, side by side, or none yet (the XAML's, side by side).</summary>
     private bool? _stacked;
 
+    /// <summary>The collapsed state is changing from the gap (<see cref="OnCollapseRequested"/>): no slide.</summary>
+    private bool _dragCollapse;
+
     /// <summary>The transcript column's layout as last applied: the video shown, and left of the transcript; none yet.</summary>
     private (bool Shown, bool Stacked)? _videoLayout;
 
@@ -124,6 +127,7 @@ public sealed partial class ConversationView : UserControl
         {
             _model.PropertyChanged += OnModelChanged;
             _model.ReleasingAudio += OnReleasingAudio;
+            Splitter.CollapseRequested += OnCollapseRequested;
             _transcript.PropertyChanged += OnTranscriptChanged;
             _playback.PropertyChanged += OnPlaybackChanged;
             // Here, not in the constructor: Unloaded's Dispose detaches it.
@@ -132,6 +136,7 @@ public sealed partial class ConversationView : UserControl
             TranscriptPane.Attach(_model, _transcript, _playback);
             AIPanel.Attach(_model, _id, OpenCitation);
             ApplyLayout();
+            ApplyCollapsed();
             Update();
             UpdateTranscriptShown();
             OpenLibraryCitation();
@@ -140,6 +145,7 @@ public sealed partial class ConversationView : UserControl
         {
             _model.PropertyChanged -= OnModelChanged;
             _model.ReleasingAudio -= OnReleasingAudio;
+            Splitter.CollapseRequested -= OnCollapseRequested;
             _transcript.PropertyChanged -= OnTranscriptChanged;
             _playback.PropertyChanged -= OnPlaybackChanged;
             TranscriptPane.Detach();
@@ -177,7 +183,11 @@ public sealed partial class ConversationView : UserControl
             case nameof(AppViewModel.Settings):
                 _playback.SetChannels(_model.Settings.PlaybackChannels);
                 ApplyLayout();
+                ApplyCollapsed();
                 ApplyVideoLayout();
+                break;
+            case nameof(AppViewModel.AIPanelCollapsed):
+                ApplyCollapsed(animate: !_dragCollapse);
                 break;
             case nameof(AppViewModel.PendingTranscriptTime):
                 OpenLibraryCitation();
@@ -225,6 +235,37 @@ public sealed partial class ConversationView : UserControl
         // The minimums are kept by the gap: half and half when the grid has no room for both, as macOS.
         if (stacked) Splitter.Arrange(vertical: true, StackedMinHeight, StackedMinHeight);
         else Splitter.Arrange(vertical: false, TranscriptMinWidth, PanelMinWidth);
+    }
+
+    /// <summary>
+    /// The AI panel open, or folded to its rail (<see cref="AppViewModel.AIPanelCollapsed"/>, macOS
+    /// <c>PaneSplit.collapsedSecond</c>): the panel shows the rail or its card, and the gap makes its column (row) the
+    /// rail's thickness or puts the split back. At every load (the state outlives this view), every change, and after
+    /// <see cref="ApplyLayout"/>, whose new definitions have no rail yet. Slides with <paramref name="animate"/> (a change
+    /// from the button or the rail, macOS <c>Motion.standard</c>); at once on a load, a new layout or a drag.
+    /// </summary>
+    private void ApplyCollapsed(bool animate = false)
+    {
+        var collapsed = _model.AIPanelCollapsed;
+        AIPanel.ShowCollapsed(collapsed, _model.Settings.StackedPanes);
+        Splitter.SetCollapsed(collapsed, CollapsedPanel.Thickness, animate);
+    }
+
+    /// <summary>
+    /// The gap dragged past half the panel's minimum, or back: the model's state, whose change calls
+    /// <see cref="ApplyCollapsed"/> at once, without a slide, as the gap needs to go on resizing in the same drag.
+    /// </summary>
+    private void OnCollapseRequested(bool collapsed)
+    {
+        _dragCollapse = true;
+        try
+        {
+            _model.AIPanelCollapsed = collapsed;
+        }
+        finally
+        {
+            _dragCollapse = false;
+        }
     }
 
     /// <summary>

@@ -66,456 +66,474 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- One card (macOS GlassCard around the whole panel): the header, a line, then the tab's pane, the error and the footer. -->
-    <Border Style="{StaticResource PaneStyle}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!--
-                The header, 10 px inside the card as the sidebar's (the two line up): the tabs, then at the trailing edge
-                the model, the language, the "i" and, on Chat, a fresh chat and History; the menus open downwards. One
-                row, never wrapped (macOS headerRow): too narrow, the language shows only its globe, then the model only
-                its chip, their names in the tooltips, then the tabs only their icons, then the "i" hides and the menus
-                and buttons narrow; the same step on both tabs (FitHeader).
-            -->
-            <Grid
-                x:Name="HeaderRow"
-                Margin="10"
-                ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
-                <Border
-                    x:Name="PanelTabsTrack"
-                    Padding="2"
-                    MinHeight="32"
-                    VerticalAlignment="Center"
-                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{StaticResource OverlayCornerRadius}">
-                    <SelectorBar x:Name="PanelTabsBar" Padding="0" VerticalAlignment="Center">
-                        <SelectorBar.Resources>
-                            <!--
-                                Compact tabs (macOS: 28 → 24 pt items): 3 px above the name and 1 px under it, then the
-                                3 px selection pill, instead of 10 and 7. A tab is then 26 px (a 19 px name), the track
-                                32 px with its padding and border, Fluent's control height; the name stays centred.
-                                With icons only a tab is shorter: the track keeps 32 px (MinHeight) and centres them, so the
-                                header and its line stay level with the sidebar's.
-                            -->
-                            <Style TargetType="SelectorBarItem">
-                                <Setter Property="Padding" Value="12,3,12,1" />
-                            </Style>
-                        </SelectorBar.Resources>
-                        <SelectorBarItem x:Name="SummaryPanelTab" Text="{local:T Text='Summary'}" />
-                        <!-- Only for a conversation with catch-ups (set in code). -->
-                        <SelectorBarItem
-                            x:Name="CatchUpPanelTab"
-                            Text="{local:T Text='Catch-up'}"
-                            Visibility="Collapsed" />
-                        <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
-                    </SelectorBar>
-                </Border>
-                <!--
-                    Margins space the menus: a collapsed one's column would keep a ColumnSpacing. Each as tall as the tabs'
-                    track (set in code).
-                -->
-                <Grid
-                    x:Name="HeaderMenus"
-                    Grid.Column="1"
-                    HorizontalAlignment="Right">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <DropDownButton
-                        x:Name="ModelButton"
-                        MaxWidth="180"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center">
-                        <!--
-                            A Grid, not a horizontal StackPanel: its star column gives the name a finite width to trim with
-                            "…". The name's margin spaces it, so the chip alone (the name collapsed) keeps no gap.
-                        -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
-                            <TextBlock
-                                x:Name="ModelText"
-                                Grid.Column="1"
-                                Margin="6,0,0,0"
-                                MaxLines="1"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                        </Grid>
-                        <DropDownButton.Flyout>
-                            <MenuFlyout x:Name="ModelMenu" Placement="BottomEdgeAlignedRight" />
-                        </DropDownButton.Flyout>
-                    </DropDownButton>
-                    <DropDownButton
-                        x:Name="LanguageButton"
-                        Grid.Column="1"
-                        Margin="8,0,0,0"
-                        VerticalAlignment="Center">
-                        <!-- The name's margin spaces it, as the model's: the globe alone keeps no gap. -->
-                        <StackPanel Orientation="Horizontal">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
-                            <TextBlock x:Name="LanguageText" Margin="6,0,0,0" />
-                        </StackPanel>
-                        <DropDownButton.Flyout>
-                            <MenuFlyout x:Name="LanguageMenu" Placement="BottomEdgeAlignedRight" />
-                        </DropDownButton.Flyout>
-                    </DropDownButton>
-                    <Button
-                        x:Name="DataNotesButton"
-                        Grid.Column="2"
-                        Margin="8,0,0,0"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name="{local:T Text='About where data goes'}"
-                        ToolTipService.ToolTip="{local:T Text='About where data goes'}">
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE946;" />
-                        <Button.Flyout>
-                            <Flyout x:Name="DataNotesFlyout" Placement="Bottom">
-                                <StackPanel x:Name="DataNotesPanel" MaxWidth="280" Spacing="8" />
-                            </Flyout>
-                        </Button.Flyout>
-                    </Button>
-                    <Button
-                        x:Name="FreshChatButton"
-                        Grid.Column="3"
-                        Margin="8,0,0,0"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
-                        ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
-                    </Button>
-                    <ToggleButton
-                        x:Name="HistoryButton"
-                        Grid.Column="4"
-                        Margin="8,0,0,0"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name="{local:T Text='History'}"
-                        ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
-                    </ToggleButton>
-                </Grid>
-            </Grid>
-
-            <!-- Across the card under the header, lined up with the sidebar's. -->
-            <Border
-                Grid.Row="1"
-                Height="1"
-                Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
-
-            <!-- The tab's pane (10 px under the line), the error and the footer. -->
-            <Grid
-                Grid.Row="2"
-                Padding="0,10,0,0"
-                RowSpacing="10">
+    <!--
+        One card (macOS GlassCard around the whole panel): the header, a line, then the tab's pane, the error and the
+        footer. Collapsed (AppViewModel.AIPanelCollapsed), the rail of tab buttons in its place (macOS CollapsedPanel);
+        the card only hides, so the chat, the question and the loads stay.
+    -->
+    <Grid>
+        <Border x:Name="PanelCard" Style="{StaticResource PaneStyle}">
+            <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Until the files are read (macOS DetailLoadingPane, unframed): the ring fades in once that takes 150 ms. -->
-                <ProgressRing
-                    x:Name="LoadingRing"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    IsActive="False"
-                    Opacity="0" />
-
-                <!-- The tab's pane, once the files are read. -->
-                <Grid x:Name="ContentHost" Visibility="Collapsed">
-                    <!-- Summary: the version menu over the summary; a note while there is none. -->
-                    <Border x:Name="SummaryPane">
-                        <Grid>
-                            <TextBlock x:Name="SummaryEmptyText" Style="{StaticResource EmptyNoteStyle}" />
-                            <Grid x:Name="SummaryContent">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <!-- Smaller than the header's menus (macOS headerControlHeight): 28 px, no padding above or below. -->
-                                <DropDownButton
-                                    x:Name="VersionButton"
-                                    Height="28"
-                                    MaxWidth="260"
-                                    Margin="14,0,14,0"
-                                    Padding="11,0"
-                                    ToolTipService.ToolTip="{local:T Text='Earlier summaries of this conversation'}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
-                                        <TextBlock
-                                            x:Name="VersionText"
-                                            MaxLines="1"
-                                            TextTrimming="CharacterEllipsis"
-                                            TextWrapping="NoWrap" />
-                                    </StackPanel>
-                                    <DropDownButton.Flyout>
-                                        <MenuFlyout x:Name="VersionMenu" Placement="BottomEdgeAlignedLeft" />
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
-                                <ScrollViewer x:Name="SummaryScroller" Grid.Row="1">
-                                    <StackPanel x:Name="SummaryBody" Padding="14,10,14,16" Spacing="8">
-                                        <StackPanel x:Name="SummaryStatusPanel" Orientation="Horizontal" Spacing="6">
-                                            <ProgressRing
-                                                Width="16"
-                                                Height="16"
-                                                MinWidth="0"
-                                                MinHeight="0"
-                                                IsActive="True" />
-                                            <TextBlock
-                                                x:Name="SummaryStatusText"
-                                                VerticalAlignment="Center"
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        </StackPanel>
-                                        <RichTextBlock x:Name="SummaryText" />
-                                    </StackPanel>
-                                </ScrollViewer>
-                            </Grid>
-                        </Grid>
+                <!--
+                    The header, 10 px inside the card as the sidebar's (the two line up): the tabs, then at the trailing edge
+                    the model, the language, the "i", on Chat a fresh chat and History, and the collapse button; the menus
+                    open downwards. One row, never wrapped (macOS headerRow): too narrow, the language shows only its globe,
+                    then the model only its chip, their names in the tooltips, then the tabs only their icons, then the "i"
+                    hides and the menus and buttons narrow; the same step on both tabs (FitHeader).
+                -->
+                <Grid
+                    x:Name="HeaderRow"
+                    Margin="10"
+                    ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <!-- A track of its own: the panel is a card too, so the tabs would blend into it. -->
+                    <Border
+                        x:Name="PanelTabsTrack"
+                        Padding="2"
+                        MinHeight="32"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource OverlayCornerRadius}">
+                        <SelectorBar x:Name="PanelTabsBar" Padding="0" VerticalAlignment="Center">
+                            <SelectorBar.Resources>
+                                <!--
+                                    Compact tabs (macOS: 28 → 24 pt items): 3 px above the name and 1 px under it, then the
+                                    3 px selection pill, instead of 10 and 7. A tab is then 26 px (a 19 px name), the track
+                                    32 px with its padding and border, Fluent's control height; the name stays centred.
+                                    With icons only a tab is shorter: the track keeps 32 px (MinHeight) and centres them, so the
+                                    header and its line stay level with the sidebar's.
+                                -->
+                                <Style TargetType="SelectorBarItem">
+                                    <Setter Property="Padding" Value="12,3,12,1" />
+                                </Style>
+                            </SelectorBar.Resources>
+                            <SelectorBarItem x:Name="SummaryPanelTab" Text="{local:T Text='Summary'}" />
+                            <!-- Only for a conversation with catch-ups (set in code). -->
+                            <SelectorBarItem
+                                x:Name="CatchUpPanelTab"
+                                Text="{local:T Text='Catch-up'}"
+                                Visibility="Collapsed" />
+                            <SelectorBarItem x:Name="ChatPanelTab" Text="{local:T Text='Chat'}" />
+                        </SelectorBar>
                     </Border>
-
                     <!--
-                        Catch-up: the catch-ups written while recording (macOS catchUpPane), read-only, newest first, the
-                        cards built in code; no footer.
+                        Margins space the menus: a collapsed one's column would keep a ColumnSpacing. Each as tall as the tabs'
+                        track (set in code).
                     -->
-                    <ScrollViewer x:Name="CatchUpPane" Visibility="Collapsed">
-                        <StackPanel x:Name="CatchUpCards" Padding="14,0,14,16" Spacing="6" />
-                    </ScrollViewer>
+                    <Grid
+                        x:Name="HeaderMenus"
+                        Grid.Column="1"
+                        HorizontalAlignment="Right">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <DropDownButton
+                            x:Name="ModelButton"
+                            MaxWidth="180"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                            <!--
+                                A Grid, not a horizontal StackPanel: its star column gives the name a finite width to trim with
+                                "…". The name's margin spaces it, so the chip alone (the name collapsed) keeps no gap.
+                            -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE950;" />
+                                <TextBlock
+                                    x:Name="ModelText"
+                                    Grid.Column="1"
+                                    Margin="6,0,0,0"
+                                    MaxLines="1"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                            </Grid>
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="ModelMenu" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <DropDownButton
+                            x:Name="LanguageButton"
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center">
+                            <!-- The name's margin spaces it, as the model's: the globe alone keeps no gap. -->
+                            <StackPanel Orientation="Horizontal">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE774;" />
+                                <TextBlock x:Name="LanguageText" Margin="6,0,0,0" />
+                            </StackPanel>
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="LanguageMenu" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <Button
+                            x:Name="DataNotesButton"
+                            Grid.Column="2"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{local:T Text='About where data goes'}"
+                            ToolTipService.ToolTip="{local:T Text='About where data goes'}">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE946;" />
+                            <Button.Flyout>
+                                <Flyout x:Name="DataNotesFlyout" Placement="Bottom">
+                                    <StackPanel x:Name="DataNotesPanel" MaxWidth="280" Spacing="8" />
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                        <Button
+                            x:Name="FreshChatButton"
+                            Grid.Column="3"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{local:T Text='Start a fresh chat'}"
+                            ToolTipService.ToolTip="{local:T Text='Start a fresh chat'}">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE710;" />
+                        </Button>
+                        <ToggleButton
+                            x:Name="HistoryButton"
+                            Grid.Column="4"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{local:T Text='History'}"
+                            ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                        </ToggleButton>
+                        <!-- The last one (macOS PanelCollapseButton): folds the panel toward the trailing edge, down when stacked (set in code). -->
+                        <Button
+                            x:Name="CollapseButton"
+                            Grid.Column="5"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{local:T Text='Collapse panel'}"
+                            ToolTipService.ToolTip="{local:T Text='Collapse panel'}">
+                            <FontIcon x:Name="CollapseIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE76C;" />
+                        </Button>
+                    </Grid>
+                </Grid>
 
-                    <!-- Chat: the messages, or a note while there are none; the History panel over the trailing edge. -->
-                    <Border x:Name="ChatPane" Visibility="Collapsed">
-                        <Grid>
-                            <TextBlock x:Name="ChatEmptyText" Style="{StaticResource EmptyNoteStyle}" />
-                            <ScrollViewer x:Name="ChatScroller">
-                                <StackPanel x:Name="MessagesPanel" Padding="14,0,14,16" Spacing="20" />
-                            </ScrollViewer>
-                            <Border
-                                x:Name="HistoryPanel"
-                                Width="260"
-                                Margin="8"
-                                HorizontalAlignment="Right"
-                                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
-                                BorderThickness="1"
-                                CornerRadius="{StaticResource OverlayCornerRadius}"
-                                Visibility="Collapsed">
-                                <Grid>
+                <!-- Across the card under the header, lined up with the sidebar's. -->
+                <Border
+                    Grid.Row="1"
+                    Height="1"
+                    Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                <!-- The tab's pane (10 px under the line), the error and the footer. -->
+                <Grid
+                    Grid.Row="2"
+                    Padding="0,10,0,0"
+                    RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Until the files are read (macOS DetailLoadingPane, unframed): the ring fades in once that takes 150 ms. -->
+                    <ProgressRing
+                        x:Name="LoadingRing"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsActive="False"
+                        Opacity="0" />
+
+                    <!-- The tab's pane, once the files are read. -->
+                    <Grid x:Name="ContentHost" Visibility="Collapsed">
+                        <!-- Summary: the version menu over the summary; a note while there is none. -->
+                        <Border x:Name="SummaryPane">
+                            <Grid>
+                                <TextBlock x:Name="SummaryEmptyText" Style="{StaticResource EmptyNoteStyle}" />
+                                <Grid x:Name="SummaryContent">
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
-                                    <Grid Padding="14,10,6,4" ColumnSpacing="4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource BodyStrongTextBlockStyle}"
-                                            Text="{local:T Text='History'}" />
-                                        <!-- Shows or hides the search field under the header, accent-colored while shown. -->
-                                        <Button
-                                            x:Name="HistorySearchButton"
-                                            Grid.Column="1"
-                                            Style="{StaticResource SubtleButtonStyle}"
-                                            AutomationProperties.Name="{local:T Text='Search chats'}"
-                                            ToolTipService.ToolTip="{local:T Text='Search chats'}">
-                                            <FontIcon x:Name="HistorySearchIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
-                                        </Button>
-                                        <Button
-                                            x:Name="ClearHistoryButton"
-                                            Grid.Column="2"
-                                            Style="{StaticResource SubtleButtonStyle}"
-                                            AutomationProperties.Name="{local:T Text='Delete all earlier chats'}"
-                                            ToolTipService.ToolTip="{local:T Text='Delete all earlier chats'}">
-                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE74D;" />
-                                        </Button>
-                                        <Button
-                                            x:Name="CloseHistoryButton"
-                                            Grid.Column="3"
-                                            Style="{StaticResource SubtleButtonStyle}"
-                                            AutomationProperties.Name="{local:T Text='Close'}"
-                                            ToolTipService.ToolTip="{local:T Text='Close the history'}">
-                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
-                                        </Button>
-                                    </Grid>
-                                    <!--
-                                        Filters the earlier chats by title and messages as typed (macOS ChatHistorySearchField); Esc clears it, then
-                                        hides it.
-                                    -->
-                                    <AutoSuggestBox
-                                        x:Name="HistorySearchBox"
-                                        Grid.Row="1"
-                                        Margin="10,2,10,0"
-                                        AutomationProperties.Name="{local:T Text='Search chats'}"
-                                        PlaceholderText="{local:T Text='Search chats'}"
-                                        QueryIcon="Find"
-                                        Visibility="Collapsed" />
-                                    <ScrollViewer Grid.Row="2">
-                                        <StackPanel x:Name="HistoryList" Padding="6" Spacing="2" />
+                                    <!-- Smaller than the header's menus (macOS headerControlHeight): 28 px, no padding above or below. -->
+                                    <DropDownButton
+                                        x:Name="VersionButton"
+                                        Height="28"
+                                        MaxWidth="260"
+                                        Margin="14,0,14,0"
+                                        Padding="11,0"
+                                        ToolTipService.ToolTip="{local:T Text='Earlier summaries of this conversation'}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
+                                            <TextBlock
+                                                x:Name="VersionText"
+                                                MaxLines="1"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                        <DropDownButton.Flyout>
+                                            <MenuFlyout x:Name="VersionMenu" Placement="BottomEdgeAlignedLeft" />
+                                        </DropDownButton.Flyout>
+                                    </DropDownButton>
+                                    <ScrollViewer x:Name="SummaryScroller" Grid.Row="1">
+                                        <StackPanel x:Name="SummaryBody" Padding="14,10,14,16" Spacing="8">
+                                            <StackPanel x:Name="SummaryStatusPanel" Orientation="Horizontal" Spacing="6">
+                                                <ProgressRing
+                                                    Width="16"
+                                                    Height="16"
+                                                    MinWidth="0"
+                                                    MinHeight="0"
+                                                    IsActive="True" />
+                                                <TextBlock
+                                                    x:Name="SummaryStatusText"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <RichTextBlock x:Name="SummaryText" />
+                                        </StackPanel>
                                     </ScrollViewer>
                                 </Grid>
-                            </Border>
-                        </Grid>
-                    </Border>
+                            </Grid>
+                        </Border>
 
-                </Grid>
+                        <!--
+                            Catch-up: the catch-ups written while recording (macOS catchUpPane), read-only, newest first, the
+                            cards built in code; no footer.
+                        -->
+                        <ScrollViewer x:Name="CatchUpPane" Visibility="Collapsed">
+                            <StackPanel x:Name="CatchUpCards" Padding="14,0,14,16" Spacing="6" />
+                        </ScrollViewer>
 
-                <!-- Why this conversation's last job failed. -->
-                <TextBlock
-                    x:Name="ErrorText"
-                    Grid.Row="1"
-                    Margin="14,0"
-                    Style="{StaticResource BodyTextBlockStyle}"
-                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                    IsTextSelectionEnabled="True"
-                    MaxLines="4"
-                    TextTrimming="CharacterEllipsis"
-                    TextWrapping="Wrap"
-                    Visibility="Collapsed" />
+                        <!-- Chat: the messages, or a note while there are none; the History panel over the trailing edge. -->
+                        <Border x:Name="ChatPane" Visibility="Collapsed">
+                            <Grid>
+                                <TextBlock x:Name="ChatEmptyText" Style="{StaticResource EmptyNoteStyle}" />
+                                <ScrollViewer x:Name="ChatScroller">
+                                    <StackPanel x:Name="MessagesPanel" Padding="14,0,14,16" Spacing="20" />
+                                </ScrollViewer>
+                                <Border
+                                    x:Name="HistoryPanel"
+                                    Width="260"
+                                    Margin="8"
+                                    HorizontalAlignment="Right"
+                                    Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource OverlayCornerRadius}"
+                                    Visibility="Collapsed">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Padding="14,10,6,4" ColumnSpacing="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                Text="{local:T Text='History'}" />
+                                            <!-- Shows or hides the search field under the header, accent-colored while shown. -->
+                                            <Button
+                                                x:Name="HistorySearchButton"
+                                                Grid.Column="1"
+                                                Style="{StaticResource SubtleButtonStyle}"
+                                                AutomationProperties.Name="{local:T Text='Search chats'}"
+                                                ToolTipService.ToolTip="{local:T Text='Search chats'}">
+                                                <FontIcon x:Name="HistorySearchIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
+                                            </Button>
+                                            <Button
+                                                x:Name="ClearHistoryButton"
+                                                Grid.Column="2"
+                                                Style="{StaticResource SubtleButtonStyle}"
+                                                AutomationProperties.Name="{local:T Text='Delete all earlier chats'}"
+                                                ToolTipService.ToolTip="{local:T Text='Delete all earlier chats'}">
+                                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE74D;" />
+                                            </Button>
+                                            <Button
+                                                x:Name="CloseHistoryButton"
+                                                Grid.Column="3"
+                                                Style="{StaticResource SubtleButtonStyle}"
+                                                AutomationProperties.Name="{local:T Text='Close'}"
+                                                ToolTipService.ToolTip="{local:T Text='Close the history'}">
+                                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE711;" />
+                                            </Button>
+                                        </Grid>
+                                        <!--
+                                            Filters the earlier chats by title and messages as typed (macOS ChatHistorySearchField); Esc clears it, then
+                                            hides it.
+                                        -->
+                                        <AutoSuggestBox
+                                            x:Name="HistorySearchBox"
+                                            Grid.Row="1"
+                                            Margin="10,2,10,0"
+                                            AutomationProperties.Name="{local:T Text='Search chats'}"
+                                            PlaceholderText="{local:T Text='Search chats'}"
+                                            QueryIcon="Find"
+                                            Visibility="Collapsed" />
+                                        <ScrollViewer Grid.Row="2">
+                                            <StackPanel x:Name="HistoryList" Padding="6" Spacing="2" />
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Border>
 
-                <!--
-                    The footer, inside the card without a frame of its own (once the files are read): a job running elsewhere,
-                    then Summary's actions or Chat's question row, then the setup hints.
-                -->
-                <StackPanel
-                    x:Name="Footer"
-                    Grid.Row="2"
-                    Margin="14,0,14,10"
-                    Spacing="8"
-                    Visibility="Collapsed">
-                    <Grid x:Name="BusyRow" ColumnSpacing="6" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ProgressRing
-                            Width="14"
-                            Height="14"
-                            MinWidth="0"
-                            MinHeight="0"
-                            IsActive="True" />
-                        <TextBlock
-                            x:Name="BusyText"
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Style="{StaticResource CaptionStyle}"
-                            MaxLines="1"
-                            TextTrimming="CharacterEllipsis"
-                            TextWrapping="NoWrap" />
-                        <Button
-                            x:Name="BusyStopButton"
-                            Grid.Column="2"
-                            Content="{local:T Text='Stop'}" />
                     </Grid>
 
-                    <!-- Summary's actions at the trailing edge: Copy as prompt, then Summarize, Re-summarize or Stop. -->
+                    <!-- Why this conversation's last job failed. -->
+                    <TextBlock
+                        x:Name="ErrorText"
+                        Grid.Row="1"
+                        Margin="14,0"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                        IsTextSelectionEnabled="True"
+                        MaxLines="4"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed" />
+
+                    <!--
+                        The footer, inside the card without a frame of its own (once the files are read): a job running elsewhere,
+                        then Summary's actions or Chat's question row, then the setup hints.
+                    -->
                     <StackPanel
-                        x:Name="SummaryActions"
-                        HorizontalAlignment="Right"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <Button
-                            x:Name="SummaryCopyButton"
-                            AutomationProperties.Name="{local:T Text='Copy as prompt'}"
-                            ToolTipService.ToolTip="{local:T Text='Copy the transcript as a summary prompt for any chat app'}">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE8C8;" />
-                        </Button>
-                        <Button x:Name="SummarizeButton" Style="{StaticResource AccentButtonStyle}" />
-                        <Button
-                            x:Name="SummaryStopButton"
-                            Style="{StaticResource AccentButtonStyle}"
-                            ToolTipService.ToolTip="{local:T Text='Stop the summary and keep what is written so far'}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
+                        x:Name="Footer"
+                        Grid.Row="2"
+                        Margin="14,0,14,10"
+                        Spacing="8"
+                        Visibility="Collapsed">
+                        <Grid x:Name="BusyRow" ColumnSpacing="6" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ProgressRing
+                                Width="14"
+                                Height="14"
+                                MinWidth="0"
+                                MinHeight="0"
+                                IsActive="True" />
+                            <TextBlock
+                                x:Name="BusyText"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource CaptionStyle}"
+                                MaxLines="1"
+                                TextTrimming="CharacterEllipsis"
+                                TextWrapping="NoWrap" />
+                            <Button
+                                x:Name="BusyStopButton"
+                                Grid.Column="2"
+                                Content="{local:T Text='Stop'}" />
+                        </Grid>
+
+                        <!-- Summary's actions at the trailing edge: Copy as prompt, then Summarize, Re-summarize or Stop. -->
+                        <StackPanel
+                            x:Name="SummaryActions"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                x:Name="SummaryCopyButton"
+                                AutomationProperties.Name="{local:T Text='Copy as prompt'}"
+                                ToolTipService.ToolTip="{local:T Text='Copy the transcript as a summary prompt for any chat app'}">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE8C8;" />
+                            </Button>
+                            <Button x:Name="SummarizeButton" Style="{StaticResource AccentButtonStyle}" />
+                            <Button
+                                x:Name="SummaryStopButton"
+                                Style="{StaticResource AccentButtonStyle}"
+                                ToolTipService.ToolTip="{local:T Text='Stop the summary and keep what is written so far'}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE71A;" />
+                                    <TextBlock Text="{local:T Text='Summarizing'}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Chat's question (Enter sends, Shift+Enter starts a new line) and Send or Stop. -->
+                        <Grid x:Name="QuestionRow" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                x:Name="QuestionBox"
+                                MaxHeight="152"
+                                AcceptsReturn="True"
+                                AutomationProperties.Name="{local:T Text='Ask about this conversation'}"
+                                PlaceholderText="{local:T Text='Ask about this conversation'}"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                TextWrapping="Wrap" />
+                            <Button
+                                x:Name="SendButton"
+                                Grid.Column="1"
+                                VerticalAlignment="Bottom"
+                                Style="{StaticResource AccentButtonStyle}"
+                                Content="{local:T Text='Send'}" />
+                            <Button
+                                x:Name="AskStopButton"
+                                Grid.Column="1"
+                                VerticalAlignment="Bottom"
+                                Style="{StaticResource AccentButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Stop'}"
+                                ToolTipService.ToolTip="{local:T Text='Stop the answer'}"
+                                Visibility="Collapsed">
                                 <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE71A;" />
-                                <TextBlock Text="{local:T Text='Summarizing'}" />
-                            </StackPanel>
-                        </Button>
+                            </Button>
+                        </Grid>
+
+                        <!-- Why no model can run. -->
+                        <StackPanel x:Name="SetupHints" Spacing="4" Visibility="Collapsed">
+                            <TextBlock
+                                Style="{StaticResource CaptionStyle}"
+                                Text="{local:T Text='No AI model: set up a provider or download a model in Settings › AI Providers.'}"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="WindowsAIHint"
+                                Style="{StaticResource CaptionStyle}"
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+                        </StackPanel>
                     </StackPanel>
 
-                    <!-- Chat's question (Enter sends, Shift+Enter starts a new line) and Send or Stop. -->
-                    <Grid x:Name="QuestionRow" ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox
-                            x:Name="QuestionBox"
-                            MaxHeight="152"
-                            AcceptsReturn="True"
-                            AutomationProperties.Name="{local:T Text='Ask about this conversation'}"
-                            PlaceholderText="{local:T Text='Ask about this conversation'}"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto"
-                            TextWrapping="Wrap" />
-                        <Button
-                            x:Name="SendButton"
-                            Grid.Column="1"
-                            VerticalAlignment="Bottom"
-                            Style="{StaticResource AccentButtonStyle}"
-                            Content="{local:T Text='Send'}" />
-                        <Button
-                            x:Name="AskStopButton"
-                            Grid.Column="1"
-                            VerticalAlignment="Bottom"
-                            Style="{StaticResource AccentButtonStyle}"
-                            AutomationProperties.Name="{local:T Text='Stop'}"
-                            ToolTipService.ToolTip="{local:T Text='Stop the answer'}"
-                            Visibility="Collapsed">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE71A;" />
-                        </Button>
-                    </Grid>
-
-                    <!-- Why no model can run. -->
-                    <StackPanel x:Name="SetupHints" Spacing="4" Visibility="Collapsed">
-                        <TextBlock
-                            Style="{StaticResource CaptionStyle}"
-                            Text="{local:T Text='No AI model: set up a provider or download a model in Settings › AI Providers.'}"
-                            TextWrapping="Wrap" />
-                        <TextBlock
-                            x:Name="WindowsAIHint"
-                            Style="{StaticResource CaptionStyle}"
-                            TextWrapping="Wrap"
-                            Visibility="Collapsed" />
-                    </StackPanel>
-                </StackPanel>
-
-                <!-- "Copied": 2 s over the footer. -->
-                <Border
-                    x:Name="Toast"
-                    Grid.RowSpan="3"
-                    Margin="0,0,0,110"
-                    Padding="14,8"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{StaticResource OverlayCornerRadius}"
-                    IsHitTestVisible="False"
-                    Visibility="Collapsed">
-                    <TextBlock x:Name="ToastText" />
-                </Border>
+                    <!-- "Copied": 2 s over the footer. -->
+                    <Border
+                        x:Name="Toast"
+                        Grid.RowSpan="3"
+                        Margin="0,0,0,110"
+                        Padding="14,8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource OverlayCornerRadius}"
+                        IsHitTestVisible="False"
+                        Visibility="Collapsed">
+                        <TextBlock x:Name="ToastText" />
+                    </Border>
+                </Grid>
             </Grid>
-        </Grid>
-    </Border>
+        </Border>
+        <views:CollapsedPanel x:Name="CollapsedRail" Visibility="Collapsed" />
+    </Grid>
 </UserControl>

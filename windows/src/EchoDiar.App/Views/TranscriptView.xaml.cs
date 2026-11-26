@@ -1116,14 +1116,15 @@ public sealed partial class TranscriptView : UserControl
     }
 
     /// <summary>
-    /// The tab switches in the click's frame; without a summary one starts as the Summary tab's Summarize starts it,
-    /// when it could start there (a provider, no other job of this conversation; other conversations' jobs do not block
-    /// it).
+    /// The tab switches in the click's frame, the panel expanded if collapsed; without a summary one starts as the
+    /// Summary tab's Summarize starts it, when it could start there (a provider, no other job of this conversation;
+    /// other conversations' jobs do not block it).
     /// </summary>
     private void Summarize()
     {
         if (_model is not { } model || _transcript is not { } pane) return;
         model.DetailTab = DetailTab.Summary;
+        model.AIPanelCollapsed = false;
         if (pane.Conversation is not { HasSummary: false } conversation || pane.Transcript is not { } transcript
             || model.ProvidersModel.CurrentAIProvider(AIPurpose.Summary) is not { } provider
             || model.AIJobs.EntryFor(conversation.Id) is not null || model.ChatChanging || model.Updater.IsInstalling) return;

@@ -117,6 +117,7 @@ public sealed partial class AppViewModel : ObservableObject
 
     private DetailTab _detailTab = DetailTab.Summary;
     private int _chatFocusRequests;
+    private bool _aiPanelCollapsed;
     private AppSettings _settings = new();
     private IReadOnlyList<Conversation> _conversations = [];
     private RecordingEngine.Snapshot _recordingSnapshot = new();
@@ -186,6 +187,16 @@ public sealed partial class AppViewModel : ObservableObject
     {
         get => _detailTab;
         set => SetProperty(ref _detailTab, value);
+    }
+
+    /// <summary>
+    /// The open conversation's AI panel is collapsed to a rail of tab buttons beside (under) the transcript (macOS
+    /// <c>aiPanelCollapsed</c>). In memory only.
+    /// </summary>
+    public bool AIPanelCollapsed
+    {
+        get => _aiPanelCollapsed;
+        set => SetProperty(ref _aiPanelCollapsed, value);
     }
 
     /// <summary>
@@ -574,6 +585,7 @@ public sealed partial class AppViewModel : ObservableObject
     public void RequestChat()
     {
         DetailTab = DetailTab.Chat;
+        AIPanelCollapsed = false;
         ChatFocusRequests++;
     }
 

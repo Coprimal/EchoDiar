@@ -41,6 +41,10 @@ public sealed partial class AIPanelView : UserControl
     private const string CatchUpTabGlyph = "\uE8FD";
     private const string ChatTabGlyph = "\uE8BD";
 
+    /// <summary>The collapse button's chevron (macOS <c>PanelCollapseButton</c>): right beside the transcript, down under it.</summary>
+    private const string CollapseGlyph = "\uE76C";
+    private const string CollapseStackedGlyph = "\uE70D";
+
     private readonly DispatcherQueueTimer _toastTimer;
     private readonly DispatcherQueueTimer _focusTimer;
 
@@ -79,6 +83,9 @@ public sealed partial class AIPanelView : UserControl
 
     /// <summary>The open state the user gave cards with a click; the others: the newest open, the older ones collapsed.</summary>
     private readonly Dictionary<Guid, bool> _catchUpOpenStates = [];
+
+    /// <summary>Whether the rail's tabs as last set include Catch-up; null before they are set.</summary>
+    private bool? _railCatchUp;
 
     public AIPanelView()
     {
@@ -132,6 +139,12 @@ public sealed partial class AIPanelView : UserControl
         SummaryCopyButton.Click += (_, _) => CopyPrompt();
         FreshChatButton.Click += (_, _) => _panel?.StartFreshChat();
         HistoryButton.Click += (_, _) => ShowHistory(HistoryButton.IsChecked == true);
+        CollapseButton.Click += (_, _) =>
+        {
+            if (_model is { IsClosing: false } model) model.AIPanelCollapsed = true;
+        };
+        CollapsedRail.TabInvoked += OnRailTabInvoked;
+        CollapsedRail.ExpandInvoked += OnRailExpandInvoked;
         CloseHistoryButton.Click += (_, _) => ShowHistory(false);
         ClearHistoryButton.Click += (_, _) => _ = ClearHistoryAsync();
         HistorySearchButton.Click += (_, _) => SetHistorySearch(!SearchingHistory);
@@ -143,6 +156,37 @@ public sealed partial class AIPanelView : UserControl
 
     /// <summary>The first read of the conversation's files has returned; until then the header shows over the loading ring.</summary>
     private bool HasLoaded => _panel?.HasLoaded == true;
+
+    /// <summary>
+    /// The rail in place of the card while <paramref name="collapsed"/> (the card only hides: the chat, the question and
+    /// the loads stay), a row along the bottom when <paramref name="stacked"/>; the collapse button's chevron toward
+    /// where the panel folds. Set by <see cref="ConversationView"/>, which folds the pane's column (row) too.
+    /// </summary>
+    public void ShowCollapsed(bool collapsed, bool stacked)
+    {
+        PanelCard.Visibility = Shown(!collapsed);
+        CollapsedRail.Visibility = Shown(collapsed);
+        CollapsedRail.Vertical = stacked;
+        CollapseIcon.Glyph = stacked ? CollapseStackedGlyph : CollapseGlyph;
+    }
+
+    /// <summary>
+    /// A tab of the rail: the panel opens on it (macOS <c>expand</c>); Chat as Ctrl+I, with the cursor in the question.
+    /// </summary>
+    private void OnRailTabInvoked(object tab)
+    {
+        if (_model is not { IsClosing: false } model || tab is not DetailTab picked) return;
+        if (picked == DetailTab.Chat)
+        {
+            model.RequestChat();
+            return;
+        }
+        model.DetailTab = picked;
+        model.AIPanelCollapsed = false;
+    }
+
+    /// <summary>The rail's chevron: the panel opens on its first tab, Summary.</summary>
+    private void OnRailExpandInvoked() => OnRailTabInvoked(DetailTab.Summary);
 
     /// <summary>Shows conversation <paramref name="id"/>; <paramref name="seek"/> opens the transcript at a citation's time.</summary>
     public void Attach(AppViewModel model, Guid id, Action<double> seek)
@@ -251,6 +295,20 @@ public sealed partial class AIPanelView : UserControl
         if (!chat) ShowHistory(false);
         UpdateCatchUps();
         FitHeader();
+    }
+
+    /// <summary>
+    /// The rail's tabs, the header's: Summary, Catch-up with catch-ups, Chat. Set again only when that changes, as the
+    /// rail builds its buttons again.
+    /// </summary>
+    private void UpdateRailTabs(bool catchUp)
+    {
+        if (catchUp == _railCatchUp) return;
+        _railCatchUp = catchUp;
+        List<(object Tab, string Glyph, string Title)> tabs = [(DetailTab.Summary, SummaryTabGlyph, Loc.T("Summary"))];
+        if (catchUp) tabs.Add((DetailTab.CatchUp, CatchUpTabGlyph, Loc.T("Catch-up")));
+        tabs.Add((DetailTab.Chat, ChatTabGlyph, Loc.T("Chat")));
+        CollapsedRail.SetTabs(tabs);
     }
 
     /// <summary>
@@ -367,6 +425,7 @@ public sealed partial class AIPanelView : UserControl
         if (_panel is null) return;
         var catchUps = _panel.CatchUps;
         CatchUpPanelTab.Visibility = Shown(catchUps.Count > 0);
+        UpdateRailTabs(catchUps.Count > 0);
         if (_tab != DetailTab.CatchUp) return;
         var providers = _panel.Providers.AIProviders;
         List<CatchUpCard> cards = [];
@@ -850,14 +909,14 @@ public sealed partial class AIPanelView : UserControl
         AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
         var compact = step >= 4;
         DataNotesButton.Visibility = Shown(_hasDataNotes && !compact);
-        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton })
+        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton, CollapseButton })
         {
             AIMenus.CompactPadding(control, compact);
         }
         var spacing = compact ? 6 : 8;
         HeaderRow.ColumnSpacing = spacing;
         // The menus' margins space them (a collapsed one keeps none).
-        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton })
+        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton, CollapseButton })
         {
             control.Margin = new Thickness(spacing, 0, 0, 0);
         }
