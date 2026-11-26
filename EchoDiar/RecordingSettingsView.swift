@@ -243,17 +243,16 @@ struct RecordingSettingsView: View {
     /// Settings. Screen Recording and Input Monitoring apply once EchoDiar is reopened.
     private var permissionsSection: some View {
         Section("Permissions") {
-            PermissionRow(title: "Screen Recording", granted: screenAccess) {
-                Text("Records the screen.")
-                if !screenAccess { Text("After allowing it, quit and reopen EchoDiar.") }
-            } actions: {
+            PermissionRow(
+                title: "Screen Recording", note: "Records the screen.",
+                hint: screenAccess ? nil : "After allowing it, quit and reopen EchoDiar.",
+                granted: screenAccess
+            ) {
                 Button("Allow…") { requestScreen() }
                 Button("Open System Settings") { PrivacySettings.openScreenRecording() }
             }
             if model.settings.screenCamera {
-                PermissionRow(title: "Camera", granted: cameraStatus == .authorized) {
-                    Text("Shows the camera bubble.")
-                } actions: {
+                PermissionRow(title: "Camera", note: "Shows the camera bubble.", granted: cameraStatus == .authorized) {
                     if cameraStatus == .notDetermined {
                         Button("Allow…") { requestCamera() }
                     } else {
@@ -262,10 +261,11 @@ struct RecordingSettingsView: View {
                 }
             }
             if model.settings.screenKeyStrokes {
-                PermissionRow(title: "Input Monitoring", granted: keyAccess == .granted) {
-                    Text("Shows key presses.")
-                    if keyAccess != .granted { Text("After allowing it, quit and reopen EchoDiar.") }
-                } actions: {
+                PermissionRow(
+                    title: "Input Monitoring", note: "Shows key presses.",
+                    hint: keyAccess == .granted ? nil : "After allowing it, quit and reopen EchoDiar.",
+                    granted: keyAccess == .granted
+                ) {
                     if keyAccess == .notDetermined {
                         Button("Allow…") { requestKeyAccess() }
                     } else {
@@ -350,12 +350,14 @@ struct RecordingSettingsView: View {
     }
 }
 
-/// A permission of Recording › Screen: its name and what it is for (`note`) on the left, then "Allowed" in green, or
-/// "Not allowed" in orange followed by `actions`.
-private struct PermissionRow<Note: View, Actions: View>: View {
+/// A permission of Recording › Screen: its name, what it is for (`note`) and an optional `hint` on the left, then
+/// "Allowed" in green, or "Not allowed" in orange followed by `actions`. The label's texts stay direct children: the
+/// form styles them as small secondary text only then (not when nested in a view builder with an `if`).
+private struct PermissionRow<Actions: View>: View {
     let title: LocalizedStringKey
+    let note: LocalizedStringKey
+    var hint: LocalizedStringKey? = nil
     let granted: Bool
-    @ViewBuilder let note: Note
     @ViewBuilder let actions: Actions
 
     var body: some View {
@@ -370,7 +372,8 @@ private struct PermissionRow<Note: View, Actions: View>: View {
             }
         } label: {
             Text(title)
-            note
+            Text(note)
+            if let hint { Text(hint) }
         }
     }
 }
