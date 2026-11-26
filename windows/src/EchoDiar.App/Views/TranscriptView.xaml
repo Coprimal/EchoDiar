@@ -447,7 +447,7 @@
                         Spacing="6">
                         <views:ChipRowPanel.Resources>
                             <!-- The chips and "+N" (made in code): as tall as the bar's buttons, 2 px less at the sides. -->
-                            <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
+                            <Style TargetType="Button">
                                 <Setter Property="Height" Value="28" />
                                 <Setter Property="Padding" Value="9,0" />
                             </Style>

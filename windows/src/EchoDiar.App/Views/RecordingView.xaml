@@ -413,7 +413,7 @@
                                             (a 19 px name), the track 32 px with its padding and border, Fluent's
                                             control height; the name stays centred.
                                         -->
-                                        <Style BasedOn="{StaticResource DefaultSelectorBarItemStyle}" TargetType="SelectorBarItem">
+                                        <Style TargetType="SelectorBarItem">
                                             <Setter Property="Padding" Value="12,3,12,1" />
                                         </Style>
                                     </SelectorBar.Resources>
