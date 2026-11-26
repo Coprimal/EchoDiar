@@ -13,8 +13,10 @@ windows/
   src/EchoDiar.Core/            net10.0: models, JSON, settings, library store, CAF, ring buffer,
                                 channel writer, recording engine, merger (portable, runs on macOS)
   src/EchoDiar.Platform/        net10.0-windows10.0.26100.0: WASAPI mic and loopback capture,
-                                audio sessions, process info, shell files (CsWin32 interop)
-                                and the bundled PP-HumanSeg model for background blur (Models/)
+                                audio sessions, process info, shell files (CsWin32 interop),
+                                screen recording (Screen/: capture, source picker, camera bubble,
+                                encoder, export) and the bundled PP-HumanSeg model for background
+                                blur (Models/)
   src/EchoDiar.App/             WinUI 3 app, single-project MSIX, win-x64 + win-arm64
   tests/EchoDiar.Tests/         net10.0 xUnit v3 tests for Core, plus the cross-platform Fixtures/
   scripts/vm-install.ps1        installs a CI build in a Windows VM
@@ -142,12 +144,20 @@ echodiar.exe --native-probe Z:\Downloads\EchoDiarQA\models
 
 - `--capture-probe <seconds> <all|pid:N|exe:name.exe>`: records the mic and the system source (`all` = every process except EchoDiar's own, `pid:N` or `exe:name.exe` = that process tree) for that many seconds. Writes `Probes\<yyyyMMdd-HHmmss>\mic.caf`, `system.caf` and `probe-result.json`.
 - `--native-probe <modelsDir>`: loads Whisper (`ggml-tiny.bin` on `sample.wav`), sherpa-onnx diarization (on `two-voice.wav`) and llama.cpp once each, with the WAV files read from `<modelsDir>\..` (the QA fixtures layout). Writes `Probes\native-<yyyyMMdd-HHmmss>.json`.
+- `--screen-probe --target display|window:<title>|area:x,y,w,h --seconds N [--start-at S] [--screen-off-at S] [--screen-on-at S [--on-target <target>]] [--fps N] [--quality Q]`: records a screen video with the real recording engine, turning the screen off and on at those times. Writes `Probes\screen-<yyyyMMdd-HHmmss>\video.mp4` and `result.json`. Screen capture needs the interactive session, so in the VM write the arguments one per line into `Probes\screen-probe.args` and launch the app by its AUMID (`explorer.exe shell:AppsFolder\dinh.thi.EchoDiar_41vne1tfmpqjg!App` through `vmpal_exec`): a launch without `--` arguments runs the probe from that file and deletes it.
+- `Probes\fake-camera`: while this marker file exists (or when the PC has no camera), a Debug build's camera bubble shows moving test frames (640x480) instead of a camera. A Release build never uses it.
 
 `Probes\` is `%LOCALAPPDATA%\EchoDiar\Probes`. Every Debug launch also writes `Probes\hello.txt`, which checks that the data root is the real path.
 
 ## Data root
 
 The library lives at the real `%LOCALAPPDATA%\EchoDiar`, with the same layout and JSON as macOS `~/Library/Application Support/EchoDiar` (`settings.json`, `Conversations\`, `Models\`, `RAG\`, `GlobalChat\`, plus `Probes\` in Debug). [Package.appxmanifest](src/EchoDiar.App/Package.appxmanifest) excludes that one folder from file write virtualization (flexible virtualization: `virtualization:ExcludedDirectory` `$(KnownFolder:LocalAppData)\EchoDiar`, which needs `rescap:unvirtualizedResources`), so the library survives uninstalling the app and other processes (Explorer, the Recycle Bin) see the real files. Every other AppData and HKCU write stays virtualized and goes away at uninstall; `PackageManifestTests` guards this, since the Store justification of the capability names that folder only.
+
+## Screen recording (Beta)
+
+- Build flag: `EchoDiarScreenRecording` in [EchoDiar.App.csproj](src/EchoDiar.App/EchoDiar.App.csproj) (default `true`, defines `SCREEN_RECORDING`, read as `Features.ScreenRecording`). To roll back, build with `-p:EchoDiarScreenRecording=false`: it hides the capture entry points (the Record options, the picker, the screen and camera buttons, the floating indicator's and tray menu's screen items, Settings > Recording > Screen). Recorded videos still play, export and delete, and the card badge, size tint, live size and tray info stay.
+- The video is HEVC when the PC has an HEVC encoder and decoder, otherwise H.264. Key presses are not recorded on Windows.
+- `Logs\playback.log` under the data root (Release builds too): one line per seek, sample or correction with the video's drift from the audio (`drift=<ms>`); past about 1 MB it becomes `playback.log.1`. In the VM: `Get-Content "$env:LOCALAPPDATA\EchoDiar\Logs\playback.log" -Tail 40`.
 
 ## Dev signing certificate (one-time)
 

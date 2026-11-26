@@ -764,7 +764,7 @@ public sealed partial class AppViewModel : ObservableObject
         }
         IsStarting = true;
         RecordingError = null;
-        _recordingSkipsTranscription = skipsTranscription;
+        RecordingSkipsTranscription = skipsTranscription;
         // Before the page shows, so the recording page and card show it from their first frame.
         var eventTitle = TrimmedTitle(calendarEvent?.Title);
         RecordingTitle = eventTitle;
@@ -814,6 +814,7 @@ public sealed partial class AppViewModel : ObservableObject
             // The window may have closed while the devices opened: Shutdown stopped the timer for good.
             if (_closing) return;
             _activeFolder = folder;
+            SyncLiveSize();
             if (_activeFolder is null) return;
             if (screen is { } source) _screen.Start(source, _activeFolder, Settings, skipsTranscription);
             _ = LoadLiveChatAsync(_activeFolder);
@@ -827,7 +828,7 @@ public sealed partial class AppViewModel : ObservableObject
         {
             Debug.WriteLine($"EchoDiar: could not start recording: {e}");
             CancelRecordingTranscriber();
-            _recordingSkipsTranscription = false;
+            RecordingSkipsTranscription = false;
             RecordingSourceName = null;
             RecordingSourceRootPid = null;
             AutoStartedAppName = null;
@@ -1122,6 +1123,7 @@ public sealed partial class AppViewModel : ObservableObject
         if (StopMessage(reason) is { } message) RecordingError = message;
         var folder = _activeFolder;
         _activeFolder = null;
+        SyncLiveSize();
         // Taken at once (a next recording starts its own video); it ends at the time read before a stop from EchoDiar
         // stopped the audio, else (the engine stopped on its own) at the audio file's length.
         double? stopTime;
@@ -1131,7 +1133,7 @@ public sealed partial class AppViewModel : ObservableObject
             _videoStopTime = null;
         }
         var video = _screen.Finish(stopTime ?? snapshot.Elapsed);
-        _recordingSkipsTranscription = false;
+        RecordingSkipsTranscription = false;
         var transcriber = TakeRecordingTranscriber();
         if (folder is not null) _ = FinishRecordingAsync(folder, transcriber, video);
         else if (transcriber is not null) CancelRecordingTranscriber(transcriber);

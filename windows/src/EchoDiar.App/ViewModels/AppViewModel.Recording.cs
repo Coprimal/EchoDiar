@@ -28,6 +28,15 @@ public sealed partial class AppViewModel
 
     private IReadOnlyList<string>? _supportedLanguages;
 
+    /// <summary>How often <see cref="LiveRecordingBytes"/> is read again (macOS <c>syncLiveSize</c>).</summary>
+    private static readonly TimeSpan LiveSizeInterval = TimeSpan.FromSeconds(2);
+
+    private long? _liveRecordingBytes;
+
+    /// <summary>The folder <see cref="LiveRecordingBytes"/> is read for, and the end of its polling.</summary>
+    private string? _liveSizeFolder;
+    private CancellationTokenSource? _liveSizeCancel;
+
     /// <summary>The last language marker and settings writes; each next one runs after it.</summary>
     private Task _languageWrite = Task.CompletedTask;
     private Task _settingsWrite = Task.CompletedTask;
@@ -61,6 +70,91 @@ public sealed partial class AppViewModel
     {
         get => _recordingSourceName;
         private set => SetProperty(ref _recordingSourceName, value);
+    }
+
+    /// <summary>
+    /// The current recording is marked "screen only": the recording page says transcription is off for it instead of
+    /// why there is no live transcript (macOS <c>currentRecordingSkipsTranscription</c>). False when idle.
+    /// </summary>
+    public bool RecordingSkipsTranscription
+    {
+        get => _recordingSkipsTranscription;
+        private set => SetProperty(ref _recordingSkipsTranscription, value);
+    }
+
+    /// <summary>
+    /// The size of the recording's files so far (audio, video and the rest of its folder), read every 2 s off the UI
+    /// thread while it records or is paused; null while idle and until the first read is back (macOS
+    /// <c>liveRecordingBytes</c>).
+    /// </summary>
+    public long? LiveRecordingBytes
+    {
+        get => _liveRecordingBytes;
+        private set => SetProperty(ref _liveRecordingBytes, value);
+    }
+
+    /// <summary>
+    /// Polls <see cref="LiveRecordingBytes"/> for the recording's folder: one read off the UI thread, then 2 s, then the
+    /// next. A read for another folder, or one back after the recording ended or the window closed, is dropped. No folder:
+    /// stops and clears it. Called whenever the folder changes (macOS <c>syncLiveSize</c>).
+    /// </summary>
+    private void SyncLiveSize()
+    {
+        var folder = _activeFolder;
+        if (folder == _liveSizeFolder) return;
+        _liveSizeCancel?.Cancel();
+        _liveSizeCancel = null;
+        _liveSizeFolder = folder;
+        LiveRecordingBytes = null;
+        if (folder is null) return;
+        _liveSizeCancel = new CancellationTokenSource();
+        _ = PollLiveSizeAsync(folder, _liveSizeCancel.Token);
+    }
+
+    private async Task PollLiveSizeAsync(string folder, CancellationToken token)
+    {
+        try
+        {
+            while (true)
+            {
+                var bytes = await Task.Run(() => LiveSize(folder), token);
+                if (token.IsCancellationRequested || _closing || _liveSizeFolder != folder) return;
+                // Unchanged (paused) values raise nothing.
+                LiveRecordingBytes = bytes;
+                await Task.Delay(LiveSizeInterval, token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Bytes of the regular files in <paramref name="folder"/>, recursively, links skipped, as
+    /// <see cref="LibraryStore.SizeOnDisk"/>; each file's length read again, since a directory listing can still give
+    /// the old length of a file that is being written (the audio and the video).
+    /// </summary>
+    private static long LiveSize(string folder)
+    {
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint, IgnoreInaccessible = true,
+        };
+        try
+        {
+            long total = 0;
+            foreach (var file in new DirectoryInfo(folder).EnumerateFiles("*", options))
+            {
+                if (file.LinkTarget is not null) continue;
+                file.Refresh();
+                if (file.Exists) total += file.Length;
+            }
+            return total;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
     }
 
     /// <summary>The mic is muted in the current recording (its channel written as silence); false when idle.</summary>

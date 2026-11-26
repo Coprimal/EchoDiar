@@ -1000,7 +1000,7 @@ public sealed partial class TranscriptView : UserControl
         if (width <= 0) return;
         var key = (width, _chipSpeakers, ChipsPanel.Children.Count, TranscribingPanel.Visibility, TranscribingText.Text,
             RetranscribeButton.Visibility, (SummarizeButton.Visibility, SummarizeText.Text, SummarizingRing.Visibility,
-            StopTranscriptionButton.Visibility, AudioRemovedNote.Visibility, VideoToggleButton.Visibility));
+            StopTranscriptionButton.Visibility, VideoToggleButton.Visibility));
         if (key.Equals(_rowFitted)) return;
         _rowFitted = key;
         var natural = new Size(double.PositiveInfinity, double.PositiveInfinity);

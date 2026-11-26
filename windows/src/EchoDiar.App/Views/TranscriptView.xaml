@@ -251,24 +251,48 @@
                 <views:PlaybackBar x:Name="Player" />
 
                 <!--
-                    As macOS: the note in place of playback once the audio is gone, Re-transcribe and Summarize, Copy, then
-                    the speaker chips at the trailing edge. One row, never wrapped (macOS controlRow): fewer chips when it
-                    is short ("+N" lists the others), then Re-transcribe and Summarize as icons with their title in the
-                    tooltip (FitControlRow).
+                    In place of playback once the audio was moved to the Recycle Bin, or under it while the video still
+                    plays (macOS playbackControls: the note beside the transport); its own row, so the control row keeps
+                    its room for the video's buttons; trimmed when narrow; what is no longer possible in its tooltip (set
+                    in code).
+                -->
+                <Grid
+                    x:Name="AudioRemovedNote"
+                    ColumnSpacing="6"
+                    Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon
+                        VerticalAlignment="Center"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        FontSize="12"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Glyph="&#xE74F;" />
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        MaxLines="1"
+                        Text="{local:T Text='Audio has been removed'}"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap" />
+                </Grid>
+
+                <!--
+                    As macOS: Re-transcribe and Summarize, the video's buttons, Copy, then the speaker chips at the
+                    trailing edge. One row, never wrapped (macOS controlRow): fewer chips when it is short ("+N" lists the
+                    others), then Re-transcribe and Summarize as icons with their title in the tooltip (FitControlRow).
                 -->
                 <Grid x:Name="ControlRow" ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Grid x:Name="ControlButtons" ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
+                    <Grid x:Name="ControlButtons">
                         <StackPanel
-                            Grid.Column="1"
                             Orientation="Horizontal"
                             Spacing="6"
                             VerticalAlignment="Center">
@@ -409,27 +433,6 @@
                             </Button>
                         </StackPanel>
 
-                        <!--
-                            In place of playback once the audio was moved to the Recycle Bin, or under it while the video
-                            still plays (its tooltip set in code).
-                        -->
-                        <StackPanel
-                            x:Name="AudioRemovedNote"
-                            Orientation="Horizontal"
-                            Spacing="6"
-                            VerticalAlignment="Center"
-                            Visibility="Collapsed">
-                            <FontIcon
-                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                FontSize="12"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Glyph="&#xE74F;" />
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                Style="{StaticResource CaptionTextBlockStyle}"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Text="{local:T Text='Audio has been removed'}" />
-                        </StackPanel>
                     </Grid>
 
                     <!-- As many chips as fit, then "+N" (ChipRowPanel): a narrow row never cuts a chip off. -->
