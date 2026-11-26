@@ -414,6 +414,10 @@ public sealed partial class MainWindow : Window
         var hidden = _model.Route.Kind is RouteKind.Settings or RouteKind.Calendar || _model.SidebarHidden;
         SidebarColumn.Width = new GridLength(hidden ? 0 : 360);
         SidebarPane.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
+        // The conversation and welcome panes have no left margin of their own (the sidebar's right margin spaces them):
+        // with the sidebar hidden they get the toolbar row's left padding, so they do not touch the window's edge.
+        var flushLeft = _model.SidebarHidden && _model.Route.Kind is RouteKind.List or RouteKind.Conversation;
+        RouteHost.Margin = new Thickness(flushLeft ? 8 : 0, 0, 0, 0);
     }
 
     /// <summary>
