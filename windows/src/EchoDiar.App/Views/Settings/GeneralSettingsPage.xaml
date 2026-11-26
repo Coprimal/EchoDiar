@@ -20,130 +20,137 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <StackPanel
-            MaxWidth="1000"
-            Margin="24,12,24,24"
-            Spacing="4">
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
+            <StackPanel
+                MaxWidth="1000"
+                Margin="24,12,24,24"
+                Spacing="4">
 
-            <controls:SettingsCard
-                x:Name="LaunchCard"
-                Header="{local:T Text='Launch at login'}"
-                Tag="Launch at login">
-                <ToggleSwitch x:Name="LaunchToggle" AutomationProperties.Name="{local:T Text='Launch at login'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    x:Name="LaunchCard"
+                    Header="{local:T Text='Launch at login'}"
+                    Tag="Launch at login">
+                    <ToggleSwitch x:Name="LaunchToggle" AutomationProperties.Name="{local:T Text='Launch at login'}" />
+                </controls:SettingsCard>
 
-            <!-- macOS: a section of its own, without a header; the relaunch row shows while the choice differs from this run's. -->
-            <controls:SettingsCard
-                Margin="0,24,0,0"
-                Header="{local:T Text='App language'}"
-                Tag="App language">
-                <ComboBox
-                    x:Name="LanguageCombo"
-                    MinWidth="200"
-                    AutomationProperties.Name="{local:T Text='App language'}" />
-            </controls:SettingsCard>
+                <!-- macOS: a section of its own, without a header; the relaunch row shows while the choice differs from this run's. -->
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Header="{local:T Text='App language'}"
+                    Tag="App language">
+                    <ComboBox
+                        x:Name="LanguageCombo"
+                        MinWidth="200"
+                        AutomationProperties.Name="{local:T Text='App language'}" />
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                x:Name="RelaunchCard"
-                Header="{local:T Text='Restart EchoDiar to apply.'}"
-                Visibility="Collapsed">
-                <Button x:Name="RelaunchButton" Content="{local:T Text='Relaunch now'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    x:Name="RelaunchCard"
+                    Header="{local:T Text='Restart EchoDiar to apply.'}"
+                    Visibility="Collapsed">
+                    <Button x:Name="RelaunchButton" Content="{local:T Text='Relaunch now'}" />
+                </controls:SettingsCard>
 
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Floating indicator'}" />
-            </StackPanel>
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Floating indicator'}" />
+                </StackPanel>
 
-            <controls:SettingsCard
-                Description="{local:T Text='Meeting prompts show either way.'}"
-                Header="{local:T Text='Show floating indicator while recording'}"
-                Tag="Show floating indicator while recording">
-                <ToggleSwitch x:Name="ShowPillToggle" AutomationProperties.Name="{local:T Text='Show floating indicator while recording'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Description="{local:T Text='Meeting prompts show either way.'}"
+                    Header="{local:T Text='Show floating indicator while recording'}"
+                    Tag="Show floating indicator while recording">
+                    <ToggleSwitch x:Name="ShowPillToggle" AutomationProperties.Name="{local:T Text='Show floating indicator while recording'}" />
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                x:Name="HidePillCard"
-                Header="{local:T Text='Hide it while an EchoDiar window is in front'}"
-                Tag="Hide it while an EchoDiar window is in front">
-                <ToggleSwitch x:Name="HidePillToggle" AutomationProperties.Name="{local:T Text='Hide it while an EchoDiar window is in front'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    x:Name="HidePillCard"
+                    Header="{local:T Text='Hide it while an EchoDiar window is in front'}"
+                    Tag="Hide it while an EchoDiar window is in front">
+                    <ToggleSwitch x:Name="HidePillToggle" AutomationProperties.Name="{local:T Text='Hide it while an EchoDiar window is in front'}" />
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                Description="{local:T Text='Screen sharing in meeting apps shows it too.'}"
-                Header="{local:T Text='Show it in screenshots and screen recordings'}"
-                Tag="Show it in screenshots and screen recordings">
-                <ToggleSwitch x:Name="CapturesToggle" AutomationProperties.Name="{local:T Text='Show it in screenshots and screen recordings'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Description="{local:T Text='Screen sharing in meeting apps shows it too.'}"
+                    Header="{local:T Text='Show it in screenshots and screen recordings'}"
+                    Tag="Show it in screenshots and screen recordings">
+                    <ToggleSwitch x:Name="CapturesToggle" AutomationProperties.Name="{local:T Text='Show it in screenshots and screen recordings'}" />
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                Header="{local:T Text='Indicator size'}"
-                Tag="Indicator size">
-                <ComboBox
-                    x:Name="PillSizeCombo"
-                    MinWidth="200"
-                    AutomationProperties.Name="{local:T Text='Indicator size'}">
-                    <ComboBoxItem Content="{local:T Text='Small'}" />
-                    <ComboBoxItem Content="{local:T Text='Medium'}" />
-                    <ComboBoxItem Content="{local:T Text='Large'}" />
-                </ComboBox>
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Header="{local:T Text='Indicator size'}"
+                    Tag="Indicator size">
+                    <ComboBox
+                        x:Name="PillSizeCombo"
+                        MinWidth="200"
+                        AutomationProperties.Name="{local:T Text='Indicator size'}">
+                        <ComboBoxItem Content="{local:T Text='Small'}" />
+                        <ComboBoxItem Content="{local:T Text='Medium'}" />
+                        <ComboBoxItem Content="{local:T Text='Large'}" />
+                    </ComboBox>
+                </controls:SettingsCard>
 
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Library'}" />
-            </StackPanel>
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Library'}" />
+                </StackPanel>
 
-            <controls:SettingsCard
-                Description="{local:T Text='They still go to the Recycle Bin.'}"
-                Header="{local:T Text='Delete conversations without confirmation'}"
-                Tag="Delete conversations without confirmation">
-                <ToggleSwitch x:Name="DeleteToggle" AutomationProperties.Name="{local:T Text='Delete conversations without confirmation'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Description="{local:T Text='They still go to the Recycle Bin.'}"
+                    Header="{local:T Text='Delete conversations without confirmation'}"
+                    Tag="Delete conversations without confirmation">
+                    <ToggleSwitch x:Name="DeleteToggle" AutomationProperties.Name="{local:T Text='Delete conversations without confirmation'}" />
+                </controls:SettingsCard>
 
-            <!-- The sizes are plain numbers (LibraryPaging.SizeOptions), filled in code. -->
-            <controls:SettingsCard
-                Header="{local:T Text='Entries per page'}"
-                Tag="Entries per page">
-                <ComboBox
-                    x:Name="PageSizeCombo"
-                    MinWidth="200"
-                    AutomationProperties.Name="{local:T Text='Entries per page'}" />
-            </controls:SettingsCard>
+                <!-- The sizes are plain numbers (LibraryPaging.SizeOptions), filled in code. -->
+                <controls:SettingsCard
+                    Header="{local:T Text='Entries per page'}"
+                    Tag="Entries per page">
+                    <ComboBox
+                        x:Name="PageSizeCombo"
+                        MinWidth="200"
+                        AutomationProperties.Name="{local:T Text='Entries per page'}" />
+                </controls:SettingsCard>
 
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Consent'}" />
-                <TextBlock
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{local:T Text='Tell the people you record. You are responsible for their consent.'}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-
-            <controls:SettingsCard Tag="Copy consent message">
-                <controls:SettingsCard.Header>
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Consent'}" />
                     <TextBlock
-                        x:Name="ConsentText"
-                        IsTextSelectionEnabled="True"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="{local:T Text='Tell the people you record. You are responsible for their consent.'}"
                         TextWrapping="Wrap" />
-                </controls:SettingsCard.Header>
-                <Button x:Name="CopyConsentButton">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon
-                            x:Name="CopyConsentIcon"
-                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                            FontSize="14"
-                            Glyph="&#xE8C8;" />
-                        <TextBlock x:Name="CopyConsentText" Text="{local:T Text='Copy consent message'}" />
-                    </StackPanel>
-                </Button>
-            </controls:SettingsCard>
+                </StackPanel>
 
-            <!-- macOS: a section of its own, without a header. -->
-            <controls:SettingsCard
-                Margin="0,24,0,0"
-                Header="{local:T Text='Permissions and consent'}"
-                Tag="Show onboarding again">
-                <Button x:Name="ShowOnboardingButton" Content="{local:T Text='Show onboarding again'}" />
-            </controls:SettingsCard>
-        </StackPanel>
+                <controls:SettingsCard Tag="Copy consent message">
+                    <controls:SettingsCard.Header>
+                        <TextBlock
+                            x:Name="ConsentText"
+                            IsTextSelectionEnabled="True"
+                            TextWrapping="Wrap" />
+                    </controls:SettingsCard.Header>
+                    <Button x:Name="CopyConsentButton">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon
+                                x:Name="CopyConsentIcon"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="14"
+                                Glyph="&#xE8C8;" />
+                            <TextBlock x:Name="CopyConsentText" Text="{local:T Text='Copy consent message'}" />
+                        </StackPanel>
+                    </Button>
+                </controls:SettingsCard>
+
+                <!-- macOS: a section of its own, without a header. -->
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Header="{local:T Text='Permissions and consent'}"
+                    Tag="Show onboarding again">
+                    <Button x:Name="ShowOnboardingButton" Content="{local:T Text='Show onboarding again'}" />
+                </controls:SettingsCard>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

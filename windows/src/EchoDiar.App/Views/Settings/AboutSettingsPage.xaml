@@ -12,65 +12,72 @@
     xmlns:local="using:EchoDiar.App">
 
     <ScrollViewer>
-        <StackPanel
-            MaxWidth="1000"
-            Margin="24,12,24,24"
-            Spacing="4">
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
+            <StackPanel
+                MaxWidth="1000"
+                Margin="24,12,24,24"
+                Spacing="4">
 
-            <controls:SettingsCard
-                x:Name="VersionCard"
-                Header="{local:T Text='EchoDiar'}"
-                Tag="Version">
-                <controls:SettingsCard.HeaderIcon>
-                    <ImageIcon Source="ms-appx:///Assets/Square44x44Logo.png" />
-                </controls:SettingsCard.HeaderIcon>
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    x:Name="VersionCard"
+                    Header="{local:T Text='EchoDiar'}"
+                    Tag="Version">
+                    <controls:SettingsCard.HeaderIcon>
+                        <ImageIcon Source="ms-appx:///Assets/Square44x44Logo.png" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
 
-            <!-- App Installer updates: the last check, Check now; why there are none for a copy installed another way. -->
-            <controls:SettingsCard
-                x:Name="UpdatesCard"
-                Header="{local:T Text='Updates'}"
-                Tag="Updates">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE895;" />
-                </controls:SettingsCard.HeaderIcon>
-                <Button x:Name="CheckUpdatesButton" Content="{local:T Text='Check now'}" />
-            </controls:SettingsCard>
+                <!-- App Installer updates: the last check, Check now; why there are none for a copy installed another way. -->
+                <controls:SettingsCard
+                    x:Name="UpdatesCard"
+                    Header="{local:T Text='Updates'}"
+                    Tag="Updates">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE895;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <Button x:Name="CheckUpdatesButton" Content="{local:T Text='Check now'}" />
+                </controls:SettingsCard>
 
-            <!-- Why Windows warns (the certificate import and its UAC prompt): opens the website's explanation. -->
-            <controls:SettingsCard
-                x:Name="WarningsCard"
-                Header="{local:T Text='Why Windows warns about EchoDiar'}"
-                IsClickEnabled="True"
-                Tag="Why Windows warns about EchoDiar">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xEA18;" />
-                </controls:SettingsCard.HeaderIcon>
-                <controls:SettingsCard.ActionIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A7;" />
-                </controls:SettingsCard.ActionIcon>
-            </controls:SettingsCard>
+                <!-- Why Windows warns (the certificate import and its UAC prompt): opens the website's explanation. -->
+                <controls:SettingsCard
+                    x:Name="WarningsCard"
+                    Header="{local:T Text='Why Windows warns about EchoDiar'}"
+                    IsClickEnabled="True"
+                    Tag="Why Windows warns about EchoDiar">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xEA18;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <controls:SettingsCard.ActionIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A7;" />
+                    </controls:SettingsCard.ActionIcon>
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                Header="{local:T Text='Licensed under AGPL-3.0'}"
-                Tag="Licensed under AGPL-3.0">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A5;" />
-                </controls:SettingsCard.HeaderIcon>
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Header="{local:T Text='Licensed under AGPL-3.0'}"
+                    Tag="Licensed under AGPL-3.0">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A5;" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                x:Name="RepositoryCard"
-                Header="{local:T Text='github.com/Coprimal/EchoDiar'}"
-                IsClickEnabled="True"
-                Tag="github.com/Coprimal/EchoDiar">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE71B;" />
-                </controls:SettingsCard.HeaderIcon>
-                <controls:SettingsCard.ActionIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A7;" />
-                </controls:SettingsCard.ActionIcon>
-            </controls:SettingsCard>
-        </StackPanel>
+                <controls:SettingsCard
+                    x:Name="RepositoryCard"
+                    Header="{local:T Text='github.com/Coprimal/EchoDiar'}"
+                    IsClickEnabled="True"
+                    Tag="github.com/Coprimal/EchoDiar">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE71B;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <controls:SettingsCard.ActionIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A7;" />
+                    </controls:SettingsCard.ActionIcon>
+                </controls:SettingsCard>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

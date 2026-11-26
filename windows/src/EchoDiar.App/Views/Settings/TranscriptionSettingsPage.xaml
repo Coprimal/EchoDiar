@@ -50,82 +50,89 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <StackPanel
-            MaxWidth="1000"
-            Margin="24,12,24,24"
-            Spacing="4">
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
+            <StackPanel
+                MaxWidth="1000"
+                Margin="24,12,24,24"
+                Spacing="4">
 
-            <!-- General (macOS generalSection) -->
-            <controls:SettingsCard Header="{local:T Text='Default language'}" Tag="Default language">
-                <ComboBox
-                    x:Name="LanguageCombo"
-                    MinWidth="200"
-                    AutomationProperties.Name="{local:T Text='Default language'}" />
-            </controls:SettingsCard>
+                <!-- General (macOS generalSection) -->
+                <controls:SettingsCard Header="{local:T Text='Default language'}" Tag="Default language">
+                    <ComboBox
+                        x:Name="LanguageCombo"
+                        MinWidth="200"
+                        AutomationProperties.Name="{local:T Text='Default language'}" />
+                </controls:SettingsCard>
 
-            <!-- The description is set in code (its apostrophe can't go in a {local:T} text). -->
-            <controls:SettingsCard
-                x:Name="RememberLanguageCard"
-                Header="{local:T Text='Remember last record language'}"
-                Tag="Remember last record language">
-                <ToggleSwitch x:Name="RememberLanguageToggle" AutomationProperties.Name="{local:T Text='Remember last record language'}" />
-            </controls:SettingsCard>
+                <!-- The description is set in code (its apostrophe can't go in a {local:T} text). -->
+                <controls:SettingsCard
+                    x:Name="RememberLanguageCard"
+                    Header="{local:T Text='Remember last record language'}"
+                    Tag="Remember last record language">
+                    <ToggleSwitch x:Name="RememberLanguageToggle" AutomationProperties.Name="{local:T Text='Remember last record language'}" />
+                </controls:SettingsCard>
 
-            <!-- The description is set in code (Windows text). -->
-            <controls:SettingsCard
-                x:Name="LiveCard"
-                Header="{local:T Text='Transcribe while recording'}"
-                Tag="Transcribe while recording">
-                <ToggleSwitch x:Name="LiveToggle" AutomationProperties.Name="{local:T Text='Transcribe while recording'}" />
-            </controls:SettingsCard>
+                <!-- The description is set in code (Windows text). -->
+                <controls:SettingsCard
+                    x:Name="LiveCard"
+                    Header="{local:T Text='Transcribe while recording'}"
+                    Tag="Transcribe while recording">
+                    <ToggleSwitch x:Name="LiveToggle" AutomationProperties.Name="{local:T Text='Transcribe while recording'}" />
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                Description="{local:T Text='While a recording stays paused this long, the model that transcribes it is freed; it loads again when you resume. Other models are freed as soon as their job ends.'}"
-                Header="{local:T Text='Free unused models after'}"
-                Tag="Free unused models after">
-                <ComboBox
-                    x:Name="IdleCombo"
-                    MinWidth="120"
-                    AutomationProperties.Name="{local:T Text='Free unused models after'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Description="{local:T Text='While a recording stays paused this long, the model that transcribes it is freed; it loads again when you resume. Other models are freed as soon as their job ends.'}"
+                    Header="{local:T Text='Free unused models after'}"
+                    Tag="Free unused models after">
+                    <ComboBox
+                        x:Name="IdleCombo"
+                        MinWidth="120"
+                        AutomationProperties.Name="{local:T Text='Free unused models after'}" />
+                </controls:SettingsCard>
 
-            <controls:SettingsCard
-                Description="{local:T Text='Moves the audio to the Recycle Bin once a transcription succeeds.'}"
-                Header="{local:T Text='Delete audio after transcription'}"
-                Tag="Delete audio after transcription">
-                <ToggleSwitch x:Name="DeleteAfterToggle" AutomationProperties.Name="{local:T Text='Delete audio after transcription'}" />
-            </controls:SettingsCard>
+                <controls:SettingsCard
+                    Description="{local:T Text='Moves the audio to the Recycle Bin once a transcription succeeds.'}"
+                    Header="{local:T Text='Delete audio after transcription'}"
+                    Tag="Delete audio after transcription">
+                    <ToggleSwitch x:Name="DeleteAfterToggle" AutomationProperties.Name="{local:T Text='Delete audio after transcription'}" />
+                </controls:SettingsCard>
 
-            <!-- Transcription model: the default engine picker, then the default cloud engine's "While recording" group (made in code). -->
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Transcription model'}" />
+                <!-- Transcription model: the default engine picker, then the default cloud engine's "While recording" group (made in code). -->
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Transcription model'}" />
+                </StackPanel>
+                <StackPanel x:Name="TranscriptionModelList" Spacing="4" />
+
+                <!-- Speakers -->
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Speakers'}" />
+                </StackPanel>
+                <controls:SettingsCard
+                    Description="{local:T Text='Labels each voice in the meeting audio: Speaker 1, 2, … Off: the meeting audio is one speaker.'}"
+                    Header="{local:T Text='Tell speakers apart'}"
+                    Tag="Tell speakers apart">
+                    <ToggleSwitch x:Name="DiarizationToggle" AutomationProperties.Name="{local:T Text='Tell speakers apart'}" />
+                </controls:SettingsCard>
+
+                <!-- Shown while Tell speakers apart is on; the description depends on the speaker model (set in code). -->
+                <controls:SettingsCard
+                    x:Name="SpeakerCountCard"
+                    Header="{local:T Text='Number of other speakers'}"
+                    Tag="Number of other speakers">
+                    <ComboBox
+                        x:Name="SpeakerCountCombo"
+                        MinWidth="120"
+                        AutomationProperties.Name="{local:T Text='Number of other speakers'}" />
+                </controls:SettingsCard>
+
+                <!-- The default diarization model's picker (made in code). -->
+                <StackPanel x:Name="DiarizationModelList" />
             </StackPanel>
-            <StackPanel x:Name="TranscriptionModelList" Spacing="4" />
-
-            <!-- Speakers -->
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Speakers'}" />
-            </StackPanel>
-            <controls:SettingsCard
-                Description="{local:T Text='Labels each voice in the meeting audio: Speaker 1, 2, … Off: the meeting audio is one speaker.'}"
-                Header="{local:T Text='Tell speakers apart'}"
-                Tag="Tell speakers apart">
-                <ToggleSwitch x:Name="DiarizationToggle" AutomationProperties.Name="{local:T Text='Tell speakers apart'}" />
-            </controls:SettingsCard>
-
-            <!-- Shown while Tell speakers apart is on; the description depends on the speaker model (set in code). -->
-            <controls:SettingsCard
-                x:Name="SpeakerCountCard"
-                Header="{local:T Text='Number of other speakers'}"
-                Tag="Number of other speakers">
-                <ComboBox
-                    x:Name="SpeakerCountCombo"
-                    MinWidth="120"
-                    AutomationProperties.Name="{local:T Text='Number of other speakers'}" />
-            </controls:SettingsCard>
-
-            <!-- The default diarization model's picker (made in code). -->
-            <StackPanel x:Name="DiarizationModelList" />
-        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

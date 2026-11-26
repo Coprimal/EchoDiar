@@ -52,87 +52,94 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <StackPanel
-            MaxWidth="1000"
-            Margin="24,12,24,24"
-            Spacing="4">
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
+            <StackPanel
+                MaxWidth="1000"
+                Margin="24,12,24,24"
+                Spacing="4">
 
-            <!-- The description names this PC: set in code (Windows text). -->
-            <controls:SettingsCard
-                x:Name="EnableCard"
-                Header="{local:T Text='Ask across conversations'}"
-                Tag="Ask across conversations">
-                <ToggleSwitch x:Name="EnableToggle" AutomationProperties.Name="{local:T Text='Ask across conversations'}" />
-            </controls:SettingsCard>
+                <!-- The description names this PC: set in code (Windows text). -->
+                <controls:SettingsCard
+                    x:Name="EnableCard"
+                    Header="{local:T Text='Ask across conversations'}"
+                    Tag="Ask across conversations">
+                    <ToggleSwitch x:Name="EnableToggle" AutomationProperties.Name="{local:T Text='Ask across conversations'}" />
+                </controls:SettingsCard>
 
-            <!-- Index -->
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Index'}" />
+                <!-- Index -->
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Index'}" />
+                </StackPanel>
+
+                <!-- While RAG is on: how far the index is, why it waits or stopped. -->
+                <controls:SettingsCard x:Name="StatusCard">
+                    <controls:SettingsCard.Description>
+                        <StackPanel Spacing="2">
+                            <TextBlock
+                                x:Name="PausedText"
+                                Style="{StaticResource NoteStyle}"
+                                Text="{local:T Text='Paused while recording or transcribing'}"
+                                Visibility="Collapsed" />
+                            <TextBlock
+                                x:Name="MessageText"
+                                Style="{StaticResource CriticalNoteStyle}"
+                                Visibility="Collapsed" />
+                        </StackPanel>
+                    </controls:SettingsCard.Description>
+                    <ProgressRing
+                        x:Name="StatusRing"
+                        Width="16"
+                        Height="16"
+                        IsActive="False"
+                        Visibility="Collapsed" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    x:Name="ConsentCard"
+                    Header="{local:T Text='Needs confirmation'}"
+                    Visibility="Collapsed">
+                    <Button x:Name="ConfirmButton" Content="{local:T Text='Confirm…'}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    Description="{local:T Text='Deletes the index and embeds every conversation again.'}"
+                    Header="{local:T Text='Rebuild index'}"
+                    Tag="Rebuild index">
+                    <Button
+                        x:Name="RebuildButton"
+                        AutomationProperties.Name="{local:T Text='Rebuild index'}"
+                        Content="{local:T Text='Rebuild'}" />
+                </controls:SettingsCard>
+
+                <!-- On this PC: the catalog's embedding models (macOS ModelCatalog.embedding's ModelRow), made in code. -->
+                <StackPanel Style="{StaticResource SectionHeaderStyle}" Tag="Embedding model">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='On this PC'}" />
+                    <TextBlock Style="{StaticResource SectionDescriptionStyle}" Text="{local:T Text='The embedding model lets a question find passages with the same meaning, in any language. Models are downloaded only when you click Download.'}" />
+                </StackPanel>
+
+                <StackPanel x:Name="EmbedderList" Spacing="4" />
+
+                <!-- Via API: the provider in use without an embedding model, then the providers that can embed. -->
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Via API'}" />
+                    <TextBlock Style="{StaticResource SectionDescriptionStyle}" Text="{local:T Text='A cloud provider receives the transcripts and summaries to index, and each question.'}" />
+                </StackPanel>
+
+                <!-- The provider in use has no embedding model (macOS apiSection): its card in AI Providers sets it. -->
+                <controls:SettingsCard
+                    x:Name="MissingModelCard"
+                    Header="{local:T Text='Embedding model'}"
+                    Visibility="Collapsed">
+                    <Button x:Name="MissingModelSetUpButton" Content="{local:T Text='Set Up…'}" />
+                </controls:SettingsCard>
+
+                <StackPanel x:Name="ProviderList" Spacing="4" />
             </StackPanel>
-
-            <!-- While RAG is on: how far the index is, why it waits or stopped. -->
-            <controls:SettingsCard x:Name="StatusCard">
-                <controls:SettingsCard.Description>
-                    <StackPanel Spacing="2">
-                        <TextBlock
-                            x:Name="PausedText"
-                            Style="{StaticResource NoteStyle}"
-                            Text="{local:T Text='Paused while recording or transcribing'}"
-                            Visibility="Collapsed" />
-                        <TextBlock
-                            x:Name="MessageText"
-                            Style="{StaticResource CriticalNoteStyle}"
-                            Visibility="Collapsed" />
-                    </StackPanel>
-                </controls:SettingsCard.Description>
-                <ProgressRing
-                    x:Name="StatusRing"
-                    Width="16"
-                    Height="16"
-                    IsActive="False"
-                    Visibility="Collapsed" />
-            </controls:SettingsCard>
-
-            <controls:SettingsCard
-                x:Name="ConsentCard"
-                Header="{local:T Text='Needs confirmation'}"
-                Visibility="Collapsed">
-                <Button x:Name="ConfirmButton" Content="{local:T Text='Confirm…'}" />
-            </controls:SettingsCard>
-
-            <controls:SettingsCard
-                Description="{local:T Text='Deletes the index and embeds every conversation again.'}"
-                Header="{local:T Text='Rebuild index'}"
-                Tag="Rebuild index">
-                <Button
-                    x:Name="RebuildButton"
-                    AutomationProperties.Name="{local:T Text='Rebuild index'}"
-                    Content="{local:T Text='Rebuild'}" />
-            </controls:SettingsCard>
-
-            <!-- On this PC: the catalog's embedding models (macOS ModelCatalog.embedding's ModelRow), made in code. -->
-            <StackPanel Style="{StaticResource SectionHeaderStyle}" Tag="Embedding model">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='On this PC'}" />
-                <TextBlock Style="{StaticResource SectionDescriptionStyle}" Text="{local:T Text='The embedding model lets a question find passages with the same meaning, in any language. Models are downloaded only when you click Download.'}" />
-            </StackPanel>
-
-            <StackPanel x:Name="EmbedderList" Spacing="4" />
-
-            <!-- Via API: the provider in use without an embedding model, then the providers that can embed. -->
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Via API'}" />
-                <TextBlock Style="{StaticResource SectionDescriptionStyle}" Text="{local:T Text='A cloud provider receives the transcripts and summaries to index, and each question.'}" />
-            </StackPanel>
-
-            <!-- The provider in use has no embedding model (macOS apiSection): its card in AI Providers sets it. -->
-            <controls:SettingsCard
-                x:Name="MissingModelCard"
-                Header="{local:T Text='Embedding model'}"
-                Visibility="Collapsed">
-                <Button x:Name="MissingModelSetUpButton" Content="{local:T Text='Set Up…'}" />
-            </controls:SettingsCard>
-
-            <StackPanel x:Name="ProviderList" Spacing="4" />
-        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

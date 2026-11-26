@@ -33,249 +33,256 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <Grid MaxWidth="1000" Margin="24,12,24,24">
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
+            <Grid MaxWidth="1000" Margin="24,12,24,24">
 
-            <!-- Microphone -->
-            <StackPanel x:Name="MicrophonePanel" Spacing="4">
-                <controls:SettingsCard Header="{local:T Text='Microphone'}" Tag="Microphone">
-                    <ComboBox
-                        x:Name="MicCombo"
-                        MinWidth="240"
-                        AutomationProperties.Name="{local:T Text='Microphone'}" />
-                </controls:SettingsCard>
+                <!-- Microphone -->
+                <StackPanel x:Name="MicrophonePanel" Spacing="4">
+                    <controls:SettingsCard Header="{local:T Text='Microphone'}" Tag="Microphone">
+                        <ComboBox
+                            x:Name="MicCombo"
+                            MinWidth="240"
+                            AutomationProperties.Name="{local:T Text='Microphone'}" />
+                    </controls:SettingsCard>
 
-                <!-- The description follows the choice (set in code). -->
-                <controls:SettingsCard
-                    x:Name="RouteCard"
-                    Header="{local:T Text='When the microphone disconnects'}"
-                    Tag="When the microphone disconnects">
-                    <ComboBox
-                        x:Name="RouteCombo"
-                        MinWidth="200"
-                        AutomationProperties.Name="{local:T Text='When the microphone disconnects'}">
-                        <ComboBoxItem Content="{local:T Text='Ask to stop'}" />
-                        <ComboBoxItem Content="{local:T Text='Keep recording'}" />
-                        <ComboBoxItem Content="{local:T Text='Stop recording'}" />
-                    </ComboBox>
-                </controls:SettingsCard>
+                    <!-- The description follows the choice (set in code). -->
+                    <controls:SettingsCard
+                        x:Name="RouteCard"
+                        Header="{local:T Text='When the microphone disconnects'}"
+                        Tag="When the microphone disconnects">
+                        <ComboBox
+                            x:Name="RouteCombo"
+                            MinWidth="200"
+                            AutomationProperties.Name="{local:T Text='When the microphone disconnects'}">
+                            <ComboBoxItem Content="{local:T Text='Ask to stop'}" />
+                            <ComboBoxItem Content="{local:T Text='Keep recording'}" />
+                            <ComboBoxItem Content="{local:T Text='Stop recording'}" />
+                        </ComboBox>
+                    </controls:SettingsCard>
 
-                <!-- macOS "Menu bar while recording"; not behind the screen recording flag. -->
-                <controls:SettingsCard
-                    Margin="0,24,0,0"
-                    Header="{local:T Text='Tray icon while recording'}"
-                    Tag="Tray icon while recording">
-                    <ComboBox
-                        x:Name="TrayInfoCombo"
-                        MinWidth="200"
-                        AutomationProperties.Name="{local:T Text='Tray icon while recording'}">
-                        <ComboBoxItem Content="{local:T Text='Icon only'}" />
-                        <ComboBoxItem Content="{local:T Text='Elapsed time'}" />
-                        <ComboBoxItem Content="{local:T Text='File size'}" />
-                    </ComboBox>
-                </controls:SettingsCard>
-            </StackPanel>
+                    <!-- macOS "Menu bar while recording"; not behind the screen recording flag. -->
+                    <controls:SettingsCard
+                        Margin="0,24,0,0"
+                        Header="{local:T Text='Tray icon while recording'}"
+                        Tag="Tray icon while recording">
+                        <ComboBox
+                            x:Name="TrayInfoCombo"
+                            MinWidth="200"
+                            AutomationProperties.Name="{local:T Text='Tray icon while recording'}">
+                            <ComboBoxItem Content="{local:T Text='Icon only'}" />
+                            <ComboBoxItem Content="{local:T Text='Elapsed time'}" />
+                            <ComboBoxItem Content="{local:T Text='File size'}" />
+                        </ComboBox>
+                    </controls:SettingsCard>
+                </StackPanel>
 
-            <!-- Meetings -->
-            <StackPanel
-                x:Name="MeetingsPanel"
-                Spacing="4"
-                Visibility="Collapsed">
-                <!-- The description is Windows text (macOS also asks for Accessibility access), set in code. -->
-                <controls:SettingsCard
-                    x:Name="AttachCard"
-                    Header="{local:T Text='Attach the indicator to the meeting window'}"
-                    Tag="Attach the indicator to the meeting window">
-                    <ToggleSwitch x:Name="AttachToggle" AutomationProperties.Name="{local:T Text='Attach the indicator to the meeting window'}" />
-                </controls:SettingsCard>
-
-                <controls:SettingsCard
-                    Margin="0,24,0,0"
-                    Description="{local:T Text='Offers to record when a meeting app starts using the microphone.'}"
-                    Header="{local:T Text='Detect meetings'}"
-                    Tag="Detect meetings">
-                    <ToggleSwitch x:Name="DetectToggle" AutomationProperties.Name="{local:T Text='Detect meetings'}" />
-                </controls:SettingsCard>
-
-                <!-- One row per app: Ask, Always record (not for browsers), Ignore. -->
-                <StackPanel x:Name="AppsList" Spacing="4" />
-            </StackPanel>
-
-            <!-- Auto-stop -->
-            <StackPanel
-                x:Name="AutoStopPanel"
-                Spacing="4"
-                Visibility="Collapsed">
-                <TextBlock Style="{StaticResource IntroStyle}" Text="{local:T Text='The indicator asks before stopping, with a 15 s countdown. Reaching the length limit stops at once.'}" />
-
-                <controls:SettingsCard
-                    x:Name="SourceInactiveCard"
-                    Header="{local:T Text='Stop when the app is quiet for'}"
-                    Tag="Stop when the app is quiet for">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <NumberBox
-                            x:Name="SourceInactiveBox"
-                            MinWidth="120"
-                            AutomationProperties.Name="{local:T Text='Stop when the app is quiet for'}"
-                            SmallChange="1"
-                            SpinButtonPlacementMode="Inline" />
-                        <TextBlock Style="{StaticResource UnitStyle}" Text="s" />
-                    </StackPanel>
-                </controls:SettingsCard>
-
-                <controls:SettingsCard
-                    x:Name="CallEndedCard"
-                    Header="{local:T Text='Stop when the call seems over for'}"
-                    Tag="Stop when the call seems over for">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <NumberBox
-                            x:Name="CallEndedBox"
-                            MinWidth="120"
-                            AutomationProperties.Name="{local:T Text='Stop when the call seems over for'}"
-                            SmallChange="1"
-                            SpinButtonPlacementMode="Inline" />
-                        <TextBlock Style="{StaticResource UnitStyle}" Text="s" />
-                    </StackPanel>
-                </controls:SettingsCard>
-
-                <controls:SettingsCard
-                    x:Name="SilenceCard"
-                    Header="{local:T Text='Stop after silence of'}"
-                    Tag="Stop after silence of">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <NumberBox
-                            x:Name="SilenceBox"
-                            MinWidth="120"
-                            AutomationProperties.Name="{local:T Text='Stop after silence of'}"
-                            SmallChange="1"
-                            SpinButtonPlacementMode="Inline" />
-                        <TextBlock Style="{StaticResource UnitStyle}" Text="{local:T Text='min'}" />
-                    </StackPanel>
-                </controls:SettingsCard>
-
-                <controls:SettingsCard
-                    x:Name="MaxDurationCard"
-                    Header="{local:T Text='Stop after a recording length of'}"
-                    Tag="Stop after a recording length of">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <NumberBox
-                            x:Name="MaxDurationBox"
-                            MinWidth="120"
-                            AutomationProperties.Name="{local:T Text='Stop after a recording length of'}"
-                            SmallChange="1"
-                            SpinButtonPlacementMode="Inline" />
-                        <TextBlock Style="{StaticResource UnitStyle}" Text="{local:T Text='min'}" />
-                    </StackPanel>
-                </controls:SettingsCard>
-
-                <controls:SettingsCard
-                    Margin="0,24,0,0"
-                    Description="{local:T Text='While EchoDiar is in the background, a notification asks too, with Stop now and Keep recording.'}"
-                    Header="{local:T Text='Notify when a meeting seems to end'}"
-                    Tag="Notify when a meeting seems to end">
-                    <ToggleSwitch x:Name="EndPromptNotificationToggle" AutomationProperties.Name="{local:T Text='Notify when a meeting seems to end'}" />
-                </controls:SettingsCard>
-
-                <!-- Shown while notifications are off for EchoDiar (EndPromptNotifier.NotificationsOff). -->
-                <controls:SettingsCard
-                    x:Name="NotificationsOffCard"
-                    Description="{local:T Text='Notifications are off for EchoDiar in Windows Settings › System › Notifications.'}"
+                <!-- Meetings -->
+                <StackPanel
+                    x:Name="MeetingsPanel"
+                    Spacing="4"
                     Visibility="Collapsed">
-                    <Button x:Name="NotificationSettingsButton" Content="{local:T Text='Open Notification Settings'}" />
-                </controls:SettingsCard>
-            </StackPanel>
+                    <!-- The description is Windows text (macOS also asks for Accessibility access), set in code. -->
+                    <controls:SettingsCard
+                        x:Name="AttachCard"
+                        Header="{local:T Text='Attach the indicator to the meeting window'}"
+                        Tag="Attach the indicator to the meeting window">
+                        <ToggleSwitch x:Name="AttachToggle" AutomationProperties.Name="{local:T Text='Attach the indicator to the meeting window'}" />
+                    </controls:SettingsCard>
 
-            <!-- After recording -->
-            <StackPanel
-                x:Name="AfterRecordingPanel"
-                Spacing="4"
-                Visibility="Collapsed">
-                <controls:SettingsCard Header="{local:T Text='Transcribe automatically'}" Tag="Transcribe automatically">
-                    <ToggleSwitch x:Name="AutoTranscribeToggle" AutomationProperties.Name="{local:T Text='Transcribe automatically'}" />
-                </controls:SettingsCard>
+                    <controls:SettingsCard
+                        Margin="0,24,0,0"
+                        Description="{local:T Text='Offers to record when a meeting app starts using the microphone.'}"
+                        Header="{local:T Text='Detect meetings'}"
+                        Tag="Detect meetings">
+                        <ToggleSwitch x:Name="DetectToggle" AutomationProperties.Name="{local:T Text='Detect meetings'}" />
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard
-                    Description="{local:T Text='Labels each voice in the meeting audio: Speaker 1, 2, … Off: the meeting audio is one speaker.'}"
-                    Header="{local:T Text='Tell speakers apart'}"
-                    Tag="Tell speakers apart">
-                    <ToggleSwitch x:Name="DiarizationToggle" AutomationProperties.Name="{local:T Text='Tell speakers apart'}" />
-                </controls:SettingsCard>
+                    <!-- One row per app: Ask, Always record (not for browsers), Ignore. -->
+                    <StackPanel x:Name="AppsList" Spacing="4" />
+                </StackPanel>
 
-                <!-- Shown while Tell speakers apart is on; the description depends on the speaker model (set in code). -->
-                <controls:SettingsCard
-                    x:Name="SpeakerCountCard"
-                    Header="{local:T Text='Number of other speakers'}"
-                    Tag="Number of other speakers">
-                    <ComboBox
-                        x:Name="SpeakerCountCombo"
-                        MinWidth="120"
-                        AutomationProperties.Name="{local:T Text='Number of other speakers'}" />
-                </controls:SettingsCard>
+                <!-- Auto-stop -->
+                <StackPanel
+                    x:Name="AutoStopPanel"
+                    Spacing="4"
+                    Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource IntroStyle}" Text="{local:T Text='The indicator asks before stopping, with a 15 s countdown. Reaching the length limit stops at once.'}" />
 
-                <!-- Texts set in code (Windows-only keys). -->
-                <controls:SettingsCard x:Name="DeferCard">
-                    <ToggleSwitch x:Name="DeferToggle" />
-                </controls:SettingsCard>
-            </StackPanel>
+                    <controls:SettingsCard
+                        x:Name="SourceInactiveCard"
+                        Header="{local:T Text='Stop when the app is quiet for'}"
+                        Tag="Stop when the app is quiet for">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <NumberBox
+                                x:Name="SourceInactiveBox"
+                                MinWidth="120"
+                                AutomationProperties.Name="{local:T Text='Stop when the app is quiet for'}"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource UnitStyle}" Text="s" />
+                        </StackPanel>
+                    </controls:SettingsCard>
 
-            <!-- Screen (only with Features.ScreenRecording); the frame rate items are set in code. -->
-            <StackPanel
-                x:Name="ScreenPanel"
-                Spacing="4"
-                Visibility="Collapsed">
-                <controls:SettingsCard Header="{local:T Text='Frame rate'}" Tag="Frame rate">
-                    <ComboBox
-                        x:Name="FrameRateCombo"
-                        MinWidth="120"
-                        AutomationProperties.Name="{local:T Text='Frame rate'}" />
-                </controls:SettingsCard>
+                    <controls:SettingsCard
+                        x:Name="CallEndedCard"
+                        Header="{local:T Text='Stop when the call seems over for'}"
+                        Tag="Stop when the call seems over for">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <NumberBox
+                                x:Name="CallEndedBox"
+                                MinWidth="120"
+                                AutomationProperties.Name="{local:T Text='Stop when the call seems over for'}"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource UnitStyle}" Text="s" />
+                        </StackPanel>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard Header="{local:T Text='Quality'}" Tag="Quality">
-                    <ComboBox
-                        x:Name="QualityCombo"
-                        MinWidth="160"
-                        AutomationProperties.Name="{local:T Text='Quality'}">
-                        <ComboBoxItem Content="{local:T Text='Smaller'}" />
-                        <ComboBoxItem Content="{local:T Text='Balanced'}" />
-                        <ComboBoxItem Content="{local:T Text='Sharper'}" />
-                    </ComboBox>
-                </controls:SettingsCard>
+                    <controls:SettingsCard
+                        x:Name="SilenceCard"
+                        Header="{local:T Text='Stop after silence of'}"
+                        Tag="Stop after silence of">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <NumberBox
+                                x:Name="SilenceBox"
+                                MinWidth="120"
+                                AutomationProperties.Name="{local:T Text='Stop after silence of'}"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource UnitStyle}" Text="{local:T Text='min'}" />
+                        </StackPanel>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard
-                    Margin="0,24,0,0"
-                    Description="{local:T Text='Off: screen and sound only. No transcript, summary or chat until you transcribe it later.'}"
-                    Header="{local:T Text='Transcribe screen recordings'}"
-                    Tag="Transcribe screen recordings">
-                    <ToggleSwitch x:Name="ScreenTranscribesToggle" AutomationProperties.Name="{local:T Text='Transcribe screen recordings'}" />
-                </controls:SettingsCard>
+                    <controls:SettingsCard
+                        x:Name="MaxDurationCard"
+                        Header="{local:T Text='Stop after a recording length of'}"
+                        Tag="Stop after a recording length of">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <NumberBox
+                                x:Name="MaxDurationBox"
+                                MinWidth="120"
+                                AutomationProperties.Name="{local:T Text='Stop after a recording length of'}"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource UnitStyle}" Text="{local:T Text='min'}" />
+                        </StackPanel>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard
-                    Margin="0,24,0,0"
-                    Header="{local:T Text='Show the cursor'}"
-                    Tag="Show the cursor">
-                    <ToggleSwitch x:Name="ShowCursorToggle" AutomationProperties.Name="{local:T Text='Show the cursor'}" />
-                </controls:SettingsCard>
+                    <controls:SettingsCard
+                        Margin="0,24,0,0"
+                        Description="{local:T Text='While EchoDiar is in the background, a notification asks too, with Stop now and Keep recording.'}"
+                        Header="{local:T Text='Notify when a meeting seems to end'}"
+                        Tag="Notify when a meeting seems to end">
+                        <ToggleSwitch x:Name="EndPromptNotificationToggle" AutomationProperties.Name="{local:T Text='Notify when a meeting seems to end'}" />
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard Header="{local:T Text='Highlight clicks'}" Tag="Highlight clicks">
-                    <ToggleSwitch x:Name="ShowClicksToggle" AutomationProperties.Name="{local:T Text='Highlight clicks'}" />
-                </controls:SettingsCard>
+                    <!-- Shown while notifications are off for EchoDiar (EndPromptNotifier.NotificationsOff). -->
+                    <controls:SettingsCard
+                        x:Name="NotificationsOffCard"
+                        Description="{local:T Text='Notifications are off for EchoDiar in Windows Settings › System › Notifications.'}"
+                        Visibility="Collapsed">
+                        <Button x:Name="NotificationSettingsButton" Content="{local:T Text='Open Notification Settings'}" />
+                    </controls:SettingsCard>
+                </StackPanel>
 
-                <controls:SettingsCard
-                    Margin="0,24,0,0"
-                    Description="{local:T Text='Shows your camera in a round bubble on screen.'}"
-                    Header="{local:T Text='Camera bubble'}"
-                    Tag="Camera bubble">
-                    <ToggleSwitch x:Name="CameraToggle" AutomationProperties.Name="{local:T Text='Camera bubble'}" />
-                </controls:SettingsCard>
+                <!-- After recording -->
+                <StackPanel
+                    x:Name="AfterRecordingPanel"
+                    Spacing="4"
+                    Visibility="Collapsed">
+                    <controls:SettingsCard Header="{local:T Text='Transcribe automatically'}" Tag="Transcribe automatically">
+                        <ToggleSwitch x:Name="AutoTranscribeToggle" AutomationProperties.Name="{local:T Text='Transcribe automatically'}" />
+                    </controls:SettingsCard>
 
-                <!-- Disabled (and dimmed) while Camera bubble is off, as macOS. -->
-                <controls:SettingsCard
-                    x:Name="CameraBlurCard"
-                    Description="{local:T Text='Blurs everything behind you in the camera bubble.'}"
-                    Header="{local:T Text='Blur background'}"
-                    Tag="Blur background">
-                    <ToggleSwitch x:Name="CameraBlurToggle" AutomationProperties.Name="{local:T Text='Blur background'}" />
-                </controls:SettingsCard>
-            </StackPanel>
+                    <controls:SettingsCard
+                        Description="{local:T Text='Labels each voice in the meeting audio: Speaker 1, 2, … Off: the meeting audio is one speaker.'}"
+                        Header="{local:T Text='Tell speakers apart'}"
+                        Tag="Tell speakers apart">
+                        <ToggleSwitch x:Name="DiarizationToggle" AutomationProperties.Name="{local:T Text='Tell speakers apart'}" />
+                    </controls:SettingsCard>
+
+                    <!-- Shown while Tell speakers apart is on; the description depends on the speaker model (set in code). -->
+                    <controls:SettingsCard
+                        x:Name="SpeakerCountCard"
+                        Header="{local:T Text='Number of other speakers'}"
+                        Tag="Number of other speakers">
+                        <ComboBox
+                            x:Name="SpeakerCountCombo"
+                            MinWidth="120"
+                            AutomationProperties.Name="{local:T Text='Number of other speakers'}" />
+                    </controls:SettingsCard>
+
+                    <!-- Texts set in code (Windows-only keys). -->
+                    <controls:SettingsCard x:Name="DeferCard">
+                        <ToggleSwitch x:Name="DeferToggle" />
+                    </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- Screen (only with Features.ScreenRecording); the frame rate items are set in code. -->
+                <StackPanel
+                    x:Name="ScreenPanel"
+                    Spacing="4"
+                    Visibility="Collapsed">
+                    <controls:SettingsCard Header="{local:T Text='Frame rate'}" Tag="Frame rate">
+                        <ComboBox
+                            x:Name="FrameRateCombo"
+                            MinWidth="120"
+                            AutomationProperties.Name="{local:T Text='Frame rate'}" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Header="{local:T Text='Quality'}" Tag="Quality">
+                        <ComboBox
+                            x:Name="QualityCombo"
+                            MinWidth="160"
+                            AutomationProperties.Name="{local:T Text='Quality'}">
+                            <ComboBoxItem Content="{local:T Text='Smaller'}" />
+                            <ComboBoxItem Content="{local:T Text='Balanced'}" />
+                            <ComboBoxItem Content="{local:T Text='Sharper'}" />
+                        </ComboBox>
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard
+                        Margin="0,24,0,0"
+                        Description="{local:T Text='Off: screen and sound only. No transcript, summary or chat until you transcribe it later.'}"
+                        Header="{local:T Text='Transcribe screen recordings'}"
+                        Tag="Transcribe screen recordings">
+                        <ToggleSwitch x:Name="ScreenTranscribesToggle" AutomationProperties.Name="{local:T Text='Transcribe screen recordings'}" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard
+                        Margin="0,24,0,0"
+                        Header="{local:T Text='Show the cursor'}"
+                        Tag="Show the cursor">
+                        <ToggleSwitch x:Name="ShowCursorToggle" AutomationProperties.Name="{local:T Text='Show the cursor'}" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Header="{local:T Text='Highlight clicks'}" Tag="Highlight clicks">
+                        <ToggleSwitch x:Name="ShowClicksToggle" AutomationProperties.Name="{local:T Text='Highlight clicks'}" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard
+                        Margin="0,24,0,0"
+                        Description="{local:T Text='Shows your camera in a round bubble on screen.'}"
+                        Header="{local:T Text='Camera bubble'}"
+                        Tag="Camera bubble">
+                        <ToggleSwitch x:Name="CameraToggle" AutomationProperties.Name="{local:T Text='Camera bubble'}" />
+                    </controls:SettingsCard>
+
+                    <!-- Disabled (and dimmed) while Camera bubble is off, as macOS. -->
+                    <controls:SettingsCard
+                        x:Name="CameraBlurCard"
+                        Description="{local:T Text='Blurs everything behind you in the camera bubble.'}"
+                        Header="{local:T Text='Blur background'}"
+                        Tag="Blur background">
+                        <ToggleSwitch x:Name="CameraBlurToggle" AutomationProperties.Name="{local:T Text='Blur background'}" />
+                    </controls:SettingsCard>
+                </StackPanel>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </UserControl>

@@ -52,55 +52,62 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <StackPanel
-            MaxWidth="1000"
-            Margin="24,12,24,24"
-            Spacing="4">
-
-            <!-- Record -->
-            <controls:SettingsCard
-                Description="{local:T Text='Starts or stops recording from any app.'}"
-                Header="{local:T Text='Global record shortcut'}"
-                Tag="Global record shortcut">
-                <ToggleSwitch x:Name="RecordToggle" AutomationProperties.Name="{local:T Text='Global record shortcut'}" />
-            </controls:SettingsCard>
-
-            <!-- Content: the recorder, set in code. -->
-            <controls:SettingsCard x:Name="RecordShortcutCard" Header="{local:T Text='Shortcut'}" />
-
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
             <StackPanel
-                x:Name="RecordErrorRow"
-                Style="{StaticResource ErrorRowStyle}"
-                Visibility="Collapsed">
-                <FontIcon Style="{StaticResource CautionIconStyle}" Glyph="&#xE7BA;" />
-                <TextBlock x:Name="RecordErrorText" Style="{StaticResource CautionTextStyle}" />
+                MaxWidth="1000"
+                Margin="24,12,24,24"
+                Spacing="4">
+
+                <!-- Record -->
+                <controls:SettingsCard
+                    Description="{local:T Text='Starts or stops recording from any app.'}"
+                    Header="{local:T Text='Global record shortcut'}"
+                    Tag="Global record shortcut">
+                    <ToggleSwitch x:Name="RecordToggle" AutomationProperties.Name="{local:T Text='Global record shortcut'}" />
+                </controls:SettingsCard>
+
+                <!-- Content: the recorder, set in code. -->
+                <controls:SettingsCard x:Name="RecordShortcutCard" Header="{local:T Text='Shortcut'}" />
+
+                <StackPanel
+                    x:Name="RecordErrorRow"
+                    Style="{StaticResource ErrorRowStyle}"
+                    Visibility="Collapsed">
+                    <FontIcon Style="{StaticResource CautionIconStyle}" Glyph="&#xE7BA;" />
+                    <TextBlock x:Name="RecordErrorText" Style="{StaticResource CautionTextStyle}" />
+                </StackPanel>
+
+                <!-- Pause (macOS: a section of its own) -->
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Description="{local:T Text='Pauses or resumes the recording from any app.'}"
+                    Header="{local:T Text='Global pause shortcut'}"
+                    Tag="Global pause shortcut">
+                    <ToggleSwitch x:Name="PauseToggle" AutomationProperties.Name="{local:T Text='Global pause shortcut'}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard x:Name="PauseShortcutCard" Header="{local:T Text='Shortcut'}" />
+
+                <StackPanel
+                    x:Name="PauseErrorRow"
+                    Style="{StaticResource ErrorRowStyle}"
+                    Visibility="Collapsed">
+                    <FontIcon Style="{StaticResource CautionIconStyle}" Glyph="&#xE7BA;" />
+                    <TextBlock x:Name="PauseErrorText" Style="{StaticResource CautionTextStyle}" />
+                </StackPanel>
+
+                <!-- The shortcuts inside EchoDiar, read-only: one card per ShortcutsSettingsPage.InAppShortcuts row, set in code. -->
+                <StackPanel Style="{StaticResource SectionHeaderStyle}" Tag="In EchoDiar">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='In EchoDiar'}" />
+                </StackPanel>
+
+                <StackPanel x:Name="InAppList" Spacing="4" />
             </StackPanel>
-
-            <!-- Pause (macOS: a section of its own) -->
-            <controls:SettingsCard
-                Margin="0,24,0,0"
-                Description="{local:T Text='Pauses or resumes the recording from any app.'}"
-                Header="{local:T Text='Global pause shortcut'}"
-                Tag="Global pause shortcut">
-                <ToggleSwitch x:Name="PauseToggle" AutomationProperties.Name="{local:T Text='Global pause shortcut'}" />
-            </controls:SettingsCard>
-
-            <controls:SettingsCard x:Name="PauseShortcutCard" Header="{local:T Text='Shortcut'}" />
-
-            <StackPanel
-                x:Name="PauseErrorRow"
-                Style="{StaticResource ErrorRowStyle}"
-                Visibility="Collapsed">
-                <FontIcon Style="{StaticResource CautionIconStyle}" Glyph="&#xE7BA;" />
-                <TextBlock x:Name="PauseErrorText" Style="{StaticResource CautionTextStyle}" />
-            </StackPanel>
-
-            <!-- The shortcuts inside EchoDiar, read-only: one card per ShortcutsSettingsPage.InAppShortcuts row, set in code. -->
-            <StackPanel Style="{StaticResource SectionHeaderStyle}" Tag="In EchoDiar">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='In EchoDiar'}" />
-            </StackPanel>
-
-            <StackPanel x:Name="InAppList" Spacing="4" />
-        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

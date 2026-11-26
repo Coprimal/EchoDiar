@@ -20,43 +20,50 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <StackPanel
-            MaxWidth="1000"
-            Margin="24,12,24,24"
-            Spacing="4">
-
+        <!--
+            No MaxWidth on the ScrollViewer's own child: with it there, a window wider than MaxWidth laid the
+            page out wider than the window (the cards ran past its right edge, maximized). The column is
+            centred inside this Grid instead.
+        -->
+        <Grid>
             <StackPanel
-                Margin="1,0,0,4"
-                Style="{StaticResource SectionHeaderStyle}"
-                Tag="Open-source software">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Open-source software'}" />
-                <TextBlock
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{local:T Text='EchoDiar includes this open-source software. Choose one to read its license.'}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel x:Name="SoftwareList" Spacing="4" />
+                MaxWidth="1000"
+                Margin="24,12,24,24"
+                Spacing="4">
 
-            <StackPanel Style="{StaticResource SectionHeaderStyle}">
-                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Models'}" />
-                <TextBlock
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{local:T Text='Models EchoDiar downloads when you choose them. Choose one to read its license.'}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel x:Name="ModelList" Spacing="4" />
+                <StackPanel
+                    Margin="1,0,0,4"
+                    Style="{StaticResource SectionHeaderStyle}"
+                    Tag="Open-source software">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Open-source software'}" />
+                    <TextBlock
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="{local:T Text='EchoDiar includes this open-source software. Choose one to read its license.'}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel x:Name="SoftwareList" Spacing="4" />
 
-            <controls:SettingsCard
-                Margin="0,24,0,0"
-                Description="{local:T Text='Every license above in one text file.'}"
-                Header="{local:T Text='Third-party notices'}">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A5;" />
-                </controls:SettingsCard.HeaderIcon>
-                <Button x:Name="OpenNoticesButton" Content="{local:T Text='Open full notices'}" />
-            </controls:SettingsCard>
-        </StackPanel>
+                <StackPanel Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{local:T Text='Models'}" />
+                    <TextBlock
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="{local:T Text='Models EchoDiar downloads when you choose them. Choose one to read its license.'}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel x:Name="ModelList" Spacing="4" />
+
+                <controls:SettingsCard
+                    Margin="0,24,0,0"
+                    Description="{local:T Text='Every license above in one text file.'}"
+                    Header="{local:T Text='Third-party notices'}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A5;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <Button x:Name="OpenNoticesButton" Content="{local:T Text='Open full notices'}" />
+                </controls:SettingsCard>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>
