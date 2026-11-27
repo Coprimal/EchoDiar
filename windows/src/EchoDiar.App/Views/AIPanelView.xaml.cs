@@ -130,6 +130,7 @@ public sealed partial class AIPanelView : UserControl
         VersionMenu.Opening += (_, _) => BuildVersionMenu();
         ModelMenu.Opening += (_, _) => BuildModelMenu();
         LanguageMenu.Opening += (_, _) => BuildLanguageMenu();
+        MoreMenu.Opening += (_, _) => BuildMoreMenu();
         DataNotesFlyout.Opening += (_, _) => BuildDataNotes();
         BusyStopButton.Click += (_, _) => _panel?.Stop();
         SummaryStopButton.Click += (_, _) => _panel?.Stop();
@@ -289,9 +290,9 @@ public sealed partial class AIPanelView : UserControl
         Footer.Visibility = Shown(ContentHost.Visibility == Visibility.Visible && !catchUp);
         SummaryActions.Visibility = Shown(!chat);
         QuestionRow.Visibility = Shown(chat);
-        FreshChatButton.Visibility = Shown(chat);
-        HistoryButton.Visibility = Shown(chat);
-        foreach (var control in new Control[] { ModelButton, LanguageButton, DataNotesButton }) Reserve(control, hidden: catchUp);
+        FreshChatButton.Visibility = Shown(chat && !_overflow);
+        HistoryButton.Visibility = Shown(chat && !_overflow);
+        foreach (var control in new Control[] { ModelButton, LanguageButton, DataNotesButton, MoreButton }) Reserve(control, hidden: catchUp);
         if (!chat) ShowHistory(false);
         UpdateCatchUps();
         FitHeader();
@@ -868,14 +869,17 @@ public sealed partial class AIPanelView : UserControl
     /// <summary>The "i" has notes to show: hidden in the narrowest header only.</summary>
     private bool _hasDataNotes;
 
+    /// <summary>The header is at its narrowest step: the language, a fresh chat and History are in the "⋮" menu.</summary>
+    private bool _overflow;
+
     /// <summary>What <see cref="FitHeader"/> last fitted: the width, the labels and whether the "i" shows.</summary>
     private (double Width, string Model, string Language, bool Notes)? _headerFitted;
 
     /// <summary>
     /// The header on one row, never wrapped (macOS <c>headerRow</c>): with both names when everything fits, else the
     /// language as its globe only, then the model as its chip only too, the names in their tooltips, then the tabs as
-    /// their icons too, then also without the "i" and with narrower menus and buttons (<see cref="ApplyHeaderStep"/>).
-    /// Chosen as if Chat's fresh chat and History showed, so a switch of tabs never changes the step. Decided from the
+    /// their icons too, then also without the "i" and with narrower menus and buttons, then with the language, a fresh
+    /// chat and History in the "⋮" menu (<see cref="ApplyHeaderStep"/>). Chosen as if Chat's fresh chat and History showed, so a switch of tabs never changes the step. Decided from the
     /// natural widths, outside the layout pass (the header's SizeChanged, a name or a button that changed). Too narrow
     /// even then, the menus are clipped at the trailing edge.
     /// </summary>
@@ -888,10 +892,10 @@ public sealed partial class AIPanelView : UserControl
         _headerFitted = key;
         FreshChatButton.Visibility = Visibility.Visible;
         HistoryButton.Visibility = Visibility.Visible;
-        AIMenus.FitRow(width, HeaderRow, PanelTabsTrack, HeaderMenus, 5, ApplyHeaderStep);
+        AIMenus.FitRow(width, HeaderRow, PanelTabsTrack, HeaderMenus, 6, ApplyHeaderStep);
         var chat = _tab == DetailTab.Chat;
-        FreshChatButton.Visibility = Shown(chat);
-        HistoryButton.Visibility = Shown(chat);
+        FreshChatButton.Visibility = Shown(chat && !_overflow);
+        HistoryButton.Visibility = Shown(chat && !_overflow);
         // Measured at their natural width above: the next layout pass measures them with the header's width again.
         HeaderRow.InvalidateMeasure();
     }
@@ -899,24 +903,30 @@ public sealed partial class AIPanelView : UserControl
     /// <summary>
     /// One of <see cref="FitHeader"/>'s steps: 0 everything named, 1 the globe alone, 2 the chip alone too, 3 the tabs'
     /// icons too, 4 also no "i", 4 px less side padding in the tabs, the menus and the buttons (macOS 12 → 8 pt) and
-    /// 6 px between the row's items instead of 8 (macOS <c>tight</c>), so the three tabs fit the panel's minimum width.
+    /// 6 px between the row's items instead of 8 (macOS <c>tight</c>), so the three tabs fit the panel's minimum width;
+    /// 5 also the language, a fresh chat and History in the "⋮" menu (macOS <c>overflow</c>), for the window's minimum width.
     /// </summary>
     private void ApplyHeaderStep(int step)
     {
+        _overflow = step >= 5;
+        LanguageButton.Visibility = Shown(!_overflow);
+        FreshChatButton.Visibility = Shown(!_overflow);
+        HistoryButton.Visibility = Shown(!_overflow);
+        MoreButton.Visibility = Shown(_overflow);
         ShowHeaderLabels(model: step < 2, language: step < 1);
         AIMenus.ShowTabLabel(SummaryPanelTab, Loc.T("Summary"), SummaryTabGlyph, label: step < 3);
         AIMenus.ShowTabLabel(CatchUpPanelTab, Loc.T("Catch-up"), CatchUpTabGlyph, label: step < 3);
         AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
         var compact = step >= 4;
         DataNotesButton.Visibility = Shown(_hasDataNotes && !compact);
-        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton, CollapseButton })
+        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton, MoreButton, CollapseButton })
         {
             AIMenus.CompactPadding(control, compact);
         }
         var spacing = compact ? 6 : 8;
         HeaderRow.ColumnSpacing = spacing;
         // The menus' margins space them (a collapsed one keeps none).
-        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton, CollapseButton })
+        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton, MoreButton, CollapseButton })
         {
             control.Margin = new Thickness(spacing, 0, 0, 0);
         }
@@ -981,6 +991,37 @@ public sealed partial class AIPanelView : UserControl
             return;
         }
         AIMenus.FillLanguageMenu(LanguageMenu, _panel.Providers, _model.Settings.SummaryLanguage);
+    }
+
+    /// <summary>
+    /// The narrowest header's "⋮" (macOS <c>moreMenu</c>): on Chat a fresh chat (enabled as its button), the summary and
+    /// answer languages in a submenu, and on Chat History, checked while its panel shows.
+    /// </summary>
+    private void BuildMoreMenu()
+    {
+        MoreMenu.Items.Clear();
+        if (_panel is null || _model is null) return;
+        var chat = _tab == DetailTab.Chat;
+        if (chat)
+        {
+            var fresh = new MenuFlyoutItem { Text = Loc.T("Start a fresh chat"), Icon = new FontIcon { Glyph = "\uE710" }, IsEnabled = FreshChatButton.IsEnabled };
+            fresh.Click += (_, _) => _panel?.StartFreshChat();
+            MoreMenu.Items.Add(fresh);
+        }
+        var language = new MenuFlyoutSubItem { Text = Loc.T("Language"), Icon = new FontIcon { Glyph = "\uE774" } };
+        AIMenus.FillLanguageMenu(language.Items, _panel.Providers, _model.Settings.SummaryLanguage);
+        MoreMenu.Items.Add(language);
+        if (chat)
+        {
+            var history = new ToggleMenuFlyoutItem
+            {
+                Text = Loc.T("History"),
+                Icon = new FontIcon { Glyph = "\uE81C" },
+                IsChecked = HistoryPanel.Visibility == Visibility.Visible,
+            };
+            history.Click += (_, _) => ShowHistory(history.IsChecked);
+            MoreMenu.Items.Add(history);
+        }
     }
 
     /// <summary>

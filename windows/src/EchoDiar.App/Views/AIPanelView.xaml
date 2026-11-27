@@ -85,7 +85,8 @@
                     the model, the language, the "i", on Chat a fresh chat and History, and the collapse button; the menus
                     open downwards. One row, never wrapped (macOS headerRow): too narrow, the language shows only its globe,
                     then the model only its chip, their names in the tooltips, then the tabs only their icons, then the "i"
-                    hides and the menus and buttons narrow; the same step on both tabs (FitHeader).
+                    hides and the menus and buttons narrow, then the language, a fresh chat and History go into a "⋮" menu;
+                    the same step on both tabs (FitHeader).
                 -->
                 <Grid
                     x:Name="HeaderRow"
@@ -136,6 +137,7 @@
                         Grid.Column="1"
                         HorizontalAlignment="Right">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
@@ -216,10 +218,35 @@
                             ToolTipService.ToolTip="{local:T Text='Earlier chats of this conversation'}">
                             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE81C;" />
                         </ToggleButton>
+                        <!--
+                            The narrowest header's "⋮" (macOS moreMenu), in place of the language, a fresh chat and History: on
+                            Chat a fresh chat, the language in a submenu, on Chat History (built as it opens).
+                        -->
+                        <Button
+                            x:Name="MoreButton"
+                            Grid.Column="5"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="{local:T Text='More'}"
+                            ToolTipService.ToolTip="{local:T Text='More'}">
+                            <FontIcon
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="14"
+                                Glyph="&#xE712;"
+                                RenderTransformOrigin="0.5,0.5">
+                                <FontIcon.RenderTransform>
+                                    <RotateTransform Angle="90" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
+                            <Button.Flyout>
+                                <MenuFlyout x:Name="MoreMenu" Placement="BottomEdgeAlignedRight" />
+                            </Button.Flyout>
+                        </Button>
                         <!-- The last one (macOS PanelCollapseButton): folds the panel toward the trailing edge, down when stacked (set in code). -->
                         <Button
                             x:Name="CollapseButton"
-                            Grid.Column="5"
+                            Grid.Column="6"
                             Margin="8,0,0,0"
                             VerticalAlignment="Center"
                             AutomationProperties.Name="{local:T Text='Collapse panel'}"

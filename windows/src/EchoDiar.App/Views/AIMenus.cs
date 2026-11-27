@@ -77,9 +77,13 @@ internal static class AIMenus
     }
 
     /// <summary>Auto, English, French, Vietnamese, and a hand-edited code (macOS <c>AILanguageMenu</c>).</summary>
-    public static void FillLanguageMenu(MenuFlyout menu, ProvidersViewModel providers, string selection)
+    public static void FillLanguageMenu(MenuFlyout menu, ProvidersViewModel providers, string selection) =>
+        FillLanguageMenu(menu.Items, providers, selection);
+
+    /// <summary>The same languages into <paramref name="items"/>: a menu's, or a submenu's (the AI panel's "⋮").</summary>
+    public static void FillLanguageMenu(IList<MenuFlyoutItemBase> items, ProvidersViewModel providers, string selection)
     {
-        menu.Items.Clear();
+        items.Clear();
         var choices = Languages.Select(l => (l.Code, Name: Loc.T(l.Name))).ToList();
         if (choices.All(c => c.Code != selection)) choices.Add((selection, selection));
         foreach (var (code, name) in choices)
@@ -89,7 +93,7 @@ internal static class AIMenus
             {
                 if (providers.SummaryLanguage != code) providers.SummaryLanguage = code;
             };
-            menu.Items.Add(item);
+            items.Add(item);
         }
     }
 
