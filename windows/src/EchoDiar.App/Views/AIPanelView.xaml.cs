@@ -715,9 +715,13 @@ public sealed partial class AIPanelView : UserControl
         _historyKey = key;
         HistoryList.Children.Clear();
 
-        // While searching, the chats whose title or messages contain the term, the open one too.
-        var shown = _panel.Archives.Where(a => ChatArchive.Matches(a.Title, _archiveTexts?.GetValueOrDefault(a.Id), term)).ToList();
-        var currentShown = ChatArchive.Matches(_panel.ChatTitle ?? "", term.Length == 0 ? null : string.Join("\n", _panel.Chat.Select(m => m.Text)), term);
+        // While searching, the chats whose title or messages contain the term or its words, the open one too; typos only
+        // when no chat matches without them (SearchText.Filter).
+        var current = term.Length == 0 ? null : string.Join("\n", _panel.Chat.Select(m => m.Text));
+        var typos = !ChatArchive.Matches(_panel.ChatTitle ?? "", current, term)
+            && !_panel.Archives.Any(a => ChatArchive.Matches(a.Title, _archiveTexts?.GetValueOrDefault(a.Id), term));
+        var shown = _panel.Archives.Where(a => ChatArchive.Matches(a.Title, _archiveTexts?.GetValueOrDefault(a.Id), term, typos)).ToList();
+        var currentShown = ChatArchive.Matches(_panel.ChatTitle ?? "", current, term, typos);
         if (currentShown) AddCurrentChatRow(title);
         foreach (var entry in shown) HistoryList.Children.Add(HistoryRow(entry, busy));
         if ((shown.Count == 0 && !currentShown) || _panel.Archives.Count == 0)

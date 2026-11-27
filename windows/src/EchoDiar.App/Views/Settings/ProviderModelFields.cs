@@ -3,6 +3,7 @@ using CommunityToolkit.WinUI.Controls;
 using EchoDiar.AI;
 using EchoDiar.AI.Cloud;
 using EchoDiar.App.ViewModels;
+using EchoDiar.Core;
 using EchoDiar.Core.Models;
 using EchoDiar.Core.Settings;
 using Microsoft.UI.Xaml;
@@ -365,7 +366,7 @@ internal sealed class ModelField
         _scroller.MaxHeight = isLong ? 160 : double.PositiveInfinity;
         // Only while its field shows: a filter left over from a longer list would hide checkboxes for good.
         var term = isLong ? _filterBox.Text.Trim() : "";
-        List<string> shown = term.Length == 0 ? choices : [.. choices.Where(c => c.Contains(term, StringComparison.CurrentCultureIgnoreCase))];
+        List<string> shown = term.Length == 0 ? choices : SearchText.Filter(choices, term, (c, typos) => SearchText.Matches(term, [c], typos: typos));
         if (!shown.SequenceEqual(_shownIds))
         {
             _shownIds = shown;

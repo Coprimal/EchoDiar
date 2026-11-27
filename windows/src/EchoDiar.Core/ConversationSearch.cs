@@ -10,16 +10,18 @@ public static class ConversationSearch
     public sealed record Document(string Title, IReadOnlyList<string> Speakers, string Transcript, string Summary, string Chat)
     {
         /// <summary>
-        /// True when <paramref name="term"/> is blank, or some field contains it ignoring case and accents (Swift
-        /// <c>localizedStandardContains</c>). The whole trimmed term is one substring, as in Swift.
+        /// The words of every field but the title (the one field a rename changes, with <c>with</c>), folded once, for the
+        /// search on every keystroke.
         /// </summary>
-        public bool Matches(string term)
-        {
-            term = term.Trim();
-            if (term.Length == 0) return true;
-            var key = SearchText.Fold(term);
-            return new[] { Title, Transcript, Summary, Chat }.Concat(Speakers).Any(field => SearchText.ContainsFolded(field, key));
-        }
+        private readonly SearchText.Words _words = new(new[] { Transcript, Summary, Chat }.Concat(Speakers));
+
+        /// <summary>
+        /// True when <paramref name="term"/> is blank, or some field contains it, or each of its words is in some field, in
+        /// any order (<see cref="SearchText.Matches"/>, ignoring case and accents); a word may be a typo away when
+        /// <paramref name="typos"/> (Swift <c>matches(_:typos:)</c>).
+        /// </summary>
+        public bool Matches(string term, bool typos = false) =>
+            SearchText.Matches(term, [Title, Transcript, Summary, Chat, .. Speakers], [new SearchText.Words([Title]), _words], typos);
     }
 
     /// <summary>Builds the document of one conversation; a missing transcript, summary or chat yields empty fields.</summary>

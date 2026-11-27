@@ -474,7 +474,7 @@ struct ModelField: View {
         let choices = Self.unique([defaultID] + config.shownModels + (models ?? []))
         // Only while its field is shown: a filter left over from a longer list would hide checkboxes for good.
         let term = choices.count > Self.longList ? filter.trimmingCharacters(in: .whitespaces) : ""
-        let shown = term.isEmpty ? choices : choices.filter { $0.localizedStandardContains(term) }
+        let shown = term.isEmpty ? choices : SearchText.filter(choices, term) { SearchText.matches(term, in: [$0], typos: $1) }
         let box = RoundedRectangle(cornerRadius: 8, style: .continuous)
         VStack(alignment: .leading, spacing: 8) {
             Text("In the AI pane's model menu")

@@ -820,18 +820,20 @@ struct MainView: View {
 
     private var searchTerm: String { debouncedQuery.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    /// Conversations whose title, speakers, transcript, summary or chat contain the query (case and accent
-    /// insensitive), on the list and in the sidebar alike; all without one. Title only until a document is read.
+    /// Conversations whose title, speakers, transcript, summary or chat contain the query or each of its words (case
+    /// and accent insensitive, `ConversationSearch.Document.matches`), on the list and in the sidebar alike; all without
+    /// one. Title only until a document is read.
     private var searchResults: [Conversation] {
         let term = searchTerm
         guard !term.isEmpty else { return model.conversations }
-        return model.conversations.filter { conversation in
+        // Typos only when no conversation matches without them (`SearchText.filter`).
+        return SearchText.filter(model.conversations, term) { conversation, typos in
             guard var document = searchDocuments[conversation.id]?.document else {
-                return conversation.title.localizedStandardContains(term)
+                return SearchText.matches(term, in: [conversation.title], typos: typos)
             }
             // The current title: a rename does not change the size.
             document.title = conversation.title
-            return document.matches(term)
+            return document.matches(term, typos: typos)
         }
     }
 
@@ -879,6 +881,8 @@ struct SearchTextField: NSViewRepresentable {
     @Binding var focusRequest: Bool
     let accessibilityLabel: String
     let onEscape: () -> Void
+    /// Return (false) or Shift-Return (true); nil leaves them to the field.
+    var onReturn: ((_ backward: Bool) -> Void)?
 
     func makeNSView(context: Context) -> Field {
         let field = Field()
@@ -935,8 +939,12 @@ struct SearchTextField: NSViewRepresentable {
             parent.text = field.stringValue
         }
 
-        /// Escape is the container's.
+        /// Escape is the container's, and Return too when it takes it.
         func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            if selector == #selector(NSResponder.insertNewline(_:)), let onReturn = parent.onReturn {
+                onReturn(NSApp.currentEvent?.modifierFlags.contains(.shift) == true)
+                return true
+            }
             guard selector == #selector(NSResponder.cancelOperation(_:)) else { return false }
             parent.onEscape()
             return true

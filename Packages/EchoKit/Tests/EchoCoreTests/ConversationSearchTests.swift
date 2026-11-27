@@ -29,4 +29,12 @@ struct ConversationSearchTests {
     @Test func termFoundNowhereDoesNotMatch() {
         #expect(!document.matches("kangaroo"))
     }
+
+    /// Words of several fields in any order; a typo only when the caller allows them.
+    @Test func wordsAcrossFieldsInAnyOrderAndTyposWhenAllowed() {
+        #expect(document.matches("approved weekly LAN"))
+        #expect(!document.matches("approved kangaroo"))
+        #expect(!document.matches("budgat"))
+        #expect(document.matches("budgat", typos: true))
+    }
 }

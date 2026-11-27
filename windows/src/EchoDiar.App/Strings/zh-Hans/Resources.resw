@@ -2310,6 +2310,10 @@
     <value>新建日程…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextMatch" xml:space="preserve">
+    <value>下一个结果</value>
+    <comment>Next match</comment>
+  </data>
   <data name="NextPage" xml:space="preserve">
     <value>下一页</value>
     <comment>Next page</comment>
@@ -2405,6 +2409,10 @@
   <data name="NoModelsListedTypeTheModelId" xml:space="preserve">
     <value>未列出模型；请输入模型 ID。</value>
     <comment>No models listed; type the model id.</comment>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>无结果</value>
+    <comment>No results</comment>
   </data>
   <data name="NoScreenRecordingAtThisPoint" xml:space="preserve">
     <value>此时间点没有屏幕录制</value>
@@ -2866,6 +2874,10 @@
     <value>前 3 天</value>
     <comment>Previous 3 days</comment>
   </data>
+  <data name="PreviousMatch" xml:space="preserve">
+    <value>上一个结果</value>
+    <comment>Previous match</comment>
+  </data>
   <data name="PreviousPage" xml:space="preserve">
     <value>上一页</value>
     <comment>Previous page</comment>
@@ -3322,6 +3334,10 @@
     <value>搜索回顾</value>
     <comment>Search catch-ups</comment>
   </data>
+  <data name="SearchChat" xml:space="preserve">
+    <value>搜索聊天</value>
+    <comment>Search chat</comment>
+  </data>
   <data name="SearchChats" xml:space="preserve">
     <value>搜索聊天</value>
     <comment>Search chats</comment>
@@ -3349,6 +3365,14 @@
   <data name="SearchSettingsF" xml:space="preserve">
     <value>搜索设置（⌘F）</value>
     <comment>Search settings (⌘F)</comment>
+  </data>
+  <data name="SearchSummary" xml:space="preserve">
+    <value>搜索摘要</value>
+    <comment>Search summary</comment>
+  </data>
+  <data name="SearchTranscript" xml:space="preserve">
+    <value>搜索转写文本</value>
+    <comment>Search transcript</comment>
   </data>
   <data name="SearchingYourConversations" xml:space="preserve">
     <value>正在搜索你的对话…</value>

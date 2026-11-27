@@ -43,12 +43,11 @@ public enum ChatArchive {
         }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// True when `query` is blank, or the chat's title or messages (`text`, nil while not read yet) contain it (ignoring
-    /// case and accents, locale-aware).
-    public static func matches(title: String, text: String?, query: String) -> Bool {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return true }
-        return title.localizedStandardContains(query) || text?.localizedStandardContains(query) == true
+    /// True when `query` is blank, or the chat's title or messages (`text`, nil while not read yet) contain it, or each
+    /// of its words, in any order (`SearchText.matches`, ignoring case and accents); a word may be a typo away when
+    /// `typos`.
+    public static func matches(title: String, text: String?, query: String, typos: Bool = false) -> Bool {
+        SearchText.matches(query, in: [title] + [text].compactMap { $0 }, typos: typos)
     }
 
     /// Moves `chat.json` into the archive; nil when it has no messages. Its title, else its first question on one

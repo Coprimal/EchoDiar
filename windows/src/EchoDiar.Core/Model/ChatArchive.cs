@@ -75,14 +75,11 @@ public static class ChatArchive
 
     /// <summary>
     /// True when <paramref name="query"/> is blank, or the chat's title or messages (<paramref name="text"/>, null while
-    /// not read yet) contain it, ignoring case and accents (macOS <c>matches(title:text:query:)</c>).
+    /// not read yet) contain it, or each of its words, in any order (<see cref="SearchText.Matches"/>, ignoring case and
+    /// accents); a word may be a typo away when <paramref name="typos"/> (macOS <c>matches(title:text:query:typos:)</c>).
     /// </summary>
-    public static bool Matches(string title, string? text, string query)
-    {
-        var term = query.Trim();
-        if (term.Length == 0) return true;
-        return SearchText.Contains(title, term) || (text is not null && SearchText.Contains(text, term));
-    }
+    public static bool Matches(string title, string? text, string query, bool typos = false) =>
+        SearchText.Matches(query, text is null ? [title] : [title, text], typos: typos);
 
     /// <summary>
     /// Moves <c>chat.json</c> into the archive; null when it has no messages. Its title, else its first question on one

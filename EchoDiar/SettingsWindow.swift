@@ -165,7 +165,7 @@ struct SettingsView: View {
     /// Every section, or while searching only those with a matching setting.
     private var visibleTabs: [SettingsTab] {
         guard searching else { return SettingsTab.allCases }
-        let hits = Set(SettingsSearchItem.all.filter { $0.matches(query) }.map(\.tab))
+        let hits = Set(SettingsSearchItem.matching(query).map(\.tab))
         return SettingsTab.allCases.filter(hits.contains)
     }
 

@@ -37,8 +37,8 @@ public static class MarkdownView
     private static readonly FontFamily CodeFont = new("Cascadia Mono, Consolas");
 
     /// <summary>
-    /// Renders <paramref name="markdown"/>, the occurrences of <paramref name="highlight"/> (the catch-up search's term;
-    /// none when empty) highlighted in each run of the rendered text.
+    /// Renders <paramref name="markdown"/>, the matches of <paramref name="highlight"/> (the catch-up search's query,
+    /// <see cref="SearchText.MatchRanges"/>; none when empty) highlighted in each run of the rendered text.
     /// </summary>
     public static void Render(RichTextBlock target, string markdown, MarkdownLinks links, string highlight = "")
     {
@@ -53,9 +53,12 @@ public static class MarkdownView
             Background = new SolidColorBrush(Colors.Yellow),
             Foreground = new SolidColorBrush(Colors.Black),
         };
-        foreach (var run in target.Blocks.OfType<Paragraph>().SelectMany(p => Runs(p.Inlines)))
+        var runs = target.Blocks.OfType<Paragraph>().SelectMany(p => Runs(p.Inlines)).ToList();
+        // Typo words only when the whole text matches only with them (macOS: matchRanges on the rendered text).
+        var typos = !SearchText.Matches(highlight, [string.Join("\n", runs.Select(r => r.Text))]);
+        foreach (var run in runs)
         {
-            foreach (var (start, length) in SearchText.Ranges(run.Text, highlight))
+            foreach (var (start, length) in SearchText.MatchRanges(run.Text, highlight, typos))
                 highlighter.Ranges.Add(new TextRange { StartIndex = run.ContentStart.Offset + start, Length = length });
         }
         if (highlighter.Ranges.Count > 0) target.TextHighlighters.Add(highlighter);

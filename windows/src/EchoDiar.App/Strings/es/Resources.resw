@@ -2410,6 +2410,10 @@
     <value>Nuevo evento…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextMatch" xml:space="preserve">
+    <value>Resultado siguiente</value>
+    <comment>Next match</comment>
+  </data>
   <data name="NextPage" xml:space="preserve">
     <value>Página siguiente</value>
     <comment>Next page</comment>
@@ -2509,6 +2513,10 @@
   <data name="NoModelsListedTypeTheModelId" xml:space="preserve">
     <value>No hay modelos en la lista; escribe el ID del modelo.</value>
     <comment>No models listed; type the model id.</comment>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>Sin resultados</value>
+    <comment>No results</comment>
   </data>
   <data name="NoScreenRecordingAtThisPoint" xml:space="preserve">
     <value>No hay grabación de pantalla en este punto</value>
@@ -2970,6 +2978,10 @@
     <value>3 días anteriores</value>
     <comment>Previous 3 days</comment>
   </data>
+  <data name="PreviousMatch" xml:space="preserve">
+    <value>Resultado anterior</value>
+    <comment>Previous match</comment>
+  </data>
   <data name="PreviousPage" xml:space="preserve">
     <value>Página anterior</value>
     <comment>Previous page</comment>
@@ -3426,6 +3438,10 @@
     <value>Buscar en las puestas al día</value>
     <comment>Search catch-ups</comment>
   </data>
+  <data name="SearchChat" xml:space="preserve">
+    <value>Buscar en el chat</value>
+    <comment>Search chat</comment>
+  </data>
   <data name="SearchChats" xml:space="preserve">
     <value>Buscar en los chats</value>
     <comment>Search chats</comment>
@@ -3453,6 +3469,14 @@
   <data name="SearchSettingsF" xml:space="preserve">
     <value>Buscar ajustes (⌘F)</value>
     <comment>Search settings (⌘F)</comment>
+  </data>
+  <data name="SearchSummary" xml:space="preserve">
+    <value>Buscar en el resumen</value>
+    <comment>Search summary</comment>
+  </data>
+  <data name="SearchTranscript" xml:space="preserve">
+    <value>Buscar en la transcripción</value>
+    <comment>Search transcript</comment>
   </data>
   <data name="SearchingYourConversations" xml:space="preserve">
     <value>Buscando en tus conversaciones…</value>

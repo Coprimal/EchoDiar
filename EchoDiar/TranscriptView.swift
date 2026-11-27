@@ -53,6 +53,15 @@ struct TranscriptView: View {
     @State private var shownTab: AppModel.DetailTab
     /// The last tab switch went right (Summary → Chat).
     @State private var forward = true
+    /// The search field is shown above the bar; hidden (the query cleared) with the search button or Esc.
+    @State private var searching = false
+    @State private var searchQuery = ""
+    @State private var searchFocus = false
+    /// Where the query is found in `shownText` (`TranscriptText.searchMatches`), and the current one.
+    @State private var searchMatches: [NSRange] = []
+    @State private var searchIndex = 0
+    /// The query `searchMatches` were found for: the same query in a changed text (a rename) keeps its place.
+    @State private var searchedQuery = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(conversation: Conversation, model: AppModel) {
@@ -70,7 +79,7 @@ struct TranscriptView: View {
             // conversation shows at once. Clipped to the card, as the video's picture would not be.
             VStack(spacing: 0) {
                 withVideoPane {
-                    if loaded { content } else { DetailLoadingPane(framed: false) }
+                    if loaded { searchableContent } else { DetailLoadingPane(framed: false) }
                 }
                 if loaded {
                     Divider()
@@ -87,6 +96,7 @@ struct TranscriptView: View {
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task(id: conversation) { await load() }
+        .task(id: SearchInput(query: searching ? searchQuery : "", text: shownText?.document.text)) { await search() }
         #if DEBUG
         .onAppear { DetailTiming.log("placeholder", conversation.id) }
         #endif
@@ -319,6 +329,14 @@ struct TranscriptView: View {
             .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
             .help("Copy transcript")
             .disabled(shownTranscript?.segments.isEmpty ?? true)
+            Button { setSearch(!searching) } label: {
+                Label("Search transcript", systemImage: "magnifyingglass")
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(searching ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+            }
+            .buttonStyle(BottomBarButtonStyle(horizontalPadding: 0))
+            .help("Search transcript")
+            .disabled(!searching && shownTranscript?.segments.isEmpty ?? true)
         }
     }
 
@@ -638,6 +656,66 @@ struct TranscriptView: View {
         return Set(transcript.segments.map(\.speaker)).sorted { order($0) < order($1) }
     }
 
+    // MARK: - Search
+
+    /// `searchMatches` are found again when either changes.
+    private struct SearchInput: Equatable {
+        let query: String
+        let text: String?
+    }
+
+    /// The transcript with the search field under it, sliding up from the bar while it shows.
+    private var searchableContent: some View {
+        VStack(spacing: 0) {
+            content
+            if searching {
+                searchField
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .clipped()
+    }
+
+    /// Highlights the query in the transcript as typed (`SearchText.find`).
+    private var searchField: some View {
+        FindBar(query: $searchQuery, focusRequest: $searchFocus, label: String(localized: "Search transcript"),
+                count: searchMatches.count, index: searchIndex, step: stepSearch) { setSearch(false) }
+    }
+
+    /// Shows the search field, focused, or hides it and clears the query (and so the highlights).
+    private func setSearch(_ shown: Bool) {
+        withAnimation(reduceMotion ? nil : Motion.standard) { searching = shown }
+        if shown {
+            searchFocus = true
+        } else {
+            searchQuery = ""
+        }
+    }
+
+    /// The next (1) or previous (-1) match, round from the last to the first.
+    private func stepSearch(_ step: Int) {
+        guard !searchMatches.isEmpty else { return }
+        searchIndex = (searchIndex + step + searchMatches.count) % searchMatches.count
+    }
+
+    /// Finds the query in the shown text off the main thread; a new query starts at its first match.
+    private func search() async {
+        let query = searching ? searchQuery : ""
+        guard let text = shownText, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            searchMatches = []
+            searchIndex = 0
+            searchedQuery = ""
+            return
+        }
+        let matches = await Task.detached(priority: .userInitiated) { text.searchMatches(query) }.value
+        guard !Task.isCancelled else { return }
+        searchIndex = query == searchedQuery ? min(searchIndex, max(matches.count - 1, 0)) : 0
+        searchMatches = matches
+        searchedQuery = query
+    }
+
     // MARK: - Segments
 
     /// The segments, or a note in their middle while there are none; the version menu is pinned above them, as in
@@ -651,7 +729,8 @@ struct TranscriptView: View {
             }
             Group {
                 if let shownText, shownTranscript?.segments.isEmpty == false {
-                    TranscriptTextView(text: shownText, playback: playback, scrollTarget: $scrollTarget)
+                    TranscriptTextView(text: shownText, playback: playback, scrollTarget: $scrollTarget,
+                                       matches: searchMatches, currentMatch: searchMatches.isEmpty ? nil : searchIndex)
                 } else if loading {
                     ProgressView()
                 } else {

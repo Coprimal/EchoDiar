@@ -2310,6 +2310,10 @@
     <value>Sự kiện mới…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextMatch" xml:space="preserve">
+    <value>Kết quả tiếp theo</value>
+    <comment>Next match</comment>
+  </data>
   <data name="NextPage" xml:space="preserve">
     <value>Trang sau</value>
     <comment>Next page</comment>
@@ -2405,6 +2409,10 @@
   <data name="NoModelsListedTypeTheModelId" xml:space="preserve">
     <value>Không có mô hình nào trong danh sách; hãy nhập ID mô hình.</value>
     <comment>No models listed; type the model id.</comment>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>Không có kết quả</value>
+    <comment>No results</comment>
   </data>
   <data name="NoScreenRecordingAtThisPoint" xml:space="preserve">
     <value>Không có bản ghi màn hình tại thời điểm này</value>
@@ -2866,6 +2874,10 @@
     <value>3 ngày gần nhất</value>
     <comment>Previous 3 days</comment>
   </data>
+  <data name="PreviousMatch" xml:space="preserve">
+    <value>Kết quả trước</value>
+    <comment>Previous match</comment>
+  </data>
   <data name="PreviousPage" xml:space="preserve">
     <value>Trang trước</value>
     <comment>Previous page</comment>
@@ -3322,6 +3334,10 @@
     <value>Tìm trong các bản tóm tắt nhanh</value>
     <comment>Search catch-ups</comment>
   </data>
+  <data name="SearchChat" xml:space="preserve">
+    <value>Tìm trong cuộc trò chuyện</value>
+    <comment>Search chat</comment>
+  </data>
   <data name="SearchChats" xml:space="preserve">
     <value>Tìm trong các cuộc trò chuyện</value>
     <comment>Search chats</comment>
@@ -3349,6 +3365,14 @@
   <data name="SearchSettingsF" xml:space="preserve">
     <value>Tìm cài đặt (⌘F)</value>
     <comment>Search settings (⌘F)</comment>
+  </data>
+  <data name="SearchSummary" xml:space="preserve">
+    <value>Tìm trong bản tóm tắt</value>
+    <comment>Search summary</comment>
+  </data>
+  <data name="SearchTranscript" xml:space="preserve">
+    <value>Tìm trong bản chép lời</value>
+    <comment>Search transcript</comment>
   </data>
   <data name="SearchingYourConversations" xml:space="preserve">
     <value>Đang tìm trong các cuộc hội thoại của bạn…</value>

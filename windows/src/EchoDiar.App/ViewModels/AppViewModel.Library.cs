@@ -180,8 +180,9 @@ public sealed partial class AppViewModel
     }
 
     /// <summary>
-    /// The conversations whose title, speakers, transcript, summary or chat contain <see cref="SearchTerm"/> (case and
-    /// accent insensitive), newest first; all without a term. The title only until a document is read.
+    /// The conversations whose title, speakers, transcript, summary or chat contain <see cref="SearchTerm"/> or each of
+    /// its words (case and accent insensitive, <see cref="ConversationSearch.Document.Matches"/>), newest first; all
+    /// without a term. The title only until a document is read.
     /// </summary>
     public IReadOnlyList<Conversation> SearchResults
     {
@@ -189,15 +190,14 @@ public sealed partial class AppViewModel
         {
             var term = SearchTerm;
             if (term.Length == 0) return Conversations;
-            return Conversations.Where(c =>
+            // Typos only when no conversation matches without them (SearchText.Filter).
+            return SearchText.Filter(Conversations, term, (c, typos) =>
             {
                 // A stale document still serves until its new one replaces it, as on macOS.
-                var document = _searchDocuments.TryGetValue(c.Id, out var cached)
-                    // The current title: a rename does not change the size.
-                    ? cached.Document with { Title = c.Title }
-                    : new ConversationSearch.Document(c.Title, [], "", "", "");
-                return document.Matches(term);
-            }).ToList();
+                if (!_searchDocuments.TryGetValue(c.Id, out var cached)) return SearchText.Matches(term, [c.Title], typos: typos);
+                // The current title: a rename does not change the size.
+                return (cached.Document with { Title = c.Title }).Matches(term, typos);
+            });
         }
     }
 

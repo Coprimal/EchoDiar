@@ -4,18 +4,30 @@ import Foundation
 public enum ConversationSearch {
     /// The searchable text of one conversation, one string per field.
     public struct Document: Sendable {
+        /// The only field that changes: a rename sets the current title.
         public var title: String
         /// Display and default names of every speaker, in first-appearance order.
-        public var speakers: [String]
-        public var transcript: String
-        public var summary: String
-        public var chat: String
+        public let speakers: [String]
+        public let transcript: String
+        public let summary: String
+        public let chat: String
+        /// The words of every field but the title, folded once, for the search on every keystroke.
+        private let words: SearchText.Words
 
-        /// True when `term` is blank, or some field contains it (ignoring case and accents, locale-aware).
-        public func matches(_ term: String) -> Bool {
-            let term = term.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !term.isEmpty else { return true }
-            return ([title, transcript, summary, chat] + speakers).contains { $0.localizedStandardContains(term) }
+        public init(title: String, speakers: [String], transcript: String, summary: String, chat: String) {
+            self.title = title
+            self.speakers = speakers
+            self.transcript = transcript
+            self.summary = summary
+            self.chat = chat
+            words = SearchText.Words([transcript, summary, chat] + speakers)
+        }
+
+        /// True when `term` is blank, or some field contains it, or each of its words is in some field, in any order
+        /// (`SearchText.matches`, ignoring case and accents); a word may be a typo away when `typos`.
+        public func matches(_ term: String, typos: Bool = false) -> Bool {
+            SearchText.matches(term, in: [title, transcript, summary, chat] + speakers,
+                               words: [SearchText.Words([title]), words], typos: typos)
         }
     }
 

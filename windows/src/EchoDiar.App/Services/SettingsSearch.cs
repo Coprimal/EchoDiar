@@ -93,8 +93,11 @@ public static class SettingsSearch
 
     public static SettingsSection? Section(string id) => Sections.FirstOrDefault(s => s.Id == id);
 
-    /// <summary>The rows matching <paramref name="term"/>; none for a blank term.</summary>
-    public static IReadOnlyList<SettingsSearchItem> Matching(string term) => [.. Items.Where(i => i.Matches(term))];
+    /// <summary>
+    /// The rows matching <paramref name="term"/>, with typos only when none matches without them
+    /// (<see cref="SearchText.Filter"/>); none for a blank term.
+    /// </summary>
+    public static IReadOnlyList<SettingsSearchItem> Matching(string term) => SearchText.Filter(Items, term, (i, typos) => i.Matches(term, typos));
 
     /// <summary>The sections with a row matching <paramref name="term"/>, in sidebar order.</summary>
     public static IReadOnlyList<SettingsSection> SectionsWithHits(string term)

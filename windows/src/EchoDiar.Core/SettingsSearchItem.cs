@@ -24,15 +24,15 @@ public sealed record SettingsSearchItem(
 
     /// <summary>
     /// True when <paramref name="term"/> (trimmed, not empty) is in the title, a keyword, the section title or the inner
-    /// tab title, ignoring case and accents. A blank term matches nothing (unlike the conversation search).
+    /// tab title, or each of its words is, in any order (<see cref="SearchText.Matches"/>, ignoring case and accents); a
+    /// word may be a typo away when <paramref name="typos"/>. A blank term matches nothing (unlike the conversation search).
     /// </summary>
-    public bool Matches(string term)
+    public bool Matches(string term, bool typos = false)
     {
         term = term.Trim();
         if (term.Length == 0) return false;
-        var key = SearchText.Fold(term);
         IEnumerable<string> texts = SubTabTitle is { } subTab ? [Title, SectionTitle, subTab] : [Title, SectionTitle];
-        return texts.Concat(Keywords).Any(text => SearchText.ContainsFolded(text, key));
+        return SearchText.Matches(term, [.. texts.Concat(Keywords)], typos: typos);
     }
 
     /// <summary>

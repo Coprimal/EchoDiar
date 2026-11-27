@@ -13,12 +13,18 @@ struct SettingsSearchItem: Identifiable {
 
     var id: String { "\(tab)/\(subTab ?? "-")/\(title.key)" }
 
-    /// True when `term` (trimmed, not empty) is in the title, a keyword, the section title or the inner tab title.
-    func matches(_ term: String) -> Bool {
+    /// True when `term` (trimmed, not empty) is in the title, a keyword, the section title or the inner tab title, or
+    /// each of its words is, in any order (`SearchText.matches`); a word may be a typo away when `typos`.
+    func matches(_ term: String, typos: Bool = false) -> Bool {
         let term = term.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty else { return false }
         let texts = [String(localized: title), String(localized: tab.label.title), subTabTitle].compactMap { $0 } + keywords
-        return texts.contains { $0.localizedStandardContains(term) }
+        return SearchText.matches(term, in: texts, typos: typos)
+    }
+
+    /// The rows matching `term`, with typos only when none matches without them (`SearchText.filter`).
+    static func matching(_ term: String) -> [SettingsSearchItem] {
+        SearchText.filter(all, term) { $0.matches(term, typos: $1) }
     }
 
     /// "Recording › Auto-stop › Stop when the app is quiet for", with the inner tab in between when there is one and it
@@ -283,7 +289,7 @@ struct SettingsSearchResults: View {
     @Binding var query: String
 
     var body: some View {
-        let items = SettingsSearchItem.all.filter { $0.matches(query) }
+        let items = SettingsSearchItem.matching(query)
         Group {
             if items.isEmpty {
                 Text("No settings match \"\(query.trimmingCharacters(in: .whitespacesAndNewlines))\"")

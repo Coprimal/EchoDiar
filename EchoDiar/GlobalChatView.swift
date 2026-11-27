@@ -297,8 +297,14 @@ struct GlobalChatView: View {
             }
             ScrollView {
                 let query = searchingHistory ? historyQuery : ""
-                let shown = archives.filter { ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query) }
-                let currentShown = ChatArchive.matches(title: chatTitle ?? "", text: currentChatText(query), query: query)
+                let current = currentChatText(query)
+                // Typos only when no chat matches without them (`SearchText.filter`).
+                let typos = !ChatArchive.matches(title: chatTitle ?? "", text: current, query: query)
+                    && !archives.contains { ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query) }
+                let shown = archives.filter {
+                    ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query, typos: typos)
+                }
+                let currentShown = ChatArchive.matches(title: chatTitle ?? "", text: current, query: query, typos: typos)
                 VStack(spacing: 2) {
                     if currentShown { currentChatRow }
                     ForEach(shown) { entry in historyRow(entry) }

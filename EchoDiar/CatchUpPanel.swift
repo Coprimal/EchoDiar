@@ -60,7 +60,9 @@ struct CatchUpPanel: View {
     var body: some View {
         let cards = self.cards
         let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matches = Set(cards.filter { !term.isEmpty && $0.text.localizedStandardContains(term) }.map(\.id))
+        let matches = term.isEmpty ? [] : Set(SearchText.filter(cards, term) {
+            SearchText.matches(term, in: [$0.text], typos: $1)
+        }.map(\.id))
         // The one being written stays, so its Stop does too.
         let shown = term.isEmpty ? cards : cards.filter { matches.contains($0.id) || $0.running }
         Group {
@@ -172,6 +174,8 @@ struct CatchUpCardView: View {
     let stop: () -> Void
     /// The catch-up search's term, highlighted in the text; none when empty.
     var highlight = ""
+    /// The AI panel's search marks in the text.
+    var marks = SearchMarks()
     /// Copy shows a checkmark and "Copied" for 2 s.
     @State private var copied = false
     @State private var copiedReset: Task<Void, Never>?
@@ -253,7 +257,7 @@ struct CatchUpCardView: View {
                     .foregroundStyle(.secondary)
             }
         } else if !card.text.isEmpty {
-            MarkdownText(text: card.text, highlight: highlight)
+            MarkdownText(text: card.text, highlight: highlight, marks: marks)
         }
         if let error = card.error {
             Text(error)

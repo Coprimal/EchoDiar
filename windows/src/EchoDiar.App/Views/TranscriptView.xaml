@@ -3,7 +3,7 @@
     The conversation's transcript, left of its AI panel (macOS TranscriptView.swift), in the transcript column's card
     (ConversationView, with the video when there is one): the segments, with the version menu pinned above them, a line,
     then a bar with the transcription's state, the speaker notes, playback, the speaker chips (click to rename),
-    Show/Hide video, Copy and Re-transcribe.
+    Show/Hide video, Copy, Search (its field under the segments) and Re-transcribe.
 -->
 <UserControl
     x:Class="EchoDiar.App.Views.TranscriptView"
@@ -52,11 +52,12 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- The segments, or a note in their middle while there are none. -->
+        <!-- The segments, or a note in their middle while there are none; the search field under them. -->
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!--
@@ -104,6 +105,8 @@
                             Opacity="0.12"
                             Visibility="Collapsed" />
                     </Canvas>
+                    <!-- The search's matches in the viewport (placed in code from the body runs' character rects). -->
+                    <Canvas x:Name="SearchMarks" IsHitTestVisible="False" />
                     <RichTextBlock
                         x:Name="SegmentText"
                         ContextFlyout="{x:Null}"
@@ -121,6 +124,71 @@
                     </Canvas>
                 </Grid>
             </ScrollViewer>
+
+            <!--
+                Highlights the query in the transcript as typed (macOS searchField, SearchText.FuzzyRanges), the current
+                match stronger: slides up from the line above the bar. Enter or the down chevron goes to the next match,
+                Shift+Enter or the up chevron to the previous one; Esc clears the query, then hides the field.
+            -->
+            <Grid
+                x:Name="SearchBar"
+                Grid.Row="2"
+                Margin="14,0,14,8"
+                ColumnSpacing="4"
+                Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    AutomationProperties.Name="{local:T Text='Search transcript'}"
+                    PlaceholderText="{local:T Text='Search transcript'}"
+                    QueryIcon="Find" />
+                <TextBlock
+                    x:Name="SearchCountText"
+                    Grid.Column="1"
+                    Margin="4,0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Button
+                    x:Name="PreviousMatchButton"
+                    Grid.Column="2"
+                    Width="28"
+                    Height="28"
+                    Padding="0"
+                    Style="{StaticResource SubtleButtonStyle}"
+                    AutomationProperties.Name="{local:T Text='Previous match'}"
+                    ToolTipService.ToolTip="{local:T Text='Previous match'}">
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE70E;" />
+                </Button>
+                <Button
+                    x:Name="NextMatchButton"
+                    Grid.Column="3"
+                    Width="28"
+                    Height="28"
+                    Padding="0"
+                    Style="{StaticResource SubtleButtonStyle}"
+                    AutomationProperties.Name="{local:T Text='Next match'}"
+                    ToolTipService.ToolTip="{local:T Text='Next match'}">
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE70D;" />
+                </Button>
+                <Button
+                    x:Name="CloseSearchButton"
+                    Grid.Column="4"
+                    Width="28"
+                    Height="28"
+                    Padding="0"
+                    Style="{StaticResource SubtleButtonStyle}"
+                    AutomationProperties.Name="{local:T Text='Close search'}"
+                    ToolTipService.ToolTip="{local:T Text='Close search'}">
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE711;" />
+                </Button>
+            </Grid>
 
             <ProgressRing
                 x:Name="LoadingRing"
@@ -434,6 +502,18 @@
                                 IsEnabled="False"
                                 ToolTipService.ToolTip="{local:T Text='Copy transcript'}">
                                 <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE8C8;" />
+                            </Button>
+                            <!-- Shows or hides the search field under the segments; in the accent color while it shows. -->
+                            <Button
+                                x:Name="SearchButton"
+                                Width="28"
+                                Height="28"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Search transcript'}"
+                                IsEnabled="False"
+                                ToolTipService.ToolTip="{local:T Text='Search transcript'}">
+                                <FontIcon x:Name="SearchIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" Glyph="&#xE721;" />
                             </Button>
                         </StackPanel>
 

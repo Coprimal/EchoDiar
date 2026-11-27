@@ -54,6 +54,9 @@ struct ChatArchiveTests {
         #expect(ChatArchive.matches(title: entry.title, text: text, query: " TĂNG 10% "))
         #expect(!ChatArchive.matches(title: entry.title, text: nil, query: "tăng"))
         #expect(!ChatArchive.matches(title: entry.title, text: text, query: "launch"))
+        #expect(ChatArchive.matches(title: entry.title, text: text, query: "10 tăng"))
+        #expect(!ChatArchive.matches(title: entry.title, text: text, query: "ngan sachh"))
+        #expect(ChatArchive.matches(title: entry.title, text: text, query: "ngan sachh", typos: true))
     }
 
     @Test func titledChatKeepsItsTitleAndEmptyChatIsNotArchived() throws {

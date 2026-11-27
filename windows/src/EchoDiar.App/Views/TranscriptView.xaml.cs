@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Globalization;
+using System.Numerics;
 using EchoDiar.App.ViewModels;
+using EchoDiar.Core;
 using EchoDiar.Core.Model;
 using EchoDiar.Core.Models;
 using EchoDiar.Core.Settings;
@@ -16,6 +18,8 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
+using Windows.UI;
+using Windows.UI.ViewManagement;
 using Span = Microsoft.UI.Xaml.Documents.Span;
 using VirtualKey = Windows.System.VirtualKey;
 
@@ -26,7 +30,7 @@ namespace EchoDiar.App.Views;
 /// <see cref="TranscriptViewModel"/> and the page's <see cref="PlaybackController"/>: the segments as one selectable
 /// text (macOS TranscriptTextView; a click on a start or a name plays from the segment; the one under the play head has
 /// a fill, and the text follows it while playing until the user scrolls), the version menu, the transcription's state, the speaker notes, playback, the
-/// speaker chips with their rename field, Show/Hide video, Copy, Re-transcribe and Summarize.
+/// speaker chips with their rename field, Show/Hide video, Copy, Search, Re-transcribe and Summarize.
 /// </summary>
 public sealed partial class TranscriptView : UserControl
 {
@@ -51,6 +55,12 @@ public sealed partial class TranscriptView : UserControl
 
     /// <summary>Between segments, about the old rows' spacing.</summary>
     private static readonly Thickness SegmentMargin = new(0, 0, 0, 14);
+
+    private static readonly UISettings UISettings = new();
+
+    /// <summary>The search's matches under the text (macOS <c>findHighlightColor</c>): lighter, the current one stronger.</summary>
+    private static readonly SolidColorBrush MatchBrush = new(Color.FromArgb(0x66, 0xFF, 0xD6, 0x00));
+    private static readonly SolidColorBrush CurrentMatchBrush = new(Color.FromArgb(0xCC, 0xFF, 0x9A, 0x00));
 
     private AppViewModel? _model;
     private TranscriptViewModel? _transcript;
@@ -88,6 +98,16 @@ public sealed partial class TranscriptView : UserControl
 
     /// <summary>A citation's segment to scroll to once its paragraph is in the text.</summary>
     private Guid? _pendingSegment;
+
+    /// <summary>
+    /// Where the search finds the query (<see cref="SearchText.PhraseRanges"/>): per match its segment and its place in
+    /// that segment's body, in order; the current one; the query they were found for (the same query in a changed text,
+    /// a rename, keeps its place); bumped at every search, so an older one is dropped.
+    /// </summary>
+    private List<(int Segment, int Start, int Length)> _matches = [];
+    private int _matchIndex;
+    private string _searchedQuery = "";
+    private int _searchGeneration;
 
     /// <summary>The text's context menu: Play from here, Copy, Select All.</summary>
     private readonly MenuFlyout _textMenu = new();
@@ -146,6 +166,14 @@ public sealed partial class TranscriptView : UserControl
         RetryButton.Click += (_, _) => Transcribe(null);
         TranscribeButton.Click += (_, _) => Transcribe(null);
         CopyButton.Click += (_, _) => Copy();
+        SearchButton.Click += (_, _) => SetSearch(SearchBar.Visibility != Visibility.Visible);
+        SearchBox.TextChanged += (_, _) => _ = UpdateSearchAsync();
+        SearchBox.QuerySubmitted += (_, _) => StepSearch(1);
+        SearchBox.PreviewKeyDown += OnSearchKeyDown;
+        PreviousMatchButton.Click += (_, _) => StepSearch(-1);
+        NextMatchButton.Click += (_, _) => StepSearch(1);
+        CloseSearchButton.Click += (_, _) => SetSearch(false);
+        SegmentScroller.ViewChanged += (_, _) => PlaceMarksLater();
         VideoToggleButton.Click += (_, _) => ToggleVideo();
         ExportVideoButton.Click += (_, _) => _ = ExportVideoAsync();
         DeleteVideoButton.Click += (_, _) => _ = DeleteVideoAsync();
@@ -179,6 +207,7 @@ public sealed partial class TranscriptView : UserControl
         transcript.PropertyChanged += OnTranscriptChanged;
         playback.PropertyChanged += OnPlaybackChanged;
         Player.Attach(model, playback);
+        SetSearch(false);
         UpdateLines();
         _chipSpeakers = null;
         UpdateChips();
@@ -300,6 +329,8 @@ public sealed partial class TranscriptView : UserControl
             Rebuild(document, segments);
         }
         CopyButton.IsEnabled = HasSegments;
+        SearchButton.IsEnabled = HasSegments || SearchBar.Visibility == Visibility.Visible;
+        _ = UpdateSearchAsync();
         UpdateSummarize();
         UpdateContent();
         UpdateActive();
@@ -477,6 +508,7 @@ public sealed partial class TranscriptView : UserControl
             if (_model is not { IsClosing: false }) return;
             PlaceFill();
             PlaceSpeakingIcon();
+            PlaceSearchMarks();
         });
     }
 
@@ -587,6 +619,179 @@ public sealed partial class TranscriptView : UserControl
         {
             _following = false;
         }
+    }
+
+    // Search
+
+    /// <summary>
+    /// Shows the search field, sliding up from the line above the bar, focused, or hides it and clears the query (and so
+    /// the matches) (macOS <c>setSearch</c>).
+    /// </summary>
+    private void SetSearch(bool shown)
+    {
+        if (!shown)
+        {
+            SearchBar.Visibility = Visibility.Collapsed;
+            SearchBox.Text = "";
+            UpdateSearchButton();
+            _ = UpdateSearchAsync();
+            return;
+        }
+        SearchBar.TranslationTransition = null;
+        SearchBar.OpacityTransition = null;
+        if (UISettings.AnimationsEnabled)
+        {
+            SearchBar.Translation = new Vector3(0, 12, 0);
+            SearchBar.Opacity = 0;
+        }
+        SearchBar.Visibility = Visibility.Visible;
+        UpdateSearchButton();
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            SearchBar.TranslationTransition = new Vector3Transition();
+            SearchBar.OpacityTransition = new ScalarTransition();
+            SearchBar.Translation = Vector3.Zero;
+            SearchBar.Opacity = 1;
+            SearchBox.Focus(FocusState.Programmatic);
+        });
+    }
+
+    /// <summary>The search button's icon in the accent color while the field shows.</summary>
+    private void UpdateSearchButton()
+    {
+        if (SearchBar.Visibility == Visibility.Visible) SearchIcon.Foreground = SpeakerBrush(-1);
+        else SearchIcon.ClearValue(IconElement.ForegroundProperty);
+        SearchButton.IsEnabled = HasSegments || SearchBar.Visibility == Visibility.Visible;
+    }
+
+    /// <summary>Enter goes to the next match, Shift+Enter to the previous one; Esc clears the query, then hides the field.</summary>
+    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case VirtualKey.Enter:
+                e.Handled = true;
+                StepSearch(ConversationListView.IsKeyDown(VirtualKey.Shift) ? -1 : 1);
+                break;
+            case VirtualKey.Escape:
+                e.Handled = true;
+                if (SearchBox.Text.Length > 0) SearchBox.Text = "";
+                else SetSearch(false);
+                break;
+        }
+    }
+
+    /// <summary>The next (1) or previous (-1) match, round from the last to the first.</summary>
+    private void StepSearch(int step)
+    {
+        if (_matches.Count == 0) return;
+        _matchIndex = (_matchIndex + step + _matches.Count) % _matches.Count;
+        ShowCurrentMatch();
+    }
+
+    /// <summary>Finds the query in the shown text off the UI thread; a new query starts at its first match.</summary>
+    private async Task UpdateSearchAsync()
+    {
+        var generation = ++_searchGeneration;
+        var query = SearchBar.Visibility == Visibility.Visible ? SearchBox.Text : "";
+        List<(int Segment, int Start, int Length)> matches = [];
+        if (_document is { } document && !string.IsNullOrWhiteSpace(query))
+        {
+            // Typos only when nothing is found without them (macOS searchMatches).
+            matches = await Task.Run(() =>
+            {
+                List<(int Segment, int Start, int Length)> Found(bool typos)
+                {
+                    List<(int Segment, int Start, int Length)> found = [];
+                    foreach (var entry in document.Entries)
+                    {
+                        foreach (var (start, length) in SearchText.PhraseRanges(Body(document, entry).ToString(), query, typos))
+                            found.Add((entry.Index, start, length));
+                    }
+                    return found;
+                }
+                var exact = Found(typos: false);
+                return exact.Count > 0 ? exact : Found(typos: true);
+            });
+            if (generation != _searchGeneration || _model is not { IsClosing: false }) return;
+        }
+        _matchIndex = query == _searchedQuery ? Math.Clamp(_matchIndex, 0, Math.Max(matches.Count - 1, 0)) : 0;
+        _matches = matches;
+        _searchedQuery = query;
+        ShowCurrentMatch();
+    }
+
+    /// <summary>"n/m" or No results beside the field, the marks, and the current match scrolled into view.</summary>
+    private void ShowCurrentMatch()
+    {
+        SearchCountText.Text = string.IsNullOrWhiteSpace(_searchedQuery) ? ""
+            : _matches.Count == 0 ? Loc.T("No results") : $"{_matchIndex + 1}/{_matches.Count}";
+        PreviousMatchButton.IsEnabled = NextMatchButton.IsEnabled = _matches.Count > 0;
+        PlaceMarksLater();
+        if (_matches.Count == 0 || _matches[_matchIndex].Segment >= _blocks.Count) return;
+        _following = false;
+        var match = _matches[_matchIndex];
+        SegmentScroller.UpdateLayout();
+        if (MatchRects(match) is not { Count: > 0 } rects) return;
+        var transform = SegmentText.TransformToVisual(SegmentScroller);
+        var top = transform.TransformPoint(new Point(0, rects[0].Top)).Y;
+        var bottom = transform.TransformPoint(new Point(0, rects[^1].Bottom)).Y;
+        var viewport = SegmentScroller.ViewportHeight;
+        if (top >= 0 && bottom <= viewport) return;
+        SegmentScroller.ChangeView(null, Math.Max(0, SegmentScroller.VerticalOffset + top - (viewport - (bottom - top)) / 2), null, true);
+    }
+
+    /// <summary>
+    /// The marks of the matches in the paragraphs in view (a long transcript has too many for all), the current one
+    /// stronger: rounded borders on a canvas under the text, from the body runs' character rects like the fill.
+    /// </summary>
+    private void PlaceSearchMarks()
+    {
+        SearchMarks.Children.Clear();
+        if (_matches.Count == 0 || _blocks.Count == 0) return;
+        var offset = -SegmentText.TransformToVisual(SegmentScroller).TransformPoint(new Point(0, 0)).Y;
+        var first = SegmentAt(offset) ?? 0;
+        var last = SegmentAt(offset + SegmentScroller.ViewportHeight) ?? _blocks.Count - 1;
+        for (var i = 0; i < _matches.Count; i++)
+        {
+            var match = _matches[i];
+            if (match.Segment < first || match.Segment > last || match.Segment >= _blocks.Count) continue;
+            foreach (var rect in MatchRects(match) ?? [])
+            {
+                var mark = new Border
+                {
+                    Width = Math.Max(0, rect.Width),
+                    Height = Math.Max(0, rect.Height),
+                    CornerRadius = new CornerRadius(3),
+                    Background = i == _matchIndex ? CurrentMatchBrush : MatchBrush,
+                };
+                Canvas.SetLeft(mark, rect.Left);
+                Canvas.SetTop(mark, rect.Top);
+                SearchMarks.Children.Add(mark);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The match's rects in the text's coordinates, one per line it is on (from its first character's left to the text's
+    /// right edge, full lines, then to its last character's right); null without a layout.
+    /// </summary>
+    private List<Rect>? MatchRects((int Segment, int Start, int Length) match)
+    {
+        var body = _blocks[match.Segment].Body;
+        if (match.Start + match.Length > body.Text.Length) return null;
+        var from = body.ContentStart.GetPositionAtOffset(match.Start, LogicalDirection.Forward);
+        var to = body.ContentStart.GetPositionAtOffset(match.Start + match.Length, LogicalDirection.Backward);
+        if (from is null || to is null) return null;
+        var start = from.GetCharacterRect(LogicalDirection.Forward);
+        var end = to.GetCharacterRect(LogicalDirection.Backward);
+        if (start.IsEmpty || end.IsEmpty) return null;
+        if (end.Top < start.Bottom - 1) return [new Rect(start.Left, start.Top, end.Right - start.Left, Math.Max(start.Height, end.Height))];
+        var width = SegmentText.ActualWidth;
+        List<Rect> rects = [new Rect(start.Left, start.Top, width - start.Left, start.Height)];
+        if (end.Top > start.Bottom + 1) rects.Add(new Rect(0, start.Bottom, width, end.Top - start.Bottom));
+        rects.Add(new Rect(0, end.Top, end.Right, end.Height));
+        return rects;
     }
 
     // Selection
@@ -726,6 +931,7 @@ public sealed partial class TranscriptView : UserControl
             block.TimeLink.Foreground = secondary;
             block.NameLink.Foreground = SpeakerBrush(block.ColorIndex);
         }
+        UpdateSearchButton();
         PlaceMarksLater();
     }
 

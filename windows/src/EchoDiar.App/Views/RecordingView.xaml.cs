@@ -590,7 +590,8 @@ public sealed partial class RecordingView : UserControl
             }
         }
         var term = CatchUpSearchTerm;
-        var matches = states.Where(s => term.Length > 0 && SearchText.Contains(s.Text, term)).Select(s => s.Id).ToHashSet();
+        var matches = term.Length == 0 ? []
+            : SearchText.Filter(states, term, (s, typos) => SearchText.Matches(term, [s.Text], typos: typos)).Select(s => s.Id).ToHashSet();
         List<CatchUpCard> cards = [];
         for (var i = 0; i < states.Count; i++)
         {

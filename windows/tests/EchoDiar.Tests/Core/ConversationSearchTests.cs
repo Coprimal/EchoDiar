@@ -46,6 +46,17 @@ public sealed class ConversationSearchTests
     public void MatchesEveryFieldIgnoringCaseAndAccents(string term, bool expected) =>
         Assert.Equal(expected, Document.Matches(term));
 
+    // Words of several fields in any order; a typo only when the caller allows them (macOS).
+    [Fact]
+    public void WordsAcrossFieldsInAnyOrderAndTyposWhenAllowed()
+    {
+        Assert.True(Document.Matches("approved weekly LAN"));
+        Assert.False(Document.Matches("approved kangaroo"));
+        Assert.False(Document.Matches("budgat"));
+        Assert.True(Document.Matches("budgat", typos: true));
+        Assert.True((Document with { Title = "Quarterly review" }).Matches("quarterly budget"));
+    }
+
     private static readonly Guid[] Order = [.. Enumerable.Range(0, 6).Select(_ => Guid.NewGuid())];
 
     [Fact]

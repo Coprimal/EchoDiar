@@ -76,6 +76,17 @@ struct TranscriptText: @unchecked Sendable {
         self.indexByID = indexByID
         self.playable = playable
     }
+
+    /// Where the transcript search finds `query` (`SearchText.find`), in the segments' bodies only, in order.
+    nonisolated func searchMatches(_ query: String) -> [NSRange] {
+        let string = document.text as NSString
+        let bodies = document.entries.map { string.substring(with: $0.bodyRange) }
+        return SearchText.find(query, in: bodies).map { match in
+            let range = NSRange(match.range, in: bodies[match.text])
+            return NSRange(location: document.entries[match.text].bodyRange.location + range.location,
+                           length: range.length)
+        }
+    }
 }
 
 extension NSAttributedString.Key {
@@ -112,15 +123,20 @@ private enum TranscriptTextStyle {
 /// lines. A click on a timestamp or a name plays from the segment start, as does "Play from here" in the context
 /// menu. Redrawn when the play head enters another segment, not at every tick. While playing, the text follows the
 /// play head: Play scrolls to its segment, and so does each next segment, until the user scrolls away (or jumps to a
-/// search result); the next Play, or a click on a timestamp, follows again.
+/// search result); the next Play, or a click on a timestamp, follows again. The search's matches are highlighted, the
+/// current one stronger and scrolled to.
 struct TranscriptTextView: View {
     let text: TranscriptText
     let playback: PlaybackController
     @Binding var scrollTarget: UUID?
+    /// The transcript search's matches in `text.document.text`, and the index of the current one.
+    var matches: [NSRange] = []
+    var currentMatch: Int?
 
     var body: some View {
         TranscriptTextRepresentable(
-            text: text, active: playback.activeSegmentID, playing: playback.isPlaying, scrollTarget: $scrollTarget
+            text: text, active: playback.activeSegmentID, playing: playback.isPlaying, scrollTarget: $scrollTarget,
+            matches: matches, currentMatch: currentMatch
         ) { playback.play(from: $0) }
     }
 }
@@ -131,6 +147,8 @@ private struct TranscriptTextRepresentable: NSViewRepresentable {
     let active: UUID?
     let playing: Bool
     @Binding var scrollTarget: UUID?
+    let matches: [NSRange]
+    let currentMatch: Int?
     let play: (Double) -> Void
 
     func makeCoordinator() -> TranscriptTextCoordinator { TranscriptTextCoordinator() }
@@ -140,7 +158,8 @@ private struct TranscriptTextRepresentable: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         let target = $scrollTarget
         context.coordinator.update(
-            text: text, active: active, playing: playing, scrollTarget: scrollTarget, play: play
+            text: text, active: active, playing: playing, scrollTarget: scrollTarget,
+            matches: matches, currentMatch: currentMatch, play: play
         ) {
             // Not during the view update; nil again, so the same citation scrolls the next time too.
             Task { @MainActor in target.wrappedValue = nil }
@@ -169,6 +188,11 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
     private var observers: [any NSObjectProtocol] = []
     private var lastWidth: CGFloat = 0
     private var indicatorPending = false
+    /// The search's matches and current match as highlighted now.
+    private var matches: [NSRange] = []
+    private var currentMatch: Int?
+    /// The match last scrolled to, so only a new current match scrolls.
+    private var scrolledMatch: NSRange?
 
     func makeScrollView() -> NSScrollView {
         let textView = TranscriptNSTextView(usingTextLayoutManager: true)
@@ -253,8 +277,9 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
     }
 
     /// Same rules as the old segment list: Play (or a click on a segment) follows the play head, the user's own
-    /// scrolling and a citation stop following, and a citation scrolls its segment to the middle.
+    /// scrolling, a citation and a search result stop following, and a citation scrolls its segment to the middle.
     func update(text: TranscriptText, active: UUID?, playing: Bool, scrollTarget: UUID?,
+                matches: [NSRange], currentMatch: Int?,
                 play: @escaping (Double) -> Void, clearTarget: () -> Void) {
         self.play = play
         let textChanged = apply(text)
@@ -266,6 +291,18 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
         if playingChanged { following = playing }
         if activeChanged || playingChanged { follow() }
         updateIndicator()
+        if textChanged || matches != self.matches || currentMatch != self.currentMatch {
+            highlight(matches, current: currentMatch)
+        }
+        let match = currentMatch.flatMap { matches.indices.contains($0) ? matches[$0] : nil }
+        if let match, match != scrolledMatch {
+            following = false
+            // After this update's layout, as a citation.
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated { self?.scroll(toMatch: match) }
+            }
+        }
+        scrolledMatch = match
         if let scrollTarget {
             following = false
             clearTarget()
@@ -409,6 +446,46 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
         }
     }
 
+    // MARK: - Search
+
+    /// Hands the matches to the segments' fragments, which draw them (`SegmentFragment`).
+    private func highlight(_ new: [NSRange], current: Int?) {
+        guard let text else { return }
+        var bySegment: [Int: [SegmentHighlight.Match]] = [:]
+        for (index, match) in new.enumerated() {
+            guard let entry = text.document.segment(at: match.location) else { continue }
+            bySegment[entry.index, default: []].append(SegmentHighlight.Match(
+                range: NSRange(location: match.location - entry.headerRange.location, length: match.length),
+                current: index == current))
+        }
+        highlight.matches = bySegment
+        matches = new
+        currentMatch = current
+        // The fragments read the marks as they draw: draw the ones on screen again (a fragment whose frame stays the
+        // same is not drawn again by itself).
+        var views = textView?.subviews ?? []
+        while let view = views.popLast() {
+            view.needsDisplay = true
+            views += view.subviews
+        }
+    }
+
+    /// Scrolls the match's lines to the middle of the view unless they are in view. From its segment's exact frame, as
+    /// a citation: the text's own segment rects can still be estimated far into a long text.
+    private func scroll(toMatch match: NSRange) {
+        guard let scrollView, let entry = text?.document.segment(at: match.location),
+              let (rect, lines) = exactFrame(of: entry.index)
+        else { return }
+        let start = match.location - entry.headerRange.location, end = start + match.length
+        let bounds = lines.filter { NSMaxRange($0.characterRange) > start && $0.characterRange.location < end }
+            .map(\.typographicBounds)
+        guard let first = bounds.first, let last = bounds.last else { return }
+        let frame = CGRect(x: rect.minX, y: rect.minY + first.minY, width: rect.width, height: last.maxY - first.minY)
+        let visible = scrollView.contentView.bounds
+        if frame.minY >= visible.minY && frame.maxY <= visible.maxY { return }
+        scroll(toCenter: frame, animated: !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+    }
+
     // MARK: - Scrolling
 
     /// While following, scrolls the playing segment to the middle when it is not fully in view. Out of the viewport it
@@ -422,9 +499,18 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
 
     /// Scrolls the segment to the middle of the view (its top when taller than the view).
     private func scroll(toCenter index: Int, animated: Bool) {
-        guard let textView, let scrollView, let frame = exactFrame(of: index)?.rect else { return }
-        // The layout up to the segment is exact now; let the view's height include it.
+        guard let frame = exactFrame(of: index)?.rect else { return }
+        scroll(toCenter: frame, animated: animated)
+    }
+
+    /// Scrolls `frame`, laid out exactly, to the middle of the view (its top when taller than the view).
+    private func scroll(toCenter frame: CGRect, animated: Bool) {
+        guard let textView, let scrollView else { return }
+        // The layout up to the frame is exact now; let the view's height include it (far into a long text, `sizeToFit`
+        // can still give the old estimate).
         textView.sizeToFit()
+        let height = frame.maxY + TranscriptTextStyle.inset.height
+        if textView.frame.height < height { textView.setFrameSize(NSSize(width: textView.frame.width, height: height)) }
         let clip = scrollView.contentView
         let visible = clip.bounds
         var y = frame.height > visible.height
@@ -450,13 +536,19 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
 
     /// The segment's text range, from its header start to its body end.
     private func textRange(of index: Int) -> NSTextRange? {
-        guard let text, index < text.document.entries.count, let storage = textView?.textContentStorage else {
-            return nil
-        }
+        guard let text, index < text.document.entries.count else { return nil }
         let entry = text.document.entries[index]
+        return textRange(for: NSRange(location: entry.headerRange.location,
+                                      length: NSMaxRange(entry.bodyRange) - entry.headerRange.location))
+    }
+
+    /// `range` of the storage as a text range; nil past its end.
+    private func textRange(for range: NSRange) -> NSTextRange? {
+        guard let storage = textView?.textContentStorage, NSMaxRange(range) <= (textView?.textStorage?.length ?? 0)
+        else { return nil }
         let start = storage.documentRange.location
-        guard let from = storage.location(start, offsetBy: entry.headerRange.location),
-              let to = storage.location(start, offsetBy: NSMaxRange(entry.bodyRange))
+        guard let from = storage.location(start, offsetBy: range.location),
+              let to = storage.location(start, offsetBy: NSMaxRange(range))
         else { return nil }
         return NSTextRange(location: from, end: to)
     }
@@ -534,7 +626,15 @@ private final class TranscriptTextCoordinator: NSObject, NSTextViewDelegate {
 /// The active segment's index, read by the fragments as they draw, and the layout manager's delegate that makes
 /// those fragments. Touched on the main thread only (TextKit 2 lays out a text view's text there).
 private final class SegmentHighlight: NSObject, NSTextLayoutManagerDelegate, @unchecked Sendable {
+    /// A search match in its segment's paragraph (from the header start), and whether it is the current one.
+    struct Match {
+        let range: NSRange
+        let current: Bool
+    }
+
     var index: Int?
+    /// The search's matches by segment index.
+    var matches: [Int: [Match]] = [:]
 
     func textLayoutManager(_ textLayoutManager: NSTextLayoutManager,
                            textLayoutFragmentFor location: any NSTextLocation,
@@ -549,7 +649,7 @@ private final class SegmentHighlight: NSObject, NSTextLayoutManagerDelegate, @un
 }
 
 /// A segment's paragraph; the active one draws a rounded fill (as `Palette.pressedFill`) behind its text, reaching
-/// past it like the old row's background.
+/// past it like the old row's background, and the search's matches a fill behind theirs (the current one stronger).
 private final class SegmentFragment: NSTextLayoutFragment {
     weak var highlight: SegmentHighlight?
     var index: Int?
@@ -569,7 +669,32 @@ private final class SegmentFragment: NSTextLayoutFragment {
             context.fillPath()
             context.restoreGState()
         }
+        if let index, let matches = highlight?.matches[index] {
+            context.saveGState()
+            for match in matches {
+                context.setFillColor(match.current
+                    ? NSColor.systemOrange.withAlphaComponent(0.8).cgColor
+                    : NSColor.systemYellow.withAlphaComponent(0.3).cgColor)
+                for rect in rects(of: match.range) {
+                    context.addPath(CGPath(roundedRect: rect.offsetBy(dx: point.x, dy: point.y),
+                                           cornerWidth: 3, cornerHeight: 3, transform: nil))
+                    context.fillPath()
+                }
+            }
+            context.restoreGState()
+        }
         super.draw(at: point, in: context)
+    }
+
+    /// In the fragment's coordinates: one rect per line `range` (in the paragraph) is on, the line's height.
+    private func rects(of range: NSRange) -> [CGRect] {
+        textLineFragments.compactMap { line in
+            guard let part = range.intersection(line.characterRange), part.length > 0 else { return nil }
+            let start = line.locationForCharacter(at: part.location).x
+            let end = line.locationForCharacter(at: NSMaxRange(part)).x
+            let bounds = line.typographicBounds
+            return CGRect(x: bounds.minX + start, y: bounds.minY, width: end - start, height: bounds.height)
+        }
     }
 
     /// In the fragment's coordinates: the container's width plus the padding, the lines' height plus the padding.

@@ -2410,6 +2410,10 @@
     <value>New Event…</value>
     <comment>New Event…</comment>
   </data>
+  <data name="NextMatch" xml:space="preserve">
+    <value>Next match</value>
+    <comment>Next match</comment>
+  </data>
   <data name="NextPage" xml:space="preserve">
     <value>Next page</value>
     <comment>Next page</comment>
@@ -2509,6 +2513,10 @@
   <data name="NoModelsListedTypeTheModelId" xml:space="preserve">
     <value>No models listed; type the model id.</value>
     <comment>No models listed; type the model id.</comment>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>No results</value>
+    <comment>No results</comment>
   </data>
   <data name="NoScreenRecordingAtThisPoint" xml:space="preserve">
     <value>No screen recording at this point</value>
@@ -2970,6 +2978,10 @@
     <value>Previous 3 days</value>
     <comment>Previous 3 days</comment>
   </data>
+  <data name="PreviousMatch" xml:space="preserve">
+    <value>Previous match</value>
+    <comment>Previous match</comment>
+  </data>
   <data name="PreviousPage" xml:space="preserve">
     <value>Previous page</value>
     <comment>Previous page</comment>
@@ -3342,10 +3354,6 @@
     <value>{0}: {1}</value>
     <comment>%@: %@</comment>
   </data>
-  <data name="S__4" xml:space="preserve">
-    <value>•</value>
-    <comment>•</comment>
-  </data>
   <data name="Save" xml:space="preserve">
     <value>Save</value>
     <comment>Save</comment>
@@ -3438,6 +3446,10 @@
     <value>Search catch-ups</value>
     <comment>Search catch-ups</comment>
   </data>
+  <data name="SearchChat" xml:space="preserve">
+    <value>Search chat</value>
+    <comment>Search chat</comment>
+  </data>
   <data name="SearchChats" xml:space="preserve">
     <value>Search chats</value>
     <comment>Search chats</comment>
@@ -3465,6 +3477,14 @@
   <data name="SearchSettingsF" xml:space="preserve">
     <value>Search settings (⌘F)</value>
     <comment>Search settings (⌘F)</comment>
+  </data>
+  <data name="SearchSummary" xml:space="preserve">
+    <value>Search summary</value>
+    <comment>Search summary</comment>
+  </data>
+  <data name="SearchTranscript" xml:space="preserve">
+    <value>Search transcript</value>
+    <comment>Search transcript</comment>
   </data>
   <data name="SearchingYourConversations" xml:space="preserve">
     <value>Searching your conversations…</value>

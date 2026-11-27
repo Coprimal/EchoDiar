@@ -60,6 +60,17 @@ struct AIPanelView: View {
     @State private var catchUps: [CatchUp] = []
     /// The open state the user gave catch-up cards with a click; the others: the newest open, the older ones collapsed.
     @State private var catchUpOpenStates: [UUID: Bool] = [:]
+    /// The clicks on catch-ups during a search, which win over the open state it gives; cleared with each new query.
+    @State private var catchUpSearchOpenStates: [UUID: Bool] = [:]
+    /// The search field is shown under the tab; hidden (the query cleared) with the header's search button or Esc.
+    @State private var searching = false
+    @State private var searchQuery = ""
+    @State private var searchFocus = false
+    /// Where the query is found in the shown tab's texts (`searchSources`), in order, and the current match.
+    @State private var searchMatches: [SearchMatch] = []
+    @State private var searchIndex = 0
+    /// The tab and query `searchMatches` were found for: the same ones in a changed text keep their place.
+    @State private var searchedKey = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let chatEnd = "chatEnd"
@@ -84,13 +95,13 @@ struct AIPanelView: View {
         .modifier(WebLinkConfirmation(link: $pendingLink))
         .task { model.refreshInstalledModels() }
         // A switch to Chat puts the cursor in the question, once the field is in the window and the panel is loaded,
-        // unless a sidebar card is being renamed.
+        // unless a sidebar card is being renamed or the search field shows (typing goes on in it).
         .task(id: focusPending && loaded) {
             guard focusPending, loaded else { return }
             try? await Task.sleep(for: .milliseconds(50))
             guard !Task.isCancelled else { return }
             focusPending = false
-            guard model.detailTab == .chat, model.renamingConversation == nil else { return }
+            guard model.detailTab == .chat, model.renamingConversation == nil, !searching else { return }
             questionFocused = true
         }
         .onChange(of: model.chatFocusRequests) {
@@ -114,6 +125,7 @@ struct AIPanelView: View {
         .onChange(of: showingHistory) { _, shown in
             if !shown { setHistorySearch(false) }
         }
+        .task(id: SearchInput(query: searching ? searchQuery : "", tab: tab, texts: searchSources)) { search() }
     }
 
     /// The open panel: one card, the header (lined up with the sidebar's), a line, then the tab.
@@ -126,14 +138,26 @@ struct AIPanelView: View {
             // the click that opened the conversation shows at once.
             VStack(spacing: 10) {
                 if loaded {
-                    ZStack {
-                        switch tab {
-                        case .chat: chatPane.transition(transition)
-                        case .catchUp: catchUpPane.transition(transition)
-                        case .summary: summaryPane.transition(transition)
+                    // The search field under the tab, sliding up from the footer while it shows.
+                    VStack(spacing: 0) {
+                        ZStack {
+                            switch tab {
+                            case .chat: chatPane.transition(transition)
+                            case .catchUp: catchUpPane.transition(transition)
+                            case .summary: summaryPane.transition(transition)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        if searching {
+                            FindBar(query: $searchQuery, focusRequest: $searchFocus, label: searchLabel,
+                                    count: searchMatches.count, index: searchIndex, step: stepSearch) {
+                                setSearch(false)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.top, 8)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
                     errorText
                         .padding(.horizontal, 14)
@@ -194,8 +218,10 @@ struct AIPanelView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    ForEach(Array(chat.enumerated()), id: \.offset) { _, message in
-                        messageView(message.role, text: message.text, model: message.model, live: message.live == true)
+                    ForEach(Array(chat.enumerated()), id: \.offset) { index, message in
+                        messageView(message.role, text: message.text, model: message.model, live: message.live == true,
+                                    marks: marks(index))
+                            .id(index)
                     }
                     if let job = questionJob, case .question(let asked) = job.payload.kind {
                         messageView(.user, text: asked, model: nil)
@@ -220,15 +246,21 @@ struct AIPanelView: View {
             .onChange(of: questionJob == nil ? nil : jobText?.count) { _, _ in
                 proxy.scrollTo(Self.chatEnd, anchor: .bottom)
             }
+            // A question found: to it; an answer scrolls its own text to the match (`MarkdownText`).
+            .onChange(of: currentSearchMatch) { _, match in
+                guard let match, chat.indices.contains(match.text), chat[match.text].role == .user else { return }
+                withAnimation(reduceMotion ? nil : Motion.standard) { proxy.scrollTo(match.text, anchor: .center) }
+            }
         }
     }
 
     @ViewBuilder private func messageView(
-        _ role: ChatLog.Message.Role, text: String, model: String?, isStreaming: Bool = false, live: Bool = false
+        _ role: ChatLog.Message.Role, text: String, model: String?, isStreaming: Bool = false, live: Bool = false,
+        marks: SearchMarks = SearchMarks()
     ) -> some View {
         if role == .user {
             VStack(alignment: .trailing, spacing: 6) {
-                Text(text)
+                Text(Self.marked(text, marks))
                     .textSelection(.enabled)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
@@ -238,7 +270,7 @@ struct AIPanelView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         } else {
             VStack(alignment: .leading, spacing: 6) {
-                MarkdownText(text: text)
+                MarkdownText(text: text, marks: marks)
                 HStack(spacing: 6) {
                     if live { liveBadge }
                     if let model, !model.isEmpty {
@@ -313,8 +345,14 @@ struct AIPanelView: View {
             }
             ScrollView {
                 let query = searchingHistory ? historyQuery : ""
-                let shown = archives.filter { ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query) }
-                let currentShown = ChatArchive.matches(title: chatTitle ?? "", text: currentChatText(query), query: query)
+                let current = currentChatText(query)
+                // Typos only when no chat matches without them (`SearchText.filter`).
+                let typos = !ChatArchive.matches(title: chatTitle ?? "", text: current, query: query)
+                    && !archives.contains { ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query) }
+                let shown = archives.filter {
+                    ChatArchive.matches(title: $0.title, text: archiveTexts[$0.id], query: query, typos: typos)
+                }
+                let currentShown = ChatArchive.matches(title: chatTitle ?? "", text: current, query: query, typos: typos)
                 VStack(spacing: 2) {
                     if currentShown { currentChatRow }
                     ForEach(shown) { entry in historyRow(entry) }
@@ -432,6 +470,107 @@ struct AIPanelView: View {
         archiveTexts = texts
     }
 
+    // MARK: - Search
+
+    /// One match of the search: the index of its text in `searchSources`, and its range in that text as shown.
+    private struct SearchMatch: Equatable {
+        let text: Int
+        let range: NSRange
+    }
+
+    /// `searchMatches` are found again when any changes.
+    private struct SearchInput: Equatable {
+        let query: String
+        let tab: AppModel.DetailTab
+        let texts: [String]
+    }
+
+    private var searchLabel: String {
+        switch tab {
+        case .summary: String(localized: "Search summary")
+        case .catchUp: String(localized: "Search catch-ups")
+        case .chat: String(localized: "Search chat")
+        }
+    }
+
+    /// What the shown tab's search looks in, as written: the shown summary (not one being written), the saved chat's
+    /// messages, the catch-ups newest first; their order is the matches' order.
+    private var searchSources: [String] {
+        switch tab {
+        case .summary: summaryJob == nil ? shownSummary.map { [$0.text] } ?? [] : []
+        case .catchUp: catchUps.reversed().map(\.text)
+        case .chat: chat.map(\.text)
+        }
+    }
+
+    private var currentSearchMatch: SearchMatch? {
+        searchMatches.indices.contains(searchIndex) ? searchMatches[searchIndex] : nil
+    }
+
+    /// The matches in text `index` of `searchSources`, the current one marked.
+    private func marks(_ index: Int) -> SearchMarks {
+        var marks = SearchMarks()
+        for (position, match) in searchMatches.enumerated() where match.text == index {
+            if position == searchIndex { marks.current = marks.ranges.count }
+            marks.ranges.append(match.range)
+        }
+        return marks
+    }
+
+    /// A question as shown, with its search marks.
+    private static func marked(_ text: String, _ marks: SearchMarks) -> AttributedString {
+        var result = AttributedString(text)
+        for (index, range) in marks.ranges.enumerated() {
+            guard let range = Range(range, in: text),
+                  let lower = AttributedString.Index(range.lowerBound, within: result),
+                  let upper = AttributedString.Index(range.upperBound, within: result)
+            else { continue }
+            let current = index == marks.current
+            result[lower..<upper].backgroundColor = current ? Color.orange.opacity(0.8) : Color.yellow.opacity(0.3)
+            if current { result[lower..<upper].foregroundColor = .black }
+        }
+        return result
+    }
+
+    /// Shows the search field, focused, or hides it and clears the query (and so the marks).
+    private func setSearch(_ shown: Bool) {
+        withAnimation(reduceMotion ? nil : Motion.standard) { searching = shown }
+        if shown {
+            searchFocus = true
+        } else {
+            searchQuery = ""
+        }
+    }
+
+    /// The next (1) or previous (-1) match, round from the last to the first.
+    private func stepSearch(_ step: Int) {
+        guard !searchMatches.isEmpty else { return }
+        searchIndex = (searchIndex + step + searchMatches.count) % searchMatches.count
+    }
+
+    /// Finds the query in the shown tab's texts as shown (an answer's Markdown rendered, `MarkdownText.plain`); a new
+    /// query or tab starts at the first match.
+    private func search() {
+        let query = searching ? searchQuery : ""
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            searchMatches = []
+            searchIndex = 0
+            searchedKey = ""
+            return
+        }
+        let texts = searchSources.enumerated().map { index, text in
+            tab == .chat && chat[index].role == .user ? text : MarkdownText.plain(text)
+        }
+        let matches = SearchText.find(query, in: texts).map {
+            SearchMatch(text: $0.text, range: NSRange($0.range, in: texts[$0.text]))
+        }
+        let key = "\(tab)\u{1}\(query)"
+        if key != searchedKey { catchUpSearchOpenStates = [:] }
+        searchIndex = key == searchedKey ? min(searchIndex, max(matches.count - 1, 0)) : 0
+        searchMatches = matches
+        searchedKey = key
+    }
+
     // MARK: - Summary
 
     /// The summary with the version menu pinned above it; a note in the middle while there is none.
@@ -464,7 +603,7 @@ struct AIPanelView: View {
                                     }
                                 }
                             } else if let shown = shownSummary {
-                                MarkdownText(text: shown.text)
+                                MarkdownText(text: shown.text, marks: marks(0))
                             } else {
                                 Text(emptyNote ?? "No summary yet.")
                                     .foregroundStyle(.secondary)
@@ -530,17 +669,27 @@ struct AIPanelView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
                 let providers = model.aiProviders
+                let found = Set(searchMatches.map(\.text))
                 ForEach(Array(catchUps.reversed().enumerated()), id: \.element.id) { index, catchUp in
-                    let open = catchUpOpenStates[catchUp.id] ?? (index == 0)
+                    // While searching, the ones with a match open too, and the current match's always.
+                    let normal = catchUpOpenStates[catchUp.id] ?? (index == 0)
+                    let open = found.isEmpty ? normal
+                        : currentSearchMatch?.text == index
+                            || (catchUpSearchOpenStates[catchUp.id] ?? (found.contains(index) || normal))
                     CatchUpCardView(
                         card: CatchUpCard(catchUp, providers: providers),
                         open: open,
                         toggle: {
                             withAnimation(reduceMotion ? nil : Motion.standard) {
-                                catchUpOpenStates[catchUp.id] = !open
+                                if found.isEmpty {
+                                    catchUpOpenStates[catchUp.id] = !open
+                                } else {
+                                    catchUpSearchOpenStates[catchUp.id] = !open
+                                }
                             }
                         },
-                        stop: {})
+                        stop: {},
+                        marks: marks(index))
                 }
             }
             .padding(.horizontal, 14)
@@ -600,9 +749,21 @@ struct AIPanelView: View {
                 } else {
                     headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight, overflow: overflow)
                 }
+                searchButton
                 PanelCollapseButton(stacked: model.settings.stackedPanes) { model.aiPanelCollapsed = true }
             }
         }
+    }
+
+    /// Shows or hides the search field under the tab; in the accent color while it shows.
+    private var searchButton: some View {
+        Button { setSearch(!searching) } label: {
+            Label(searchLabel, systemImage: "magnifyingglass")
+                .labelStyle(.iconOnly)
+                .foregroundStyle(searching ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+        }
+        .buttonStyle(BottomBarButtonStyle(height: Self.menuHeight, horizontalPadding: 0))
+        .help(searchLabel)
     }
 
     /// A button of the collapsed panel: opens it on `tab`; Chat as the View menu's Chat, with the cursor in the question.
@@ -1248,6 +1409,79 @@ struct ChatHistorySearchField: View {
     }
 }
 
+/// The AI panel's search marks in one text: the matches' ranges, and the index of the current one.
+struct SearchMarks: Equatable {
+    var ranges: [NSRange] = []
+    var current: Int?
+
+    /// As the transcript's (`SegmentFragment`): the find color, lighter for the others, full with dark text for the
+    /// current one.
+    static func attributes(current: Bool) -> [NSAttributedString.Key: Any] {
+        current
+            ? [.backgroundColor: NSColor.systemOrange.withAlphaComponent(0.8), .foregroundColor: NSColor.black]
+            : [.backgroundColor: NSColor.systemYellow.withAlphaComponent(0.3)]
+    }
+}
+
+/// The search field of the transcript and of the AI panel's tabs, sliding up from under their content: the query is
+/// highlighted as typed, "n/m" or No results beside it; Return and the down chevron go to the next match, Shift-Return
+/// and the up chevron to the previous one; Esc clears the query, then closes the field (`close`).
+struct FindBar: View {
+    @Binding var query: String
+    @Binding var focusRequest: Bool
+    /// The placeholder and the field's accessibility label.
+    let label: String
+    let count: Int
+    let index: Int
+    /// 1 for the next match, -1 for the previous one.
+    let step: (Int) -> Void
+    let close: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            SearchTextField(text: $query, focusRequest: $focusRequest, accessibilityLabel: label,
+                            onEscape: { if query.isEmpty { close() } else { query = "" } },
+                            onReturn: { step($0 ? -1 : 1) })
+            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Group {
+                    if count == 0 {
+                        Text("No results")
+                    } else {
+                        Text(verbatim: "\(index + 1)/\(count)")
+                    }
+                }
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .fixedSize()
+                Button { step(-1) } label: {
+                    Label("Previous match", systemImage: "chevron.up").labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .help("Previous match")
+                .disabled(count == 0)
+                Button { step(1) } label: {
+                    Label("Next match", systemImage: "chevron.down").labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .help("Next match")
+                .disabled(count == 0)
+            }
+            Button(action: close) {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Close search")
+            .accessibilityLabel("Close search")
+        }
+        .padding(.horizontal, 10)
+        .frame(height: BottomBarButtonStyle.height)
+        .modifier(InputCapsule())
+    }
+}
+
 /// A button of the AI panel's header and footer and of the transcript's bar: `height` tall (a circle for an icon, with
 /// no `horizontalPadding`), a capsule of the input color, or the accent color when `prominent`; lighter on hover,
 /// darker while pressed, dimmed when disabled.
@@ -1371,14 +1605,25 @@ struct MarkdownText: View {
     let text: String
     /// The sources of a library-chat answer; nil for an answer about one conversation.
     var references: [ChatLog.Reference]? = nil
-    /// A search term whose occurrences in the rendered text are highlighted (the catch-up search); none when empty.
+    /// A search whose matches in the rendered text are highlighted (the catch-up search, `SearchText.matchRanges`);
+    /// none when empty.
     var highlight = ""
+    /// The AI panel's search: its matches in the rendered text (`plain`), and the current one, stronger and
+    /// scrolled into view.
+    var marks = SearchMarks()
 
     static let citationScheme = "echodiar-time"
 
     var body: some View {
-        MarkdownTextRepresentable(string: Self.attributed(text, references: references, highlight: highlight))
+        MarkdownTextRepresentable(string: Self.attributed(text, references: references, highlight: highlight,
+                                                          marks: marks),
+                                  current: marks.current.map { marks.ranges[$0] })
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The text as shown, where the AI panel's search looks.
+    static func plain(_ text: String, references: [ChatLog.Reference]? = nil) -> String {
+        attributed(text, references: references, highlight: "").string
     }
 
     enum Kind { case heading, bullet, paragraph }
@@ -1402,7 +1647,8 @@ struct MarkdownText: View {
     /// The lines as one text, laid out as the old stack of lines: 4 pt between lines and 4 pt more above a heading
     /// (headline font), each bullet "•" at 14 pt per level with its wrapped lines aligned past it, the body font
     /// elsewhere. The highlight is found in the rendered characters, so Markdown marks never split a match.
-    static func attributed(_ text: String, references: [ChatLog.Reference]?, highlight: String) -> NSAttributedString {
+    static func attributed(_ text: String, references: [ChatLog.Reference]?, highlight: String,
+                           marks: SearchMarks = SearchMarks()) -> NSAttributedString {
         let bodyFont = NSFont.preferredFont(forTextStyle: .body)
         let headlineFont = NSFont.preferredFont(forTextStyle: .headline)
         let bulletWidth = ("•" as NSString).size(withAttributes: [.font: bodyFont]).width
@@ -1433,9 +1679,12 @@ struct MarkdownText: View {
                                  range: NSRange(location: start, length: result.length - start))
         }
         if result.length > 0 { result.deleteCharacters(in: NSRange(location: result.length - 1, length: 1)) }
+        for (index, range) in marks.ranges.enumerated() where NSMaxRange(range) <= result.length {
+            result.addAttributes(SearchMarks.attributes(current: index == marks.current), range: range)
+        }
         guard !highlight.isEmpty else { return result }
         let plain = result.string
-        for range in SearchText.ranges(of: highlight, in: plain) {
+        for range in SearchText.matchRanges(of: highlight, in: plain) {
             result.addAttributes([.backgroundColor: NSColor.yellow, .foregroundColor: NSColor.black],
                                  range: NSRange(range, in: plain))
         }
@@ -1466,6 +1715,8 @@ struct MarkdownText: View {
 /// A new text keeps the selection (clamped), so a streaming answer can be selected while it is written.
 private struct MarkdownTextRepresentable: NSViewRepresentable {
     let string: NSAttributedString
+    /// The search's current match, scrolled into view each time it changes.
+    let current: NSRange?
 
     func makeCoordinator() -> MarkdownTextCoordinator { MarkdownTextCoordinator() }
 
@@ -1490,6 +1741,12 @@ private struct MarkdownTextRepresentable: NSViewRepresentable {
 
     func updateNSView(_ textView: MarkdownNSTextView, context: Context) {
         context.coordinator.openURL = context.environment.openURL
+        defer {
+            if current != context.coordinator.scrolled {
+                context.coordinator.scrolled = current
+                if let current { scroll(textView, to: current) }
+            }
+        }
         // Against the last string set, not the storage: font fallback (emoji, CJK) changes the storage's fonts, so
         // it would never compare equal and every SwiftUI update would reset a selection.
         guard let storage = textView.textStorage, context.coordinator.shown?.isEqual(to: string) != true else { return }
@@ -1499,6 +1756,19 @@ private struct MarkdownTextRepresentable: NSViewRepresentable {
         let location = min(selection.location, storage.length)
         textView.setSelectedRange(NSRange(location: location, length: min(selection.length, storage.length - location)))
         textView.invalidateIntrinsicContentSize()
+    }
+
+    /// After the update's layout: the scroll view around the panel's content scrolls the match to its middle.
+    private func scroll(_ textView: MarkdownNSTextView, to range: NSRange) {
+        DispatchQueue.main.async {
+            guard let layoutManager = textView.layoutManager, let container = textView.textContainer,
+                  NSMaxRange(range) <= (textView.textStorage?.length ?? 0) else { return }
+            let glyphs = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let rect = layoutManager.boundingRect(forGlyphRange: glyphs, in: container)
+            guard !textView.visibleRect.contains(rect) else { return }
+            let margin = max(0, (textView.enclosingScrollView?.contentView.bounds.height ?? 0) / 2 - rect.height / 2)
+            textView.scrollToVisible(rect.insetBy(dx: 0, dy: -margin))
+        }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView textView: MarkdownNSTextView, context: Context) -> CGSize? {
@@ -1516,6 +1786,8 @@ private final class MarkdownTextCoordinator: NSObject, NSTextViewDelegate {
     var openURL: OpenURLAction?
     /// The string last put in the text view.
     var shown: NSAttributedString?
+    /// The search match last scrolled to.
+    var scrolled: NSRange?
 
     /// Always handled here, so AppKit never opens a link itself: a handler that discards it (catch-ups, live chat)
     /// leaves it inert.

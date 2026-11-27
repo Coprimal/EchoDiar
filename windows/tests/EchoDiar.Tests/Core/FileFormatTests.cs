@@ -262,6 +262,9 @@ public sealed class FileFormatTests : IDisposable
         Assert.True(ChatArchive.Matches(entry.Title, text, " TĂNG 10% "));
         Assert.False(ChatArchive.Matches(entry.Title, null, "tăng"));
         Assert.False(ChatArchive.Matches(entry.Title, text, "launch"));
+        Assert.True(ChatArchive.Matches(entry.Title, text, "10 tăng"));
+        Assert.False(ChatArchive.Matches(entry.Title, text, "ngan sachh"));
+        Assert.True(ChatArchive.Matches(entry.Title, text, "ngan sachh", typos: true));
     }
 
     [Fact]
