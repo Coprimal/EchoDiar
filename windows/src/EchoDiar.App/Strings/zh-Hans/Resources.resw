@@ -2214,6 +2214,10 @@
     <value>每月</value>
     <comment>Monthly</comment>
   </data>
+  <data name="More" xml:space="preserve">
+    <value>更多</value>
+    <comment>More</comment>
+  </data>
   <data name="MoveToRecycleBin" xml:space="preserve">
     <value>移到回收站</value>
     <comment>Move to Recycle Bin</comment>

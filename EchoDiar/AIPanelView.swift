@@ -569,8 +569,8 @@ struct AIPanelView: View {
 
     /// On one row, as in the recording's side panel: the tabs, then the model and language menus, the "i" and, on
     /// Chat, "Start a fresh chat" and History. Narrower, the language menu shows only its globe, then the model menu
-    /// only its chip, then the tabs only their icons, then the "i" goes and the two menus pad their sides less; the
-    /// row never wraps.
+    /// only its chip, then the tabs only their icons, then the "i" goes and the two menus pad their sides less, then
+    /// the language menu and Chat's two buttons go into a "⋮" menu (the window's minimum width); the row never wraps.
     private var header: some View {
         ViewThatFits(in: .horizontal) {
             headerRow(modelLabel: true, languageLabel: true)
@@ -578,24 +578,27 @@ struct AIPanelView: View {
             headerRow(modelLabel: false, languageLabel: false)
             headerRow(modelLabel: false, languageLabel: false, iconTabs: true)
             headerRow(modelLabel: false, languageLabel: false, iconTabs: true, tight: true)
+            headerRow(modelLabel: false, languageLabel: false, iconTabs: true, tight: true, overflow: true)
         }
         .frame(height: MainView.headerHeight)
     }
 
-    /// `tight`: no "i", the menus with `AIModelMenu.tightPadding`, the tabs and the row's items closer. Off Chat,
-    /// measured with room for Chat's two buttons, so every tab picks the same step. On Catch-up (read-only, nothing to
-    /// run) the menus are hidden but keep their room, for the same reason.
+    /// `tight`: no "i", the menus with `AIModelMenu.tightPadding`, the tabs and the row's items closer. `overflow`:
+    /// the language menu and Chat's two buttons in `moreMenu`, the same width on every tab. Off Chat, measured with
+    /// room for Chat's two buttons, so every tab picks the same step. On Catch-up (read-only, nothing to run) the menus
+    /// are hidden but keep their room, for the same reason.
     private func headerRow(modelLabel: Bool, languageLabel: Bool, iconTabs: Bool = false,
-                           tight: Bool = false) -> some View {
+                           tight: Bool = false, overflow: Bool = false) -> some View {
         let spacing: CGFloat = tight ? 6 : 8
-        return ReservedWidth(extra: model.detailTab == .chat ? 0 : 2 * (Self.menuHeight + spacing)) {
+        return ReservedWidth(extra: model.detailTab == .chat || overflow ? 0 : 2 * (Self.menuHeight + spacing)) {
             HStack(spacing: spacing) {
                 tabs(iconOnly: iconTabs, tight: tight)
                 Spacer(minLength: spacing)
                 if model.detailTab == .catchUp {
-                    headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight).hidden()
+                    headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight, overflow: overflow)
+                        .hidden()
                 } else {
-                    headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight)
+                    headerMenus(modelLabel: modelLabel, languageLabel: languageLabel, tight: tight, overflow: overflow)
                 }
                 PanelCollapseButton(stacked: model.settings.stackedPanes) { model.aiPanelCollapsed = true }
             }
@@ -628,10 +631,20 @@ struct AIPanelView: View {
             .fixedSize()
     }
 
-    @ViewBuilder private func headerMenus(modelLabel: Bool, languageLabel: Bool, tight: Bool) -> some View {
+    @ViewBuilder private func headerMenus(modelLabel: Bool, languageLabel: Bool, tight: Bool,
+                                          overflow: Bool) -> some View {
         let padding = tight ? AIModelMenu.tightPadding : nil
         AIModelMenu(model: model, purpose: purpose, height: Self.menuHeight, showsLabel: modelLabel,
                     horizontalPadding: padding)
+        if overflow {
+            moreMenu
+        } else {
+            headerButtons(padding: padding, languageLabel: languageLabel, tight: tight)
+        }
+    }
+
+    /// The header's language menu, the "i" and, on Chat, "Start a fresh chat" and History.
+    @ViewBuilder private func headerButtons(padding: CGFloat?, languageLabel: Bool, tight: Bool) -> some View {
         AILanguageMenu(model: model, height: Self.menuHeight, showsLabel: languageLabel, horizontalPadding: padding)
         if !tight { dataNotesButton(height: Self.menuHeight) }
         if model.detailTab == .chat {
@@ -644,6 +657,34 @@ struct AIPanelView: View {
             .buttonStyle(BottomBarButtonStyle(height: Self.menuHeight, horizontalPadding: 0))
             .help("Earlier chats of this conversation")
         }
+    }
+
+    /// The narrowest header's "⋮": on Chat "Start a fresh chat", the output language in a submenu, and on Chat History.
+    private var moreMenu: some View {
+        Menu {
+            if model.detailTab == .chat {
+                Button("Start a fresh chat", systemImage: "plus.bubble") { model.startFreshChat(conversation) }
+                    .disabled(chat.isEmpty || questionJob != nil)
+            }
+            Picker(selection: AILanguageMenu.languageBinding(model)) {
+                AILanguageMenu.options(model.settings.summaryLanguage)
+            } label: {
+                Label("Language", systemImage: "globe")
+            }
+            .pickerStyle(.menu)
+            if model.detailTab == .chat {
+                Toggle(isOn: Binding(get: { showingHistory },
+                                     set: { shown in withAnimation(Motion.standard) { showingHistory = shown } })) {
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .rotationEffect(.degrees(90))
+                .accessibilityLabel("More")
+        }
+        .modifier(CompactMenu(maxWidth: nil, height: Self.menuHeight, horizontalPadding: 0))
+        .help("More")
     }
 
     /// Inside the card, under the tab: Summary has "Copy as prompt" and its action, Chat the question row (with Send

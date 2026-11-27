@@ -2214,6 +2214,10 @@
     <value>Hàng tháng</value>
     <comment>Monthly</comment>
   </data>
+  <data name="More" xml:space="preserve">
+    <value>Thêm</value>
+    <comment>More</comment>
+  </data>
   <data name="MoveToRecycleBin" xml:space="preserve">
     <value>Chuyển vào Thùng rác</value>
     <comment>Move to Recycle Bin</comment>

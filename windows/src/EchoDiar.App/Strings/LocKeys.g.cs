@@ -552,6 +552,7 @@ public static partial class Loc
         "Models that run on this Mac, for summaries and chat.",
         "Models that run on this PC, for summaries and chat.",
         "Monthly",
+        "More",
         "Move to Recycle Bin",
         "Move to Trash",
         "Moves the audio to the Recycle Bin once a transcription succeeds.",

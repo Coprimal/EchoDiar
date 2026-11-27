@@ -2314,6 +2314,10 @@
     <value>Cada mes</value>
     <comment>Monthly</comment>
   </data>
+  <data name="More" xml:space="preserve">
+    <value>Más</value>
+    <comment>More</comment>
+  </data>
   <data name="MoveToRecycleBin" xml:space="preserve">
     <value>Trasladar a la Papelera de reciclaje</value>
     <comment>Move to Recycle Bin</comment>
