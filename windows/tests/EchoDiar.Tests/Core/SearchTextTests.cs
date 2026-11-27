@@ -78,6 +78,17 @@ public sealed class PhraseSearchTextTests
         Assert.Equal(["thành"], Found("thamh", "Kế hoạch thành phố, tháng sau"));
     }
 
+    [Fact]
+    public void FindAcrossTextsWithTyposOnlyWhenNoneMatches()
+    {
+        string[] texts = ["Kế hoạch thành phố", "tháng sau", "thành công"];
+        string[] FoundIn(string query) =>
+            SearchText.Find(query, texts).Select(m => $"{m.Text}:{texts[m.Text].Substring(m.Start, m.Length)}").ToArray();
+        Assert.Equal(["0:thành", "2:thành"], FoundIn("thanh"));
+        Assert.Equal(["0:thành", "2:thành"], FoundIn("thamh"));
+        Assert.Empty(FoundIn("  "));
+    }
+
     private static string[] Found(string query, string text = Text, bool typos = true) =>
         SearchText.PhraseRanges(text, query, typos).Select(r => text.Substring(r.Start, r.Length)).ToArray();
 }

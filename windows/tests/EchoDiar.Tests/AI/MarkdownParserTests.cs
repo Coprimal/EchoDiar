@@ -36,6 +36,13 @@ public sealed class MarkdownParserTests
     }
 
     [Fact]
+    public void PlainIsTheTextAsShown()
+    {
+        Assert.Equal("Plan\n•  one two\n2.  second", MarkdownParser.Plain("## Plan\n\n- one *two*\n2. second\n"));
+        Assert.Equal("a bold link", MarkdownParser.Plain("a **bold** [link](https://example.com)"));
+    }
+
+    [Fact]
     public void EmphasisAndCodeAreStyled()
     {
         var inlines = Inlines("a **bold** *it* `x*y*` ***both*** snake_case_name");

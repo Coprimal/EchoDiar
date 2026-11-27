@@ -89,6 +89,21 @@ public static class MarkdownParser
             new(kind, level, marker, new InlineParser(text, references, known).Parse());
     }
 
+    /// <summary>What a block shows before its text (MarkdownView): a bullet, or a numbered item's marker.</summary>
+    public static string Prefix(MarkdownBlock block) => block.Kind switch
+    {
+        MarkdownBlockKind.Bullet => "•  ",
+        MarkdownBlockKind.Numbered => block.Marker + "  ",
+        _ => "",
+    };
+
+    /// <summary>
+    /// The text as MarkdownView shows it (macOS <c>MarkdownText.plain</c>), where the AI panel's search looks: each
+    /// block's prefix and text, a line break between blocks.
+    /// </summary>
+    public static string Plain(string markdown, IReadOnlyList<ChatLog.Reference>? references = null) =>
+        string.Join("\n", Parse(markdown, references).Select(b => Prefix(b) + string.Concat(b.Inlines.Select(i => i.Text))));
+
     /// <summary><paramref name="target"/> as a web link: an absolute http or https URL with a host and no user info.</summary>
     public static Uri? WebUrl(string target)
     {

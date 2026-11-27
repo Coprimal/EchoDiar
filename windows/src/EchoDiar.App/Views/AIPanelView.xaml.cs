@@ -1,15 +1,19 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Numerics;
 using EchoDiar.AI;
 using EchoDiar.App.ViewModels;
+using EchoDiar.Core;
 using EchoDiar.Core.Model;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Foundation;
 using Windows.UI.ViewManagement;
 using VirtualKey = Windows.System.VirtualKey;
 
@@ -24,7 +28,8 @@ namespace EchoDiar.App.Views;
 /// while streaming, as the model batches the text, and once more when saved); <c>[mm:ss]</c> citations call the seek
 /// action <see cref="ConversationView"/> passes, web links open once their destination is confirmed. The Catch-up
 /// tab, there only with catch-ups, shows those written while recording (<see cref="CatchUpCard"/>, read-only).
-/// Attach when the page shows, Detach when it goes.
+/// The header's Search finds the query in the shown tab's texts (macOS <c>FindBar</c>). Attach when the page shows,
+/// Detach when it goes.
 /// </summary>
 public sealed partial class AIPanelView : UserControl
 {
@@ -86,6 +91,19 @@ public sealed partial class AIPanelView : UserControl
 
     /// <summary>Whether the rail's tabs as last set include Catch-up; null before they are set.</summary>
     private bool? _railCatchUp;
+
+    /// <summary>The saved chat's messages as shown, by index in the chat: where the search marks its matches.</summary>
+    private readonly List<RichTextBlock> _messageBlocks = [];
+
+    /// <summary>
+    /// Where the query is found in <see cref="_searchedTab"/>'s texts (<see cref="SearchSources"/>, which were
+    /// <see cref="_searchedTexts"/>), in order, and the current match.
+    /// </summary>
+    private List<(int Text, int Start, int Length)> _searchMatches = [];
+    private int _searchIndex;
+    private string _searchedQuery = "";
+    private DetailTab? _searchedTab;
+    private List<string> _searchedTexts = [];
 
     public AIPanelView()
     {
@@ -153,6 +171,13 @@ public sealed partial class AIPanelView : UserControl
         HistorySearchBox.AddHandler(KeyDownEvent, new KeyEventHandler(OnHistorySearchKeyDown), handledEventsToo: true);
         QuestionBox.PreviewKeyDown += OnQuestionKeyDown;
         QuestionBox.TextChanged += (_, _) => UpdateActions();
+        SearchButton.Click += (_, _) => SetSearch(!Searching);
+        SearchBox.TextChanged += (_, _) => UpdateSearch();
+        SearchBox.QuerySubmitted += (_, _) => StepSearch(1);
+        SearchBox.PreviewKeyDown += OnSearchKeyDown;
+        PreviousMatchButton.Click += (_, _) => StepSearch(-1);
+        NextMatchButton.Click += (_, _) => StepSearch(1);
+        CloseSearchButton.Click += (_, _) => SetSearch(false);
     }
 
     /// <summary>The first read of the conversation's files has returned; until then the header shows over the loading ring.</summary>
@@ -236,6 +261,13 @@ public sealed partial class AIPanelView : UserControl
         _catchUpCards.Clear();
         _catchUpOpenStates.Clear();
         CatchUpCards.Children.Clear();
+        _messageBlocks.Clear();
+        SetSearch(false);
+        _searchMatches = [];
+        _searchIndex = 0;
+        _searchedQuery = "";
+        _searchedTab = null;
+        _searchedTexts = [];
     }
 
     /// <summary>
@@ -293,6 +325,11 @@ public sealed partial class AIPanelView : UserControl
         FreshChatButton.Visibility = Shown(chat && !_overflow);
         HistoryButton.Visibility = Shown(chat && !_overflow);
         foreach (var control in new Control[] { ModelButton, LanguageButton, DataNotesButton, MoreButton }) Reserve(control, hidden: catchUp);
+        var searchLabel = SearchLabel;
+        AutomationProperties.SetName(SearchButton, searchLabel);
+        ToolTipService.SetToolTip(SearchButton, searchLabel);
+        AutomationProperties.SetName(SearchBox, searchLabel);
+        SearchBox.PlaceholderText = searchLabel;
         if (!chat) ShowHistory(false);
         UpdateCatchUps();
         FitHeader();
@@ -382,6 +419,7 @@ public sealed partial class AIPanelView : UserControl
         ErrorText.Visibility = Shown(error is not null);
         UpdateMenus();
         UpdateActions();
+        UpdateSearch();
     }
 
     // Summary
@@ -413,6 +451,7 @@ public sealed partial class AIPanelView : UserControl
         {
             _summaryRendered = text;
             MarkdownView.Render(SummaryText, text, Links());
+            MarkdownView.Mark(SummaryText, Marks(DetailTab.Summary, 0));
         }
     }
 
@@ -440,7 +479,10 @@ public sealed partial class AIPanelView : UserControl
                 card.ToggleRequested += () => ToggleCatchUp(id);
                 _catchUpCards[id] = card;
             }
-            card.IsOpen = _catchUpOpenStates.TryGetValue(state.Id, out var open) ? open : cards.Count == 0;
+            // The current search match's card opens too.
+            card.IsOpen = (_catchUpOpenStates.TryGetValue(state.Id, out var open) ? open : cards.Count == 0)
+                || CurrentMatch(DetailTab.CatchUp)?.Text == cards.Count;
+            card.Marks = Marks(DetailTab.CatchUp, cards.Count);
             card.Show(state);
             cards.Add(card);
         }
@@ -506,13 +548,16 @@ public sealed partial class AIPanelView : UserControl
             _streamRendered = null;
             _streamSlot = null;
             MessagesPanel.Children.Clear();
+            _messageBlocks.Clear();
             foreach (var message in _panel.Chat)
             {
-                MessagesPanel.Children.Add(MessageView(message.Role, message.Text, message.Model, live: message.Live == true));
+                MessagesPanel.Children.Add(MessageView(message.Role, message.Text, message.Model, out var block, live: message.Live == true));
+                MarkdownView.Mark(block, Marks(DetailTab.Chat, _messageBlocks.Count));
+                _messageBlocks.Add(block);
             }
             if (job is not null)
             {
-                MessagesPanel.Children.Add(MessageView(ChatRole.User, job.Question ?? "", null));
+                MessagesPanel.Children.Add(MessageView(ChatRole.User, job.Question ?? "", null, out _));
                 _streamSlot = new StackPanel();
                 MessagesPanel.Children.Add(_streamSlot);
             }
@@ -548,7 +593,7 @@ public sealed partial class AIPanelView : UserControl
         }
         else
         {
-            _streamSlot.Children.Add(MessageView(ChatRole.Assistant, job.Text, _panel?.CurrentModel, streaming: true));
+            _streamSlot.Children.Add(MessageView(ChatRole.Assistant, job.Text, _panel?.CurrentModel, out _, streaming: true));
         }
         ScrollChatToEnd();
     }
@@ -556,15 +601,21 @@ public sealed partial class AIPanelView : UserControl
     /// <summary>
     /// A question in a bubble at the trailing edge; an answer's Markdown with its model's badge and Copy. A message of
     /// the live chat (asked while recording) shows a "Live" badge: under the question, before the answer's model badge.
+    /// <paramref name="textBlock"/> is its text as shown, where the search marks its matches.
     /// </summary>
-    private UIElement MessageView(ChatRole role, string text, string? model, bool streaming = false, bool live = false)
+    private UIElement MessageView(ChatRole role, string text, string? model, out RichTextBlock textBlock, bool streaming = false, bool live = false)
     {
         if (role == ChatRole.User)
         {
+            // One run of the question as written, so the search marks it as it does an answer.
+            var paragraph = new Paragraph();
+            paragraph.Inlines.Add(new Run { Text = text });
+            textBlock = new RichTextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
+            textBlock.Blocks.Add(paragraph);
             var bubble = new Border
             {
                 Style = (Style)Resources["UserBubbleStyle"],
-                Child = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
+                Child = textBlock,
             };
             if (!live) return bubble;
             var question = new StackPanel { Spacing = 6 };
@@ -578,6 +629,7 @@ public sealed partial class AIPanelView : UserControl
         var markdown = new RichTextBlock();
         MarkdownView.Render(markdown, text, Links());
         answer.Children.Add(markdown);
+        textBlock = markdown;
         var footer = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         if (live) footer.Children.Add(Badge(Loc.T("Live")));
         if (model is { Length: > 0 }) footer.Children.Add(Badge(model));
@@ -625,6 +677,177 @@ public sealed partial class AIPanelView : UserControl
     private void Ask()
     {
         if (_panel is not null && _panel.Ask(QuestionBox.Text)) QuestionBox.Text = "";
+    }
+
+    // Search
+
+    /// <summary>The search field shows under the tab.</summary>
+    private bool Searching => SearchBar.Visibility == Visibility.Visible;
+
+    /// <summary>The search button's and field's name, the shown tab's (macOS <c>searchLabel</c>).</summary>
+    private string SearchLabel => _tab switch
+    {
+        DetailTab.Summary => Loc.T("Search summary"),
+        DetailTab.CatchUp => Loc.T("Search catch-ups"),
+        _ => Loc.T("Search chat"),
+    };
+
+    /// <summary>
+    /// What the shown tab's search looks in, as shown (macOS <c>searchSources</c>): the shown summary (not one being
+    /// written), the catch-ups newest first, or the saved chat's questions as written and answers rendered; their order
+    /// is the matches' order.
+    /// </summary>
+    private List<string> SearchSources()
+    {
+        if (_panel is null) return [];
+        return _tab switch
+        {
+            DetailTab.Summary => _panel.SummaryJob is null && _panel.ShownSummary is { } shown ? [MarkdownParser.Plain(shown.Text)] : [],
+            DetailTab.CatchUp => _panel.CatchUps.Reverse().Select(c => MarkdownParser.Plain(c.Text)).ToList(),
+            _ => _panel.Chat.Select(m => m.Role == ChatRole.User ? m.Text : MarkdownParser.Plain(m.Text)).ToList(),
+        };
+    }
+
+    /// <summary>The current match, when it is in <paramref name="tab"/>'s texts.</summary>
+    private (int Text, int Start, int Length)? CurrentMatch(DetailTab tab) =>
+        tab == _searchedTab && _searchIndex < _searchMatches.Count ? _searchMatches[_searchIndex] : null;
+
+    /// <summary>The matches in text <paramref name="index"/> of <paramref name="tab"/>'s, the current one marked.</summary>
+    private MatchMarks Marks(DetailTab tab, int index)
+    {
+        if (tab != _searchedTab) return MatchMarks.None;
+        List<(int Start, int Length)> ranges = [];
+        int? current = null;
+        for (var i = 0; i < _searchMatches.Count; i++)
+        {
+            if (_searchMatches[i].Text != index) continue;
+            if (i == _searchIndex) current = ranges.Count;
+            ranges.Add((_searchMatches[i].Start, _searchMatches[i].Length));
+        }
+        return ranges.Count == 0 ? MatchMarks.None : new MatchMarks(ranges, current);
+    }
+
+    /// <summary>
+    /// Shows the search field, sliding up from under the tab's pane, focused, or hides it and clears the query (and so
+    /// the marks) (macOS <c>setSearch</c>); the search button is accent-colored while it shows.
+    /// </summary>
+    private void SetSearch(bool shown)
+    {
+        if (!shown)
+        {
+            SearchBar.Visibility = Visibility.Collapsed;
+            SearchIcon.ClearValue(IconElement.ForegroundProperty);
+            SearchBox.Text = "";
+            UpdateSearch();
+            return;
+        }
+        SearchIcon.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+        SearchBar.TranslationTransition = null;
+        SearchBar.OpacityTransition = null;
+        if (UISettings.AnimationsEnabled)
+        {
+            SearchBar.Translation = new Vector3(0, 12, 0);
+            SearchBar.Opacity = 0;
+        }
+        SearchBar.Visibility = Visibility.Visible;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            SearchBar.TranslationTransition = new Vector3Transition();
+            SearchBar.OpacityTransition = new ScalarTransition();
+            SearchBar.Translation = Vector3.Zero;
+            SearchBar.Opacity = 1;
+            SearchBox.Focus(FocusState.Programmatic);
+        });
+    }
+
+    /// <summary>Enter goes to the next match, Shift+Enter to the previous one; Esc clears the query, then hides the field.</summary>
+    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case VirtualKey.Enter:
+                e.Handled = true;
+                StepSearch(ConversationListView.IsKeyDown(VirtualKey.Shift) ? -1 : 1);
+                break;
+            case VirtualKey.Escape:
+                e.Handled = true;
+                if (SearchBox.Text.Length > 0) SearchBox.Text = "";
+                else SetSearch(false);
+                break;
+        }
+    }
+
+    /// <summary>The next (1) or previous (-1) match, round from the last to the first.</summary>
+    private void StepSearch(int step)
+    {
+        if (_searchMatches.Count == 0) return;
+        _searchIndex = (_searchIndex + step + _searchMatches.Count) % _searchMatches.Count;
+        ShowSearch(scroll: true);
+    }
+
+    /// <summary>
+    /// Finds the query in the shown tab's texts again when the query, the tab or the texts changed (macOS
+    /// <c>search</c>): a new query or tab starts at the first match, changed texts keep the current one's place.
+    /// </summary>
+    private void UpdateSearch()
+    {
+        if (_panel is null) return;
+        var query = Searching ? SearchBox.Text : "";
+        var texts = string.IsNullOrWhiteSpace(query) ? [] : SearchSources();
+        DetailTab? tab = texts.Count == 0 ? null : _tab;
+        if (query == _searchedQuery && tab == _searchedTab && texts.SequenceEqual(_searchedTexts)) return;
+        var previous = CurrentMatch(_tab);
+        var matches = texts.Count == 0 ? [] : SearchText.Find(query, texts);
+        var same = query == _searchedQuery && tab == _searchedTab;
+        _searchIndex = same ? Math.Clamp(_searchIndex, 0, Math.Max(matches.Count - 1, 0)) : 0;
+        _searchMatches = matches;
+        _searchedQuery = query;
+        _searchedTab = tab;
+        _searchedTexts = texts;
+        ShowSearch(scroll: !same || CurrentMatch(_tab) != previous);
+    }
+
+    /// <summary>
+    /// "n/m" or No results beside the field, the marks in the summary, the catch-ups (the current match's opened) and
+    /// the messages, and, when <paramref name="scroll"/>, the current match scrolled into view.
+    /// </summary>
+    private void ShowSearch(bool scroll)
+    {
+        SearchCountText.Text = string.IsNullOrWhiteSpace(_searchedQuery) ? ""
+            : _searchMatches.Count == 0 ? Loc.T("No results") : $"{_searchIndex + 1}/{_searchMatches.Count}";
+        PreviousMatchButton.IsEnabled = NextMatchButton.IsEnabled = _searchMatches.Count > 0;
+        MarkdownView.Mark(SummaryText, Marks(DetailTab.Summary, 0));
+        for (var i = 0; i < _messageBlocks.Count; i++) MarkdownView.Mark(_messageBlocks[i], Marks(DetailTab.Chat, i));
+        foreach (var card in CatchUpCards.Children.OfType<CatchUpCard>()) card.Marks = MatchMarks.None;
+        UpdateCatchUps();
+        if (scroll) ScrollToCurrentMatch();
+    }
+
+    /// <summary>Once laid out (a catch-up just opened), the current match to the middle of its pane unless it is in view.</summary>
+    private void ScrollToCurrentMatch()
+    {
+        if (CurrentMatch(_tab) is not { } match) return;
+        var tab = _tab;
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (_model is not { IsClosing: false } || CurrentMatch(_tab) != match || _tab != tab) return;
+            (RichTextBlock? Block, ScrollViewer Scroller) target = tab switch
+            {
+                DetailTab.Summary => (SummaryText, SummaryScroller),
+                DetailTab.CatchUp => ((CatchUpCards.Children.ElementAtOrDefault(match.Text) as CatchUpCard)?.MarkdownBlock, CatchUpPane),
+                _ => (_messageBlocks.ElementAtOrDefault(match.Text), ChatScroller),
+            };
+            if (target is not ({ } block, var scroller)) return;
+            scroller.UpdateLayout();
+            if (MarkdownView.Position(block, match.Start) is not { } position) return;
+            var rect = position.GetCharacterRect(LogicalDirection.Forward);
+            if (rect.IsEmpty) return;
+            var top = block.TransformToVisual(scroller).TransformPoint(new Point(rect.Left, rect.Top)).Y;
+            var viewport = scroller.ViewportHeight;
+            if (top >= 0 && top + rect.Height <= viewport) return;
+            scroller.ChangeView(null, Math.Max(0, scroller.VerticalOffset + top - (viewport - rect.Height) / 2), null,
+                disableAnimation: !UISettings.AnimationsEnabled);
+        });
     }
 
     // History
@@ -923,14 +1146,14 @@ public sealed partial class AIPanelView : UserControl
         AIMenus.ShowTabLabel(ChatPanelTab, Loc.T("Chat"), ChatTabGlyph, label: step < 3);
         var compact = step >= 4;
         DataNotesButton.Visibility = Shown(_hasDataNotes && !compact);
-        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton, MoreButton, CollapseButton })
+        foreach (var control in new Control[] { SummaryPanelTab, CatchUpPanelTab, ChatPanelTab, ModelButton, LanguageButton, FreshChatButton, HistoryButton, MoreButton, SearchButton, CollapseButton })
         {
             AIMenus.CompactPadding(control, compact);
         }
         var spacing = compact ? 6 : 8;
         HeaderRow.ColumnSpacing = spacing;
         // The menus' margins space them (a collapsed one keeps none).
-        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton, MoreButton, CollapseButton })
+        foreach (var control in new FrameworkElement[] { LanguageButton, DataNotesButton, FreshChatButton, HistoryButton, MoreButton, SearchButton, CollapseButton })
         {
             control.Margin = new Thickness(spacing, 0, 0, 0);
         }

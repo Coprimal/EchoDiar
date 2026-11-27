@@ -65,6 +65,8 @@ public sealed partial class CatchUpCard : UserControl
 
     private string _highlight = "";
 
+    private MatchMarks _marks = MatchMarks.None;
+
     private bool _open;
 
     /// <summary>The details shown and the room they were last fitted to (<see cref="FitDetails"/>).</summary>
@@ -116,6 +118,21 @@ public sealed partial class CatchUpCard : UserControl
             RenderText();
         }
     }
+
+    /// <summary>The AI panel's search marks in the text (macOS <c>CatchUpCardView.marks</c>), shown once it is rendered.</summary>
+    public MatchMarks Marks
+    {
+        get => _marks;
+        set
+        {
+            if (value.SameAs(_marks)) return;
+            _marks = value;
+            if (_rendered is not null) MarkdownView.Mark(MarkdownText, value);
+        }
+    }
+
+    /// <summary>The rendered text, where the AI panel scrolls its current search match into view.</summary>
+    public RichTextBlock MarkdownBlock => MarkdownText;
 
     public bool IsOpen
     {
@@ -194,6 +211,7 @@ public sealed partial class CatchUpCard : UserControl
         if (!_open || _state is not { } state || _rendered == (state.Text, _highlight)) return;
         _rendered = (state.Text, _highlight);
         MarkdownView.Render(MarkdownText, state.Text, _links, _highlight);
+        MarkdownView.Mark(MarkdownText, _marks);
     }
 
     /// <summary>The placeholder at once, its ring only after <see cref="SpinnerDelay"/>, so a fast answer does not flash it.</summary>

@@ -2,8 +2,8 @@
 <!--
     The open conversation's AI panel, right of its transcript (macOS AIPanelView.swift), one card: a header, as the
     sidebar's (the Summary | Catch-up | Chat tabs in a track, Catch-up only with catch-ups, the model and language menus,
-    the "i" about where the data goes and, on Chat, a fresh chat and History), a line, then the tab's pane and its
-    footer. Summary shows the kept summaries (the newest first with a menu for the earlier ones); its footer has Copy
+    the "i" about where the data goes, on Chat a fresh chat and History, and Search), a line, then the tab's pane (with
+    the search field under it while it shows) and its footer. Summary shows the kept summaries (the newest first with a menu for the earlier ones); its footer has Copy
     as prompt and Summarize / Re-summarize / Stop. Catch-up shows the catch-ups written while recording, read-only, with
     no footer and the menus hidden. Chat shows the questions with their streamed answers and the History panel at the trailing
     edge; its footer is the question row (Send only). Until the files are read, the header over a loading ring. Fluent theme
@@ -144,6 +144,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <DropDownButton
                             x:Name="ModelButton"
@@ -243,10 +244,21 @@
                                 <MenuFlyout x:Name="MoreMenu" Placement="BottomEdgeAlignedRight" />
                             </Button.Flyout>
                         </Button>
+                        <!--
+                            Shows or hides the search field under the tab (macOS searchButton), on every tab; accent-colored while
+                            it shows. Its name and tooltip follow the tab (set in code).
+                        -->
+                        <Button
+                            x:Name="SearchButton"
+                            Grid.Column="6"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center">
+                            <FontIcon x:Name="SearchIcon" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14" Glyph="&#xE721;" />
+                        </Button>
                         <!-- The last one (macOS PanelCollapseButton): folds the panel toward the trailing edge, down when stacked (set in code). -->
                         <Button
                             x:Name="CollapseButton"
-                            Grid.Column="6"
+                            Grid.Column="7"
                             Margin="8,0,0,0"
                             VerticalAlignment="Center"
                             AutomationProperties.Name="{local:T Text='Collapse panel'}"
@@ -281,8 +293,12 @@
                         IsActive="False"
                         Opacity="0" />
 
-                    <!-- The tab's pane, once the files are read. -->
+                    <!-- The tab's pane, once the files are read, and the search field under it while it shows. -->
                     <Grid x:Name="ContentHost" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <!-- Summary: the version menu over the summary; a note while there is none. -->
                         <Border x:Name="SummaryPane">
                             <Grid>
@@ -421,6 +437,66 @@
                             </Grid>
                         </Border>
 
+                        <!--
+                            The search of the shown tab (macOS FindBar), sliding up from under its pane: highlights the query in the
+                            summary, the catch-ups or the chat as typed (SearchText.Find), the current match stronger, its catch-up
+                            opened and scrolled into view. Enter or the down chevron goes to the next match, Shift+Enter or the up
+                            chevron to the previous one; Esc clears the query, then hides the field.
+                        -->
+                        <Grid
+                            x:Name="SearchBar"
+                            Grid.Row="1"
+                            Margin="14,8,14,0"
+                            ColumnSpacing="4"
+                            Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <AutoSuggestBox x:Name="SearchBox" QueryIcon="Find" />
+                            <TextBlock
+                                x:Name="SearchCountText"
+                                Grid.Column="1"
+                                Margin="4,0"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource CaptionStyle}" />
+                            <Button
+                                x:Name="PreviousMatchButton"
+                                Grid.Column="2"
+                                Width="28"
+                                Height="28"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Previous match'}"
+                                ToolTipService.ToolTip="{local:T Text='Previous match'}">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE70E;" />
+                            </Button>
+                            <Button
+                                x:Name="NextMatchButton"
+                                Grid.Column="3"
+                                Width="28"
+                                Height="28"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Next match'}"
+                                ToolTipService.ToolTip="{local:T Text='Next match'}">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE70D;" />
+                            </Button>
+                            <Button
+                                x:Name="CloseSearchButton"
+                                Grid.Column="4"
+                                Width="28"
+                                Height="28"
+                                Padding="0"
+                                Style="{StaticResource SubtleButtonStyle}"
+                                AutomationProperties.Name="{local:T Text='Close search'}"
+                                ToolTipService.ToolTip="{local:T Text='Close search'}">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE711;" />
+                            </Button>
+                        </Grid>
                     </Grid>
 
                     <!-- Why this conversation's last job failed. -->

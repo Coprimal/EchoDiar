@@ -145,6 +145,18 @@ public static class SearchText
         return Merged(found);
     }
 
+    /// <summary>
+    /// <see cref="PhraseRanges"/> over several texts (the AI panel's chat messages, catch-ups or summary), in order, each
+    /// with its text's index; with typos only when no text has the query without them (macOS <c>SearchText.find</c>).
+    /// </summary>
+    public static List<(int Text, int Start, int Length)> Find(string query, IReadOnlyList<string> texts)
+    {
+        List<(int Text, int Start, int Length)> Found(bool typos) =>
+            texts.SelectMany((text, index) => PhraseRanges(text, query, typos).Select(r => (index, r.Start, r.Length))).ToList();
+        var exact = Found(typos: false);
+        return exact.Count > 0 ? exact : Found(typos: true);
+    }
+
     // Words
 
     /// <summary>Typos a query word may have: none up to 4 letters (short words, Vietnamese syllables, are too alike), 1 up to 7, then 2.</summary>
