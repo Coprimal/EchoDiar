@@ -229,6 +229,7 @@ struct AIPanelView: View {
         if role == .user {
             VStack(alignment: .trailing, spacing: 6) {
                 Text(text)
+                    .textSelection(.enabled)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Palette.hoverFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -1323,7 +1324,8 @@ struct WidthCap: Layout {
 /// each with inline Markdown; `[mm:ss]` citations become `echodiar-time:<seconds>` links, or with `references` (a
 /// library-chat answer) `[n mm:ss]` / `[n]` citations become `echodiar-ref:` links. No HTML, no web view; images
 /// (`![alt](url)`) show their alt text only, nothing is fetched. A streaming answer is parsed on every update, so it is
-/// formatted as it arrives.
+/// formatted as it arrives. One read-only text, so a drag selects across its lines and ⌘C copies them as plain text;
+/// a link click goes to the environment's `openURL`, as a SwiftUI `Text` link does.
 struct MarkdownText: View {
     let text: String
     /// The sources of a library-chat answer; nil for an answer about one conversation.
@@ -1334,24 +1336,8 @@ struct MarkdownText: View {
     static let citationScheme = "echodiar-time"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(Array(Self.lines(text).enumerated()), id: \.offset) { _, line in
-                switch line.kind {
-                case .heading:
-                    Text(Self.inline(line.text, references: references, highlight: highlight))
-                        .font(.headline).padding(.top, 4)
-                case .bullet:
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("•")
-                        Text(Self.inline(line.text, references: references, highlight: highlight))
-                    }
-                    .padding(.leading, CGFloat(line.indent) * 14)
-                case .paragraph:
-                    Text(Self.inline(line.text, references: references, highlight: highlight))
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        MarkdownTextRepresentable(string: Self.attributed(text, references: references, highlight: highlight))
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     enum Kind { case heading, bullet, paragraph }
@@ -1372,21 +1358,148 @@ struct MarkdownText: View {
         }
     }
 
-    static func inline(_ text: String, references: [ChatLog.Reference]? = nil, highlight: String = "") -> AttributedString {
-        let linked = references.map { LibraryCitation.linked(text, references: $0) }
-            ?? TranscriptCitation.linked(text, scheme: citationScheme)
-        var result = (try? AttributedString(
-            markdown: linked, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
+    /// The lines as one text, laid out as the old stack of lines: 4 pt between lines and 4 pt more above a heading
+    /// (headline font), each bullet "•" at 14 pt per level with its wrapped lines aligned past it, the body font
+    /// elsewhere. The highlight is found in the rendered characters, so Markdown marks never split a match.
+    static func attributed(_ text: String, references: [ChatLog.Reference]?, highlight: String) -> NSAttributedString {
+        let bodyFont = NSFont.preferredFont(forTextStyle: .body)
+        let headlineFont = NSFont.preferredFont(forTextStyle: .headline)
+        let bulletWidth = ("•" as NSString).size(withAttributes: [.font: bodyFont]).width
+        let result = NSMutableAttributedString()
+        for (index, line) in lines(text).enumerated() {
+            let font = line.kind == .heading ? headlineFont : bodyFont
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.paragraphSpacingBefore = (index == 0 ? 0 : 4) + (line.kind == .heading ? 4 : 0)
+            let start = result.length
+            if line.kind == .bullet {
+                let lead = CGFloat(line.indent) * 14
+                paragraph.firstLineHeadIndent = lead
+                paragraph.headIndent = lead + bulletWidth + 6
+                paragraph.tabStops = [NSTextTab(textAlignment: .left, location: paragraph.headIndent)]
+                result.append(NSAttributedString(string: "•\t", attributes: [.font: font]))
+            }
+            let inline = inline(line.text, references: references)
+            for run in inline.runs {
+                var attributes: [NSAttributedString.Key: Any] = [.font: Self.font(font, run.inlinePresentationIntent)]
+                if let link = run.link { attributes[.link] = link }
+                if run.inlinePresentationIntent?.contains(.strikethrough) == true {
+                    attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+                }
+                result.append(NSAttributedString(string: String(inline[run.range].characters), attributes: attributes))
+            }
+            result.append(NSAttributedString(string: "\n", attributes: [.font: font]))
+            result.addAttributes([.paragraphStyle: paragraph, .foregroundColor: NSColor.labelColor],
+                                 range: NSRange(location: start, length: result.length - start))
+        }
+        if result.length > 0 { result.deleteCharacters(in: NSRange(location: result.length - 1, length: 1)) }
         guard !highlight.isEmpty else { return result }
-        // Found in the rendered characters, so Markdown marks never split a match; mapped back by character offset.
-        let plain = String(result.characters)
+        let plain = result.string
         for range in SearchText.ranges(of: highlight, in: plain) {
-            let lower = result.characters.index(
-                result.startIndex, offsetBy: plain.distance(from: plain.startIndex, to: range.lowerBound))
-            let upper = result.characters.index(lower, offsetBy: plain.distance(from: range.lowerBound, to: range.upperBound))
-            result[lower..<upper].backgroundColor = .yellow
-            result[lower..<upper].foregroundColor = .black
+            result.addAttributes([.backgroundColor: NSColor.yellow, .foregroundColor: NSColor.black],
+                                 range: NSRange(range, in: plain))
         }
         return result
+    }
+
+    /// `base` with a run's bold, italic or code (monospaced) style, as a SwiftUI `Text` draws them.
+    private static func font(_ base: NSFont, _ intent: InlinePresentationIntent?) -> NSFont {
+        guard let intent else { return base }
+        var traits = base.fontDescriptor.symbolicTraits
+        if intent.contains(.code) {
+            return .monospacedSystemFont(ofSize: base.pointSize, weight: traits.contains(.bold) ? .bold : .regular)
+        }
+        if intent.contains(.stronglyEmphasized) { traits.insert(.bold) }
+        if intent.contains(.emphasized) { traits.insert(.italic) }
+        return NSFont(descriptor: base.fontDescriptor.withSymbolicTraits(traits), size: base.pointSize) ?? base
+    }
+
+    static func inline(_ text: String, references: [ChatLog.Reference]? = nil) -> AttributedString {
+        let linked = references.map { LibraryCitation.linked(text, references: $0) }
+            ?? TranscriptCitation.linked(text, scheme: citationScheme)
+        return (try? AttributedString(
+            markdown: linked, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
+    }
+}
+
+/// `MarkdownText`'s text view: no scroll view, no background, no insets, as tall as its text at the proposed width.
+/// A new text keeps the selection (clamped), so a streaming answer can be selected while it is written.
+private struct MarkdownTextRepresentable: NSViewRepresentable {
+    let string: NSAttributedString
+
+    func makeCoordinator() -> MarkdownTextCoordinator { MarkdownTextCoordinator() }
+
+    func makeNSView(context: Context) -> MarkdownNSTextView {
+        let textView = MarkdownNSTextView(usingTextLayoutManager: false)
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isRichText = true
+        textView.allowsUndo = false
+        textView.importsGraphics = false
+        textView.usesFontPanel = false
+        textView.drawsBackground = false
+        textView.textContainerInset = .zero
+        textView.isVerticallyResizable = false
+        textView.isHorizontallyResizable = false
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.linkTextAttributes = [.foregroundColor: NSColor.controlAccentColor, .cursor: NSCursor.pointingHand]
+        textView.delegate = context.coordinator
+        return textView
+    }
+
+    func updateNSView(_ textView: MarkdownNSTextView, context: Context) {
+        context.coordinator.openURL = context.environment.openURL
+        // Against the last string set, not the storage: font fallback (emoji, CJK) changes the storage's fonts, so
+        // it would never compare equal and every SwiftUI update would reset a selection.
+        guard let storage = textView.textStorage, context.coordinator.shown?.isEqual(to: string) != true else { return }
+        context.coordinator.shown = string
+        let selection = textView.selectedRange()
+        storage.setAttributedString(string)
+        let location = min(selection.location, storage.length)
+        textView.setSelectedRange(NSRange(location: location, length: min(selection.length, storage.length - location)))
+        textView.invalidateIntrinsicContentSize()
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView textView: MarkdownNSTextView, context: Context) -> CGSize? {
+        guard let container = textView.textContainer, let layoutManager = textView.layoutManager else { return nil }
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil }
+        container.size = NSSize(width: width ?? .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+        layoutManager.ensureLayout(for: container)
+        let used = layoutManager.usedRect(for: container)
+        return CGSize(width: width ?? ceil(used.width), height: ceil(used.height))
+    }
+}
+
+@MainActor
+private final class MarkdownTextCoordinator: NSObject, NSTextViewDelegate {
+    var openURL: OpenURLAction?
+    /// The string last put in the text view.
+    var shown: NSAttributedString?
+
+    /// Always handled here, so AppKit never opens a link itself: a handler that discards it (catch-ups, live chat)
+    /// leaves it inert.
+    func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+        if let url = (link as? URL) ?? (link as? String).flatMap(URL.init(string:)) { openURL?(url) }
+        return true
+    }
+}
+
+/// Copies the selection as plain text only (⌘C, Edit › Copy, the context menu, drags), with the read-only menu.
+private final class MarkdownNSTextView: NSTextView {
+    override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
+
+    /// NSTextView's own `writeSelection(to:type:)` writes nothing for `.string` (see `LiveCaptionsNSTextView`).
+    override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        guard type == .string else { return super.writeSelection(to: pboard, type: type) }
+        return pboard.setString((string as NSString).substring(with: selectedRange()), forType: .string)
+    }
+
+    override func menu(for event: NSEvent) -> NSMenu? { readOnlyMenu(super.menu(for: event)) }
+
+    /// A selection in another answer (or anywhere else) clears this one, so only one shows at a time.
+    override func resignFirstResponder() -> Bool {
+        guard super.resignFirstResponder() else { return false }
+        setSelectedRange(NSRange(location: selectedRange().location, length: 0))
+        return true
     }
 }

@@ -187,6 +187,7 @@ struct GlobalChatView: View {
     ) -> some View {
         if role == .user {
             Text(text)
+                .textSelection(.enabled)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Palette.hoverFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))

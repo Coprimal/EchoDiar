@@ -254,7 +254,6 @@ struct CatchUpCardView: View {
             }
         } else if !card.text.isEmpty {
             MarkdownText(text: card.text, highlight: highlight)
-                .textSelection(.enabled)
         }
         if let error = card.error {
             Text(error)

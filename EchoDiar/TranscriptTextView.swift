@@ -611,7 +611,7 @@ private final class TranscriptNSTextView: NSTextView {
 
 /// A copy of a text view's context menu without the editing-only submenus (Spelling and Grammar, Substitutions,
 /// Transformations), for read-only text. A copy: the proposed menu may be shared between text views.
-private func readOnlyMenu(_ menu: NSMenu?) -> NSMenu? {
+func readOnlyMenu(_ menu: NSMenu?) -> NSMenu? {
     guard let menu = menu?.copy() as? NSMenu else { return menu }
     let editing: Set<Selector> = [#selector(NSText.showGuessPanel(_:)),
                                   #selector(NSTextView.orderFrontSubstitutionsPanel(_:)),
