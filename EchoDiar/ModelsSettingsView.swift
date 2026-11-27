@@ -64,7 +64,7 @@ struct ModelsSettingsView: View {
     }
 }
 
-/// One section per tier that has `kind` entries, titled with the tier, each with its local models' `ModelRow`s.
+/// One section per tier that has `kind` entries (System first), titled with the tier, each with its local models' `ModelRow`s.
 struct ModelTierSections: View {
     let kind: ModelEntry.Kind
     let model: AppModel
@@ -75,7 +75,7 @@ struct ModelTierSections: View {
     ).filter { $0.kind == .asr || $0.kind == .diarization }
 
     var body: some View {
-        ForEach(ModelEntry.Tier.allCases, id: \.self) { tier in
+        ForEach([.system] + ModelEntry.Tier.allCases.filter { $0 != .system }, id: \.self) { tier in
             let entries = Self.entries.filter { $0.kind == kind && $0.tier == tier }
             if !entries.isEmpty {
                 Section(ModelRow.tierTitle(tier)) {
